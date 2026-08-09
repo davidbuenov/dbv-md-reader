@@ -6,6 +6,11 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-08-09] ADR-011: Mecanismo único `registerPanel()` para todos los paneles flotantes
+- **Contexto:** Tras añadir Recientes (RF-11), Acerca de (RF-12) y Abrir URL, había 4 paneles flotantes (más Búsqueda, ya existente) cada uno con su propia lógica manual de abrir/cerrar, clic-fuera y wiring a `Escape`. Una revisión `/code-simplify` con 4 agentes en paralelo (reuse, simplificación, eficiencia, altitud) señaló esta duplicación de forma independiente desde los 4 ángulos, y detectó que precisamente esa duplicación había dejado un bug real: el panel "Abrir desde URL" nunca implementó cierre por clic fuera.
+- **Decisión:** `registerPanel(panelEl, { trigger, toggle, closeOnOutsideClick, onOpen, onClose })` centraliza el patrón; cada panel se registra una vez y un único array `panelClosers` alimenta `closeAllPanels()` (usado por el atajo `Escape`). `trigger` acepta un elemento o un array (el panel de URL tiene dos disparadores: el botón de la barra y el enlace del Estado Vacío).
+- **Consecuencias:** Añadir un panel nuevo en el futuro ya no requiere reimplementar el patrón a mano ni tocar el handler de `Escape`. El bug de clic-fuera en el panel de URL quedó corregido como efecto colateral de la generalización, no como parche puntual.
+
 ### [2026-08-08] ADR-001: Selección de Tauri v2 + Rust sobre Electron
 - **Contexto:** El PRD exige un tamaño de instalador < 15 MB y un consumo de RAM < 64 MB en reposo.
 - **Decisión:** Utilizar Tauri v2 con el motor nativo WebView2 en Windows.

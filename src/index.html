@@ -43,7 +43,7 @@
         </button>
         <div id="recent-panel" class="hidden">
           <div id="recent-panel-header">
-            <h3>Archivos Recientes</h3>
+            <h3 class="section-label">Archivos Recientes</h3>
             <button id="btn-clear-recent" class="btn-icon-sm" title="Limpiar historial">Limpiar</button>
           </div>
           <div id="recent-list"></div>
@@ -105,7 +105,7 @@
         <button id="btn-empty-url" class="btn-link">o abrir desde una URL</button>
 
         <div id="empty-recent" class="hidden">
-          <h3>Recientes</h3>
+          <h3 class="section-label">Recientes</h3>
           <div id="empty-recent-list"></div>
         </div>
       </div>
@@ -117,22 +117,22 @@
 
     <!-- TOC Sidebar -->
     <aside id="toc-sidebar" class="hidden">
-      <h3>Tabla de Contenidos</h3>
+      <h3 class="section-label">Tabla de Contenidos</h3>
       <nav id="toc-list"></nav>
     </aside>
 
   </div>
 
   <!-- ─── Panel "Abrir desde URL" ───────────────────────────────────────── -->
-  <div id="url-panel" class="hidden">
-    <input id="url-input" type="url" placeholder="https://.../documento.md" autocomplete="off" spellcheck="false" />
+  <div id="url-panel" class="floating-panel hidden">
+    <input id="url-input" class="floating-panel-input" type="url" placeholder="https://.../documento.md" autocomplete="off" spellcheck="false" />
     <button id="url-open-btn" class="btn-icon-sm">Abrir</button>
     <button id="url-close" class="btn-icon-sm" title="Cerrar (Esc)">✕</button>
   </div>
 
   <!-- ─── Modal de búsqueda ─────────────────────────────────────────────── -->
-  <div id="search-modal" class="hidden">
-    <input id="search-input" type="text" placeholder="Buscar en el documento…" autocomplete="off" spellcheck="false" />
+  <div id="search-modal" class="floating-panel hidden">
+    <input id="search-input" class="floating-panel-input" type="text" placeholder="Buscar en el documento…" autocomplete="off" spellcheck="false" />
     <span id="search-counter">0/0</span>
     <button id="search-prev"  class="btn-icon-sm" title="Anterior (Shift+Enter)">↑</button>
     <button id="search-next"  class="btn-icon-sm" title="Siguiente (Enter)">↓</button>

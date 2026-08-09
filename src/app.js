@@ -29,6 +29,13 @@
 
   var invoke = window.__TAURI__.core.invoke;
 
+  // ─── Abrir una URL en el navegador del sistema (con fallback) ─────────────
+  function openExternal(href) {
+    try {
+      window.__TAURI__.shell.open(href).catch(function () { window.open(href, '_blank'); });
+    } catch (ex) { window.open(href, '_blank'); }
+  }
+
   // ─── Estado ──────────────────────────────────────────────────────────────
   var currentDoc   = null;
   var history      = [];
@@ -59,8 +66,12 @@
   // Carga y renderizado de documentos
   // =========================================================================
 
-  function loadDocument(filePath, isHistory, scrollAnchor, isPrimaryOpen) {
+  function loadDocument(filePath, opts) {
     if (!filePath) return;
+    opts = opts || {};
+    var isHistory     = opts.isHistory;
+    var scrollAnchor  = opts.scrollAnchor;
+    var isPrimaryOpen = opts.isPrimaryOpen;
     invoke('read_file', { path: filePath })
       .then(function (doc) {
         currentDoc = doc;
@@ -101,7 +112,7 @@
         // Archivos recientes (RF-11): solo en aperturas explícitas
         if (isPrimaryOpen) {
           invoke('add_recent_file', { path: doc.path, fileName: doc.file_name })
-            .then(loadRecentFiles)
+            .then(renderRecentPanel)
             .catch(function (err) { console.warn('[add_recent_file]', err); });
         }
       })
@@ -202,10 +213,7 @@
       link.addEventListener('click', function (e) {
         e.preventDefault();
         if (href.startsWith('http://') || href.startsWith('https://')) {
-          // Abrir en navegador del sistema
-          try {
-            window.__TAURI__.shell.open(href).catch(function () { window.open(href, '_blank'); });
-          } catch (ex) { window.open(href, '_blank'); }
+          openExternal(href);
         } else if (href.startsWith('#')) {
           // Ancla en el documento actual
           var el = document.getElementById(href.slice(1));
@@ -222,7 +230,7 @@
             return;
           }
           invoke('resolve_relative_path', { baseDir: currentDoc.dir_path, relativePath: filePart })
-            .then(function (resolved) { loadDocument(resolved, false, anchorPart); })
+            .then(function (resolved) { loadDocument(resolved, { scrollAnchor: anchorPart }); })
             .catch(function (err) { showError('[link] ' + err); });
         }
       });
@@ -258,10 +266,10 @@
   }
 
   btnBack.addEventListener('click', function () {
-    if (histIdx > 0) { histIdx--; loadDocument(history[histIdx], true); }
+    if (histIdx > 0) { histIdx--; loadDocument(history[histIdx], { isHistory: true }); }
   });
   btnForward.addEventListener('click', function () {
-    if (histIdx < history.length - 1) { histIdx++; loadDocument(history[histIdx], true); }
+    if (histIdx < history.length - 1) { histIdx++; loadDocument(history[histIdx], { isHistory: true }); }
   });
 
   // =========================================================================
@@ -290,32 +298,72 @@
   });
 
   // =========================================================================
+  // Paneles flotantes (helper compartido: abrir/cerrar/clic-fuera/Escape)
+  // =========================================================================
+
+  var panelClosers = [];
+
+  function closeAllPanels() {
+    panelClosers.forEach(function (close) { close(); });
+  }
+
+  // Registra un panel `.hidden`-toggleable y devuelve { open, close }.
+  // opts.trigger: botón que lo abre (opts.toggle: true si ese botón alterna abrir/cerrar).
+  // opts.closeOnOutsideClick: cierra al hacer clic fuera del panel y del trigger.
+  // opts.onOpen / opts.onClose: efectos secundarios (foco, limpieza, fetch de datos...).
+  function registerPanel(panelEl, opts) {
+    opts = opts || {};
+    var triggers = opts.trigger ? [].concat(opts.trigger) : [];
+    function close() {
+      panelEl.classList.add('hidden');
+      if (opts.onClose) opts.onClose();
+    }
+    function open() {
+      panelEl.classList.remove('hidden');
+      if (opts.onOpen) opts.onOpen();
+    }
+    triggers.forEach(function (trigger) {
+      trigger.addEventListener('click', function (e) {
+        if (opts.toggle) {
+          e.stopPropagation();
+          if (panelEl.classList.contains('hidden')) open(); else close();
+        } else {
+          open();
+        }
+      });
+    });
+    if (opts.closeOnOutsideClick) {
+      document.addEventListener('click', function (e) {
+        if (!panelEl.classList.contains('hidden') && !panelEl.contains(e.target) && triggers.indexOf(e.target) === -1) {
+          close();
+        }
+      });
+    }
+    panelClosers.push(close);
+    return { open: open, close: close };
+  }
+
+  // =========================================================================
   // Acerca de
   // =========================================================================
 
-  var aboutModal   = document.getElementById('about-modal');
-  var aboutBackdrop = document.getElementById('about-backdrop');
   var aboutVersion = document.getElementById('about-version');
+  var aboutPanel = registerPanel(document.getElementById('about-modal'), {
+    trigger: document.getElementById('btn-about'),
+    onOpen: function () {
+      invoke('get_app_version')
+        .then(function (version) { aboutVersion.textContent = 'Versión ' + version; })
+        .catch(function (err) { console.warn('[get_app_version]', err); });
+    }
+  });
 
-  function openAbout() {
-    aboutModal.classList.remove('hidden');
-    invoke('get_app_version')
-      .then(function (version) { aboutVersion.textContent = 'Versión ' + version; })
-      .catch(function (err) { console.warn('[get_app_version]', err); });
-  }
-  function closeAbout() { aboutModal.classList.add('hidden'); }
-
-  document.getElementById('btn-about').addEventListener('click', openAbout);
-  document.getElementById('about-close').addEventListener('click', closeAbout);
-  aboutBackdrop.addEventListener('click', closeAbout);
+  document.getElementById('about-close').addEventListener('click', aboutPanel.close);
+  document.getElementById('about-backdrop').addEventListener('click', aboutPanel.close);
 
   [document.getElementById('about-link-web'), document.getElementById('about-link-github')].forEach(function (link) {
     link.addEventListener('click', function (e) {
       e.preventDefault();
-      var href = link.getAttribute('href');
-      try {
-        window.__TAURI__.shell.open(href).catch(function () { window.open(href, '_blank'); });
-      } catch (ex) { window.open(href, '_blank'); }
+      openExternal(link.getAttribute('href'));
     });
   });
 
@@ -323,20 +371,21 @@
   // Búsqueda (Ctrl+F)
   // =========================================================================
 
-  var searchModal   = document.getElementById('search-modal');
   var searchInput   = document.getElementById('search-input');
   var searchCounter = document.getElementById('search-counter');
   var searchMatches = [], searchCurrent = -1;
 
-  function openSearch()  { searchModal.classList.remove('hidden'); searchInput.focus(); searchInput.select(); }
-  function closeSearch() {
-    searchModal.classList.add('hidden');
-    contentEl.querySelectorAll('mark.search-highlight').forEach(function (m) {
-      m.replaceWith(document.createTextNode(m.textContent));
-    });
-    contentEl.normalize();
-    searchMatches = []; searchCurrent = -1; searchCounter.textContent = '0/0';
-  }
+  var searchPanel = registerPanel(document.getElementById('search-modal'), {
+    trigger: document.getElementById('btn-search'),
+    onOpen: function () { searchInput.focus(); searchInput.select(); },
+    onClose: function () {
+      contentEl.querySelectorAll('mark.search-highlight').forEach(function (m) {
+        m.replaceWith(document.createTextNode(m.textContent));
+      });
+      contentEl.normalize();
+      searchMatches = []; searchCurrent = -1; searchCounter.textContent = '0/0';
+    }
+  });
 
   function runSearch(q) {
     contentEl.querySelectorAll('mark.search-highlight').forEach(function (m) {
@@ -380,8 +429,7 @@
     }
   }
 
-  document.getElementById('btn-search').addEventListener('click', openSearch);
-  document.getElementById('search-close').addEventListener('click', closeSearch);
+  document.getElementById('search-close').addEventListener('click', searchPanel.close);
   document.getElementById('search-prev').addEventListener('click', function () {
     if (searchCurrent > 0) { searchCurrent--; highlightCurrent(); }
   });
@@ -401,8 +449,6 @@
   // Archivos Recientes (RF-11)
   // =========================================================================
 
-  var btnRecent       = document.getElementById('btn-recent');
-  var recentPanel     = document.getElementById('recent-panel');
   var recentList      = document.getElementById('recent-list');
   var btnClearRecent  = document.getElementById('btn-clear-recent');
   var emptyRecent     = document.getElementById('empty-recent');
@@ -433,8 +479,8 @@
     item.appendChild(pathEl);
     item.appendChild(timeEl);
     item.addEventListener('click', function () {
-      loadDocument(file.path, false, null, true);
-      recentPanel.classList.add('hidden');
+      loadDocument(file.path, { isPrimaryOpen: true });
+      recentPanelCtrl.close();
     });
     return item;
   }
@@ -462,15 +508,12 @@
       .catch(function (err) { console.warn('[get_recent_files]', err); });
   }
 
-  btnRecent.addEventListener('click', function (e) {
-    e.stopPropagation();
-    recentPanel.classList.toggle('hidden');
+  var recentPanelCtrl = registerPanel(document.getElementById('recent-panel'), {
+    trigger: document.getElementById('btn-recent'),
+    toggle: true,
+    closeOnOutsideClick: true
   });
-  document.addEventListener('click', function (e) {
-    if (!recentPanel.classList.contains('hidden') && !recentPanel.contains(e.target) && e.target !== btnRecent) {
-      recentPanel.classList.add('hidden');
-    }
-  });
+
   btnClearRecent.addEventListener('click', function () {
     invoke('clear_recent_files')
       .then(loadRecentFiles)
@@ -484,7 +527,7 @@
   function openFileDialog() {
     invoke('open_file_dialog')
       .then(function (selected) {
-        if (selected) loadDocument(selected, false, null, true);
+        if (selected) loadDocument(selected, { isPrimaryOpen: true });
       })
       .catch(function (err) {
         showError('[open_file_dialog] ' + err);
@@ -499,15 +542,13 @@
   // Apertura de documento remoto por URL (RF-08A)
   // =========================================================================
 
-  var urlPanel = document.getElementById('url-panel');
   var urlInput = document.getElementById('url-input');
 
-  function openUrlPanel() {
-    urlPanel.classList.remove('hidden');
-    urlInput.focus();
-    urlInput.select();
-  }
-  function closeUrlPanel() { urlPanel.classList.add('hidden'); }
+  var urlPanelCtrl = registerPanel(document.getElementById('url-panel'), {
+    trigger: [document.getElementById('btn-open-url'), document.getElementById('btn-empty-url')],
+    closeOnOutsideClick: true,
+    onOpen: function () { urlInput.focus(); urlInput.select(); }
+  });
 
   function submitUrl() {
     var url = urlInput.value.trim();
@@ -517,13 +558,11 @@
       alert('La URL debe empezar por http:// o https://');
       return;
     }
-    loadDocument(url, false, null, true);
-    closeUrlPanel();
+    loadDocument(url, { isPrimaryOpen: true });
+    urlPanelCtrl.close();
   }
 
-  document.getElementById('btn-open-url').addEventListener('click', openUrlPanel);
-  document.getElementById('btn-empty-url').addEventListener('click', openUrlPanel);
-  document.getElementById('url-close').addEventListener('click', closeUrlPanel);
+  document.getElementById('url-close').addEventListener('click', urlPanelCtrl.close);
   document.getElementById('url-open-btn').addEventListener('click', submitUrl);
   urlInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); submitUrl(); }
@@ -538,7 +577,7 @@
     if (paths && paths.length > 0) {
       var fp = paths[0];
       if (/\.(md|markdown|txt)$/i.test(fp)) {
-        loadDocument(fp, false, null, true);
+        loadDocument(fp, { isPrimaryOpen: true });
       }
     }
   }).catch(function (err) {
@@ -555,12 +594,13 @@
   var zoomLevel = parseInt(localStorage.getItem('dbv-md-zoom') || '100', 10);
   var zoomToast = null;
 
-  function applyZoom(level) {
+  function applyZoom(level, opts) {
+    opts = opts || {};
     zoomLevel = Math.min(200, Math.max(60, level));
     contentEl.style.zoom = zoomLevel + '%';
     tocSidebar.style.zoom = zoomLevel + '%';
     localStorage.setItem('dbv-md-zoom', String(zoomLevel));
-    showZoomToast();
+    if (!opts.silent) showZoomToast();
   }
 
   function zoomIn()    { applyZoom(zoomLevel + 10); }
@@ -601,7 +641,7 @@
   // =========================================================================
 
   window.addEventListener('keydown', function (e) {
-    if      (e.ctrlKey && e.key === 'f') { e.preventDefault(); openSearch(); }
+    if      (e.ctrlKey && e.key === 'f') { e.preventDefault(); searchPanel.open(); }
     else if (e.ctrlKey && e.key === 'o') { e.preventDefault(); openFileDialog(); }
     else if (e.ctrlKey && e.key === 'p') { e.preventDefault(); window.print(); }
     else if (e.ctrlKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomIn(); }
@@ -609,7 +649,7 @@
     else if (e.ctrlKey && e.key === '0') { e.preventDefault(); zoomReset(); }
     else if (e.altKey  && e.key === 'ArrowLeft')  { e.preventDefault(); if (histIdx > 0) btnBack.click(); }
     else if (e.altKey  && e.key === 'ArrowRight') { e.preventDefault(); if (histIdx < history.length - 1) btnForward.click(); }
-    else if (e.key === 'Escape') { closeSearch(); recentPanel.classList.add('hidden'); closeAbout(); closeUrlPanel(); }
+    else if (e.key === 'Escape') { closeAllPanels(); }
   });
 
   // =========================================================================
@@ -622,15 +662,11 @@
 
     // Restaurar zoom guardado
     var savedZoom = parseInt(localStorage.getItem('dbv-md-zoom') || '100', 10);
-    if (savedZoom !== 100) {
-      zoomLevel = savedZoom;
-      contentEl.style.zoom = zoomLevel + '%';
-      tocSidebar.style.zoom = zoomLevel + '%';
-    }
+    if (savedZoom !== 100) applyZoom(savedZoom, { silent: true });
 
     invoke('get_cli_argument')
       .then(function (cliPath) {
-        if (cliPath) loadDocument(cliPath, false, null, true);
+        if (cliPath) loadDocument(cliPath, { isPrimaryOpen: true });
       })
       .catch(function (err) {
         console.log('[init] no CLI arg:', err);

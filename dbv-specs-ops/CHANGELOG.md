@@ -21,6 +21,14 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ### Cambiado
 - El NFR de tamaño del instalador se relaja de <8 MB a <20 MB (decisión consciente del usuario) para poder completar RF-03/06/08A sin recortar funcionalidad. Build release actual: ~14.5 MB.
+- **`/code-simplify`**: revisión de calidad en 4 ángulos (reuse, simplificación, eficiencia, altitud) sobre todo lo añadido en esta versión, con las siguientes mejoras aplicadas:
+  - Los 4 paneles flotantes (Búsqueda, Recientes, Acerca de, Abrir URL) ahora comparten un mecanismo único de abrir/cerrar/clic-fuera/Escape (`registerPanel`) en vez de 4 implementaciones manuales — de paso corrige un bug real: el panel "Abrir desde URL" no se cerraba al hacer clic fuera.
+  - `loadDocument(filePath, isHistory, scrollAnchor, isPrimaryOpen)` pasa a `loadDocument(filePath, opts)` con un objeto de opciones, más legible en sus 8 puntos de llamada.
+  - Lógica de apertura de enlaces externos (`shell.open` con fallback) extraída a `openExternal()` en vez de duplicada.
+  - El fix de zoom del TOC ya no está duplicado entre `applyZoom()` e `init()`.
+  - CSS de `#url-panel`/`#search-modal` y de las etiquetas de sección repetidas consolidado en clases compartidas (`.floating-panel`, `.section-label`).
+  - Backend: `add_recent_file` devuelve la lista actualizada (evita una segunda llamada IPC `get_recent_files` tras cada apertura), y `get_recent_files` solo escribe a disco cuando la auto-purga realmente eliminó algo.
+  - Auditoría de seguridad obligatoria de esta fase: sin secretos en el código propio, dependencias nuevas resueltas vía `cargo add`/copiadas de un paquete ya instalado (sin riesgo de typosquatting), entrada de URL validada antes de usarse.
 
 ## [0.1.0] - 2026-08-08
 

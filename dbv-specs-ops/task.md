@@ -1,6 +1,6 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> **Estado:** Fases 0 a 10 completadas · v0.2.0 en Git (`v0.2.0`)
+> **Estado:** Fases 0 a 12 completadas · v0.2.0 en Git (`v0.2.0`) · `/code-simplify` aplicado
 > **Última Actualización:** 2026-08-09
 
 ---
@@ -128,4 +128,18 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 - [x] Verificado en la app real con la URL exacta que reportó el usuario (`raw.githubusercontent.com/davidbuenov/dbv-pdf2md/refs/heads/master/implementation_plan.md`) — carga y renderiza correctamente.
 - [x] Consola de errores (`#error-panel`): ya existía y está conectada al mismo `catch` de `loadDocument`, así que cualquier fallo al abrir una URL (typo, 404, etc.) se refleja ahí sin cambios adicionales.
 - [x] `.exe` de la raíz actualizado con este build.
-- [ ] **Pendiente:** commitear estos cambios (index.html, app.js, styles.css, docs).
+- [x] Commiteado (`5e1f950`).
+
+### 🔹 Fase 12: `/code-simplify` — revisión de calidad en 4 ángulos + auditoría de seguridad (2026-08-09)
+- [x] 4 agentes en paralelo (Reuse, Simplificación, Eficiencia, Altitud) revisaron todo lo añadido en la sesión (`lib.rs`, `app.js`, `index.html`, `styles.css`). Señal muy consistente entre los 4 ángulos en varios hallazgos.
+- [x] **JS:** `registerPanel()`/`closeAllPanels()` — mecanismo único para los 4 paneles flotantes (Búsqueda, Recientes, Acerca de, Abrir URL), sustituyendo 4 implementaciones manuales de abrir/cerrar/clic-fuera/Escape. Corrige de paso un bug real que la propia duplicación había dejado: el panel "Abrir desde URL" no tenía cierre por clic fuera.
+- [x] **JS:** `loadDocument(filePath, isHistory, scrollAnchor, isPrimaryOpen)` → `loadDocument(filePath, opts)` con objeto de opciones (8 puntos de llamada actualizados).
+- [x] **JS:** `openExternal(href)` extraído (antes duplicado entre `interceptLinks` y los enlaces del "Acerca de").
+- [x] **JS:** `applyZoom(level, {silent})` — `init()` ya no reimplementa el `.style.zoom` de `#content`/`#toc-sidebar`.
+- [x] **Rust:** `add_recent_file` devuelve la lista actualizada (el frontend ya no hace una segunda llamada `get_recent_files` tras cada apertura). `get_recent_files` solo escribe a disco si la auto-purga eliminó algo.
+- [x] **CSS:** `.floating-panel`/`.floating-panel-input` compartidas por `#url-panel`/`#search-modal`; `.section-label` compartida por las 3 cabeceras de sección repetidas.
+- [x] **Conscientemente omitido** (fuera de alcance de un pase de limpieza, o coste/beneficio bajo): resolución de imágenes en lote (una sola llamada IPC para N imágenes) — ya se despachan concurrentemente, no bloqueante; reutilizar el watcher de `notify` entre navegaciones dentro del mismo directorio — coste bajo, complejidad no trivial; migrar `is_remote()`/unión de URLs a la crate `url` — cambiaría comportamiento en casos borde (`..`), requiere nueva dependencia.
+- [x] `cargo test --lib` (9/9 + 1 ignorado) y `cargo build --release` en verde tras cada cambio.
+- [x] Verificado en la app real: el panel de URL ya se cierra al hacer clic fuera; el panel de Recientes sigue abriendo documentos correctamente tras el refactor de `loadDocument`.
+- [x] Auditoría de seguridad obligatoria de esta fase: sin secretos en código propio; dependencias nuevas (`notify`, `ureq`, `tempfile`, `dompurify`) resueltas vía `cargo add` o copiadas de un paquete ya instalado, no tecleadas a mano; entrada de la URL validada antes de usarse.
+- [x] `.exe` de la raíz actualizado.

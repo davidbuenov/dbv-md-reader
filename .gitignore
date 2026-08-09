@@ -16,3 +16,4 @@ desktop.ini
 .env.local
 .vscode/
 .idea/
+.claude/

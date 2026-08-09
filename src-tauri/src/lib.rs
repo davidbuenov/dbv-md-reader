@@ -228,29 +228,36 @@ pub mod commands {
     }
 
     /// Returns the recent-files list (RF-11), self-healing by dropping local entries
-    /// whose file no longer exists on disk. Remote entries are kept as-is.
+    /// whose file no longer exists on disk. Remote entries are kept as-is. Only writes
+    /// back to disk when the self-healing filter actually dropped something.
     #[tauri::command]
     pub fn get_recent_files(app: tauri::AppHandle) -> Result<Vec<RecentFile>, String> {
         let list = load_recent_files(&app)?;
+        let original_len = list.len();
         let filtered = filter_existing(list);
-        save_recent_files(&app, &filtered)?;
+        if filtered.len() != original_len {
+            save_recent_files(&app, &filtered)?;
+        }
         Ok(filtered)
     }
 
-    /// Records an explicit file open (CLI/dialog/drag&drop) at the top of the recent-files list.
+    /// Records an explicit file open (CLI/dialog/drag&drop) at the top of the recent-files
+    /// list and returns the updated list, so the frontend doesn't need a follow-up
+    /// `get_recent_files` round-trip just to re-render the panel.
     #[tauri::command]
     pub fn add_recent_file(
         app: tauri::AppHandle,
         path: String,
         file_name: String,
-    ) -> Result<(), String> {
+    ) -> Result<Vec<RecentFile>, String> {
         let list = load_recent_files(&app)?;
         let last_opened = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
         let updated = upsert_recent(list, RecentFile { path, file_name, last_opened });
-        save_recent_files(&app, &updated)
+        save_recent_files(&app, &updated)?;
+        Ok(updated)
     }
 
     /// Clears the recent-files list.

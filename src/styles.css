@@ -383,14 +383,15 @@ body {
   display: flex;
   flex-direction: column;
 }
-#toc-sidebar h3 {
+/* Etiqueta pequeña en mayúsculas usada en cabeceras de panel (TOC, Recientes) */
+.section-label {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
-  margin-bottom: 12px;
 }
+#toc-sidebar h3 { margin-bottom: 12px; }
 #toc-list { display: flex; flex-direction: column; gap: 1px; }
 
 .toc-item-h1 { font-weight: 600; font-size: 13px; color: var(--text-primary); }
@@ -412,8 +413,8 @@ body {
   color: var(--accent);
 }
 
-/* ─── Panel "Abrir desde URL" ──────────────────────────────────────────────── */
-#url-panel {
+/* ─── Paneles flotantes fijos bajo la barra superior (URL, Búsqueda) ───────── */
+.floating-panel {
   position: fixed;
   top: 60px;
   right: 20px;
@@ -427,8 +428,7 @@ body {
   padding: 8px 10px;
   z-index: 100;
 }
-#url-input {
-  width: 320px;
+.floating-panel-input {
   padding: 6px 10px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -439,7 +439,9 @@ body {
   outline: none;
   transition: border-color 0.15s;
 }
-#url-input:focus { border-color: var(--accent); }
+.floating-panel-input:focus { border-color: var(--accent); }
+
+#url-input { width: 320px; }
 
 .btn-link {
   display: inline-block;
@@ -455,33 +457,7 @@ body {
 .btn-link:hover { color: var(--accent-hover); }
 
 /* ─── Modal de búsqueda ───────────────────────────────────────────────────── */
-#search-modal {
-  position: fixed;
-  top: 60px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px var(--shadow);
-  padding: 8px 10px;
-  z-index: 100;
-}
-#search-input {
-  width: 240px;
-  padding: 6px 10px;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.15s;
-}
-#search-input:focus { border-color: var(--accent); }
+#search-input { width: 240px; }
 #search-counter { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 32px; text-align: center; }
 
 /* ─── Panel de Archivos Recientes ─────────────────────────────────────────── */
@@ -507,13 +483,6 @@ body {
   justify-content: space-between;
   margin-bottom: 8px;
   padding: 0 4px;
-}
-#recent-panel-header h3 {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
 }
 #recent-list { display: flex; flex-direction: column; gap: 2px; }
 
@@ -554,14 +523,7 @@ body {
   width: 100%;
   text-align: left;
 }
-#empty-recent h3 {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
+#empty-recent h3 { margin-bottom: 8px; }
 #empty-recent .recent-item-path { display: none; }
 
 /* ─── Búsqueda highlight ──────────────────────────────────────────────────── */
