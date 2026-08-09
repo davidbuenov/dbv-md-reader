@@ -1,6 +1,6 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> **Estado:** Fases 0 a 12 completadas · v0.2.0 en Git (`v0.2.0`) · `/code-simplify` aplicado
+> **Estado:** Fases 0 a 13 completadas · v0.2.0 publicado en GitHub (repo + Release con `.exe` adjunto)
 > **Última Actualización:** 2026-08-09
 
 ---
@@ -143,3 +143,10 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 - [x] Verificado en la app real: el panel de URL ya se cierra al hacer clic fuera; el panel de Recientes sigue abriendo documentos correctamente tras el refactor de `loadDocument`.
 - [x] Auditoría de seguridad obligatoria de esta fase: sin secretos en código propio; dependencias nuevas (`notify`, `ureq`, `tempfile`, `dompurify`) resueltas vía `cargo add` o copiadas de un paquete ya instalado, no tecleadas a mano; entrada de la URL validada antes de usarse.
 - [x] `.exe` de la raíz actualizado.
+
+### 🔹 Fase 13: Publicación y README orientado a usuarios finales (2026-08-09)
+- [x] Repositorio conectado a `https://github.com/davidbuenov/dbv-md-reader` (estaba vacío, sin sobrescribir nada) y publicado: rama `master` (5 commits) + tag `v0.2.0`.
+- [x] GitHub Release `v0.2.0` creada con `dbv-md-reader.exe` adjunto como descarga directa (notas orientadas a usuario final, no jerga técnica).
+- [x] **Gap detectado por el usuario:** el README solo hablaba de compilar desde fuente (Rust, Node, build tools) — ningún usuario no técnico podía saber que bastaba con descargar el `.exe`.
+- [x] README reestructurado: nueva sección "Descárgalo y úsalo" al principio con enlace directo de descarga (`/releases/latest/download/dbv-md-reader.exe`), pasos de doble clic y cómo asociar `.md` en Windows. Todo el contenido de compilación agrupado bajo "Para desarrolladores", con nota explícita de que no es necesario para usar la app.
+- [x] Commiteado y publicado (`584aeb4`).
