@@ -1,0 +1,18 @@
+# Tauri / Rust build artifacts
+target/
+src-tauri/target/
+
+# Node dependencies & dist
+node_modules/
+dist/
+
+# OS temporary files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment / IDE settings
+.env
+.env.local
+.vscode/
+.idea/

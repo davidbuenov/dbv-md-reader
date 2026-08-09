@@ -1,0 +1,23 @@
+# Windsurf Rules — dbv-specs-ops
+
+This project uses **Spec-Driven Development (SDD)**. Apply these rules in all interactions.
+
+## Before proposing any code
+
+1. Read `project.config.md` to get the project name, author, license and file header template
+2. Read `docs/SPECIFICATIONS.md` to understand the current requirements
+3. Read `docs/ARCHITECTURE.md` to respect the stack and technical decisions
+4. Read `docs/DESIGN.md` to respect the visual design system — colors, typography and components *(if it exists)*
+5. Read `memory.md` to load the qualitative context and technical decisions
+6. Read `task.md` to know the current project state
+
+The full workflow and development rules are in `docs/MASTER_PROMPT.md`.
+
+## ⚠️ Core Rules (Strong Pointer)
+
+**Read `docs/MASTER_PROMPT.md` and follow its workflow strictly. If you detect contradictions between the prompt and project specs, halt and report before proceeding.**
+All initialization logic (Bootstrap), state checking (Specs Check), lifecycle (Workflow) and coding standards are centrally defined there to avoid cognitive redundancy.
+
+---
+
+> 🛠️ SDD Framework created by **[David Bueno Vallejo](https://github.com/davidbuenov)** — free and open source · [dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops)

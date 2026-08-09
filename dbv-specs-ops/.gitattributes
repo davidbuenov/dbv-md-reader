@@ -1,0 +1,22 @@
+# Normalizar todos los ficheros de texto a LF en el repositorio
+# Esto previene que gitingest u otras herramientas detecten CRLF como binario
+
+* text=auto eol=lf
+
+# Ficheros markdown — siempre LF
+*.md text eol=lf
+
+# Ficheros de configuración y código — siempre LF
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+
+# Scripts Windows — CRLF (son los únicos que lo necesitan)
+*.cmd text eol=crlf
+*.bat text eol=crlf

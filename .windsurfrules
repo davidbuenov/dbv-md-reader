@@ -1,0 +1,3 @@
+# Windsurf Rules — dbv-md-reader (dbv-specs-ops SDD)
+Always follow the workflow defined in dbv-specs-ops/docs/MASTER_PROMPT.md.
+Read dbv-specs-ops/docs/SPECIFICATIONS.md, dbv-specs-ops/docs/ARCHITECTURE.md, and dbv-specs-ops/task.md before modifying code.

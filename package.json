@@ -1,0 +1,22 @@
+{
+  "name": "dbv-md-reader",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-shell": "^2.2.0",
+    "dompurify": "^3.4.13",
+    "markdown-it": "^14.1.0",
+    "mermaid": "^11.4.1",
+    "prismjs": "^1.29.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4"
+  }
+}

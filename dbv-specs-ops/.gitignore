@@ -1,0 +1,48 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+
+# Variables de entorno (nunca versionar secretos)
+.env
+.env.*
+!.env.example
+
+# Dependencias (cuando el proyecto añada código)
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.python-version
+
+# Salidas de compilación
+dist/
+build/
+out/
+*.egg-info/
+
+# Logs
+*.log
+logs/
+
+# Temporales e IA Artifacts
+*.tmp
+*.bak
+implementation_plan.md
+walkthrough.md
+
+# Ficheros de evaluación interna (no versionar)
+docs/EvaluacionChatGPT.md
+docs/EvaluacionCopilot.md
+docs/EvaluaciondeClaude.md
+
+# Ficheros de docencia (no versionar)
+TrabajoMaster.md
