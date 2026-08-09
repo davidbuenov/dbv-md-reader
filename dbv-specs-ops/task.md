@@ -1,46 +1,35 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> **Estado:** Fases 0 a 6 COMPLETADAS (parcialmente — ver ⚠️ Deuda Técnica) · Fase 7 en curso  
-> **Última Actualización:** 2026-08-09  
+> **Estado:** Fases 0 a 10 completadas · v0.2.0 en Git (`v0.2.0`)
+> **Última Actualización:** 2026-08-09
 
 ---
 
-## ⚠️ Deuda Técnica Detectada (Auditoría 2026-08-09)
+## ⚠️ Deuda Técnica Detectada (Auditoría 2026-08-09) — Resuelta en Fase 7
 
-Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md`, estos RF documentados como decisión arquitectónica **no están implementados** (ni el crate correspondiente aparece en `Cargo.toml`):
-
-- **RF-03 (Sanitización Ammonia):** No implementado. El HTML embebido se renderiza crudo (`html: true` en `markdown-it`, sin filtrado en Rust). Riesgo de seguridad activo.
-- **RF-06 (Auto-Reload / `notify`):** No implementado. No hay watcher ni evento `file-changed`.
-- **RF-07 (`asset://` para imágenes locales):** No implementado. **Causa el bug reportado por el usuario de imágenes que no cargan.**
-- **RF-08A (fetch de `.md` remotos):** No implementado. Solo funciona la navegación a `.md` locales.
-
-Ver detalle y estado corregido casilla por casilla en `docs/SPECIFICATIONS.md` §3.
+Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se encontró que RF-03, RF-06, RF-07 y RF-08A estaban documentados como decisión arquitectónica pero **no implementados**. Todos se cerraron en la Fase 7 (ver detalle casilla por casilla en `docs/SPECIFICATIONS.md` §3).
 
 ---
 
 ## 📌 Snapshot de Contexto (Estado Actual)
 
-- **Fase Actual:** `/ship` COMPLETADO — v0.2.0. RF-03/06/07/11 implementados y verificados en la app real; RF-08A implementado y compilado, pendiente de una prueba manual con una URL real (sin red en el entorno de verificación).
-- **Build release:** `cargo build --release` → `dbv-md-reader.exe` en la raíz actualizado a **v0.2.0, 14.5 MB** (dentro del NFR relajado <20 MB).
-- **Sin repositorio Git:** este proyecto no tiene `.git` inicializado, así que no se ha creado tag de versión ni commit — solo se han actualizado los ficheros de versión (`package.json`, `Cargo.toml`, `tauri.conf.json`) y `CHANGELOG.md`.
-
-### 🔹 Fase 8: RF-12 "Acerca de" + fix de zoom en TOC (2026-08-09, edición rápida)
-- [x] Comando Rust `get_app_version` (lee la versión de `Cargo.toml` vía `app.package_info()`).
-- [x] Modal `#about-modal` con versión, enlaces a `davidbuenov.com` / `github.com/davidbuenov` (vía `shell.open`) y licencia.
-- [x] Fix: `applyZoom()` y la restauración de zoom guardado en `init()` ahora aplican `style.zoom` también a `#toc-sidebar`, no solo a `#content`.
-- [x] Verificado en la app real: el modal muestra "Versión 0.2.0" correctamente. El fix de zoom del TOC se implementó con el mismo patrón ya probado para `#content` (ADR-005) pero no se verificó visualmente en este ciclo (se interrumpió la automatización de UI al detectar que un clic había perdido el foco de la ventana de la app).
-- [ ] **Pendiente:** copiar el build más reciente (`src-tauri\target\release\dbv-md-reader.exe`) sobre el `.exe` de la raíz — bloqueado por una ventana de la app que el usuario tiene abierta desde antes.
+- **Fase Actual:** Todo lo solicitado hasta ahora está completo (RF-03/06/07/08A/11/12, tests, Git). Sin tareas abiertas salvo las anotadas como pendientes más abajo.
+- **Build release:** `cargo build --release` → `dbv-md-reader.exe`, **v0.2.0, ~14.5 MB** (dentro del NFR relajado <20 MB, ver ADR-008). El `.exe` de la raíz refleja el build con RF-03/06/07/08A/11 (About + fix de zoom del TOC compilados pero no reempaquetados en el `.exe` de la raíz — ver Fase 8).
 - **Entorno & Toolchain:**
   - Rust toolchain: `rustc 1.97.1` / `cargo 1.97.1` (Edition 2021).
-  - Node.js / NPM: Dependencias de vendor empaquetadas localmente en `src/vendor/` (`markdown-it.min.js`, `prism.min.js`, `mermaid.min.js`).
-  - Ejecutable standalone de producción: `dbv-md-reader.exe` en la raíz del proyecto (~12.5 MB, 100% autónomo sin consola).
+  - Node.js / NPM: Dependencias de vendor empaquetadas localmente en `src/vendor/` (`markdown-it.min.js`, `dompurify.min.js`, `prism.min.js`, `mermaid.min.js`).
+- **Git:** repositorio inicializado, commit inicial `b359def`, tag `v0.2.0`. Sin remoto configurado — no se ha hecho `push`.
 - **Características Principales Implementadas & Verificadas:**
   1. **Apertura de Documentos:**
      - Argumento CLI por línea de comandos (`dbv-md-reader.exe ruta/fichero.md`).
      - Diálogo de selección de archivos nativo de Windows (botón "Abrir" / `Ctrl + O`) mediante `open_file_dialog` en Rust (`tauri-plugin-dialog`).
      - Arrastrar y soltar (Drag & Drop) nativo de archivos `.md` mediante el evento `tauri://drag-drop` de Tauri v2.
+     - Documentos Markdown remotos (`http(s)://.md`) descargados vía `ureq` (RF-08A).
+     - Archivos Recientes: últimos 10 documentos abiertos explícitamente, persistidos en `recent_files.json` (RF-11).
   2. **Renderizado & Markdown:**
-     - Parseo CommonMark con `markdown-it` (Soporte HTML inline como `<a id="..."></a>` habilitado).
+     - Parseo CommonMark con `markdown-it` (soporte HTML inline como `<a id="..."></a>` habilitado).
+     - Sanitización XSS con DOMPurify sobre el HTML ya renderizado (RF-03).
+     - Resolución de imágenes locales al protocolo `asset://` de Tauri (RF-07).
      - Resaltado de sintaxis de código con Prism.js + botón "Copiar".
      - Renderizado de diagramas de flujo y arquitectura ` ```mermaid ` a SVG interactivos.
      - Auto-generación de Tabla de Contenidos (TOC) en barra lateral desplegable (auto-abierta si el documento contiene encabezados).
@@ -51,8 +40,10 @@ Ver detalle y estado corregido casilla por casilla en `docs/SPECIFICATIONS.md` �
   4. **Experiencia de Lectura & Utilidades:**
      - Selector de Temas Visuales: Claro (Light), Oscuro (Dark) y Sepia, persistido en `localStorage`.
      - Buscador interno de texto (`Ctrl + F`) con resaltado de coincidencias y contador `1/N`.
-     - Sistema de Zoom Proporcional (`Ctrl + Rueda`, `Ctrl + +`, `Ctrl + -`, `Ctrl + 0`) usando CSS `zoom` con toast indicador y persistencia local.
+     - Sistema de Zoom Proporcional (`Ctrl + Rueda`, `Ctrl + +`, `Ctrl + -`, `Ctrl + 0`) aplicado al contenido y a la Tabla de Contenidos, con toast indicador y persistencia local.
+     - Auto-recarga en caliente cuando el archivo abierto cambia en disco, preservando el scroll (RF-06).
      - Modo Impresión / Exportación a PDF con `@media print` (`Ctrl + P`).
+     - Panel "Acerca de" con versión, enlaces a `davidbuenov.com` / GitHub y licencia (RF-12).
 
 ---
 
@@ -103,8 +94,29 @@ Ver detalle y estado corregido casilla por casilla en `docs/SPECIFICATIONS.md` �
 - [x] **7.1 RF-07 Imágenes (bug urgente):** `assetProtocol` en `tauri.conf.json`; `resolveImages()` en `app.js` (resuelve + `convertFileSrc`). Verificado.
 - [x] **7.2 RF-03 Sanitización:** Vendorizado `dompurify.min.js` (v3.4.13); `DOMPurify.sanitize(md.render(raw), {ADD_ATTR:['id','class','name']})` en `renderMarkdown()`. Verificado.
 - [x] **7.3 RF-06 Auto-Reload:** `notify` v8.2.0; comando `watch_file` (vigila directorio padre, ADR-010) + evento `file-changed`; `reloadCurrentDocument()` en `app.js` con debounce y scroll preservado. Verificado.
-- [x] **7.4 RF-08A Remotos:** `ureq` v3.4.0; `read_file` y `resolve_relative_path` manejan `http(s)://` (descarga + unión de URLs). Compila; **pendiente prueba manual con URL real** (sin red en el entorno de verificación).
+- [x] **7.4 RF-08A Remotos:** `ureq` v3.4.0; `read_file` y `resolve_relative_path` manejan `http(s)://` (descarga + unión de URLs). Verificado con test de integración contra una URL real (Fase 10).
 - [x] **7.5 RF-11 Archivos Recientes:** `RecentFile` + `get_recent_files` / `add_recent_file` / `clear_recent_files` en Rust (`recent_files.json`); `isPrimaryOpen` en `loadDocument()`; botón `#btn-recent` + panel + estilos. Verificado.
 - [x] **7.6 Build:** Comandos registrados en `generate_handler!`; `cargo check` y `cargo build --release` sin errores ni warnings.
-- [x] **7.7 Pruebas manuales:** Ejecutadas 4 de 5 (imágenes, sanitización + anclas + código con `<` + intento XSS, auto-reload, recientes) lanzando el `.exe` release con un `.md` de prueba real — ver Lección 5 en `memory.md`. Falta RF-08A remoto (sin red disponible en este entorno).
-- [x] **7.8 Ship:** `CHANGELOG.md` movido a `[0.2.0] - 2026-08-09`; versión actualizada en `package.json`/`Cargo.toml`/`tauri.conf.json`; `README.md` actualizado (DOMPurify, Recientes, Auto-Reload, remotos); `.exe` de la raíz reemplazado por el build v0.2.0 (14.5 MB). Sin repositorio Git en este proyecto, así que no hay tag ni commit que crear.
+- [x] **7.7 Pruebas manuales:** imágenes, sanitización + anclas + código con `<` + intento XSS, auto-reload y recientes verificados lanzando el `.exe` release con un `.md` de prueba real (ver Lección 6 en `memory.md`); RF-08A verificado después con test de integración (Fase 10).
+- [x] **7.8 Ship:** `CHANGELOG.md` movido a `[0.2.0] - 2026-08-09`; versión actualizada en `package.json`/`Cargo.toml`/`tauri.conf.json`; `README.md` actualizado (DOMPurify, Recientes, Auto-Reload, remotos); `.exe` de la raíz reemplazado por el build v0.2.0 (14.5 MB).
+
+### 🔹 Fase 8: RF-12 "Acerca de" + fix de zoom en TOC (2026-08-09, edición rápida)
+- [x] Comando Rust `get_app_version` (lee la versión de `Cargo.toml` vía `app.package_info()`).
+- [x] Modal `#about-modal` con versión, enlaces a `davidbuenov.com` / `github.com/davidbuenov` (vía `shell.open`) y licencia.
+- [x] Fix: `applyZoom()` y la restauración de zoom guardado en `init()` ahora aplican `style.zoom` también a `#toc-sidebar`, no solo a `#content`.
+- [x] Verificado en la app real: el modal muestra "Versión 0.2.0" correctamente.
+- [ ] **Pendiente de verificación visual:** el fix de zoom del TOC se implementó con el mismo patrón ya probado para `#content` (ADR-005), pero no se confirmó visualmente (la automatización de UI por coordenadas resultó poco fiable en este entorno — ver Lección 8 en `memory.md`). Confirmar manualmente con `Ctrl + Rueda` sobre un documento con TOC.
+- [ ] **Pendiente:** copiar el build más reciente (`src-tauri\target\release\dbv-md-reader.exe`, incluye RF-12 + fix de zoom) sobre el `.exe` de la raíz — bloqueado en el último intento por una ventana de la app abierta.
+
+### 🔹 Fase 9: Control de versiones (2026-08-09)
+- [x] `git init` en la raíz del proyecto (no existía repositorio previamente).
+- [x] Commit inicial `b359def` — "feat: dbv-md-reader v0.2.0 — commit inicial del proyecto" (115 ficheros, incluye RF-12 y el fix de zoom, ya escritos en disco antes del commit).
+- [x] Tag `v0.2.0` creado sobre el commit inicial.
+- [ ] Sin remoto configurado todavía — no se ha hecho `push` (no aplica hasta que el usuario añada un remoto, ej. GitHub). Cambios posteriores al commit inicial (tests de la Fase 10) siguen sin commitear.
+
+### 🔹 Fase 10: Tests automatizados (2026-08-09)
+- [x] Refactor de `add_recent_file`/`get_recent_files` para extraer lógica pura sin `AppHandle`: `upsert_recent()` (dedupe + orden + límite de 10) y `filter_existing()` (auto-purga de locales borrados, remotos siempre se conservan). Ver Lección 5 en `memory.md`.
+- [x] `cargo add tempfile --dev` para los tests que necesitan archivos reales en disco.
+- [x] 9 tests unitarios en `src-tauri/src/lib.rs` (`resolve_relative_path` local/absoluta/remota/error, `upsert_recent`, `filter_existing`) — todos en verde con `cargo test --lib`.
+- [x] 1 test de integración `#[ignore]` (`read_file_downloads_remote_markdown`) que descarga un `.md` real por HTTPS — verificado en verde con `cargo test --lib -- --ignored`, confirmando RF-08A end-to-end.
+- [ ] **Pendiente:** commitear los cambios de esta fase (refactor + tests + `Cargo.lock`/`Cargo.toml` con `tempfile`) — quedaron fuera del commit inicial `b359def`.

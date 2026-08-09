@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
+    "test:all": "cargo test --manifest-path src-tauri/Cargo.toml --lib -- --include-ignored"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",

@@ -35,6 +35,25 @@ fn is_remote(path: &str) -> bool {
     path.starts_with("http://") || path.starts_with("https://")
 }
 
+/// Inserts/moves `entry` to the front of `list`, deduplicating by path and
+/// capping the list at 10 entries (RF-11). Pure function, no I/O — kept
+/// separate from `add_recent_file` so it can be unit-tested directly.
+fn upsert_recent(mut list: Vec<RecentFile>, entry: RecentFile) -> Vec<RecentFile> {
+    list.retain(|f| f.path != entry.path);
+    list.insert(0, entry);
+    list.truncate(10);
+    list
+}
+
+/// Drops local entries whose file no longer exists on disk; remote entries
+/// are always kept (RF-11 self-healing). Pure function, separate from
+/// `get_recent_files` so it can be unit-tested without a Tauri AppHandle.
+fn filter_existing(list: Vec<RecentFile>) -> Vec<RecentFile> {
+    list.into_iter()
+        .filter(|f| is_remote(&f.path) || Path::new(&f.path).exists())
+        .collect()
+}
+
 pub mod commands {
     use super::*;
 
@@ -213,10 +232,7 @@ pub mod commands {
     #[tauri::command]
     pub fn get_recent_files(app: tauri::AppHandle) -> Result<Vec<RecentFile>, String> {
         let list = load_recent_files(&app)?;
-        let filtered: Vec<RecentFile> = list
-            .into_iter()
-            .filter(|f| is_remote(&f.path) || Path::new(&f.path).exists())
-            .collect();
+        let filtered = filter_existing(list);
         save_recent_files(&app, &filtered)?;
         Ok(filtered)
     }
@@ -228,15 +244,13 @@ pub mod commands {
         path: String,
         file_name: String,
     ) -> Result<(), String> {
-        let mut list = load_recent_files(&app)?;
-        list.retain(|f| f.path != path);
+        let list = load_recent_files(&app)?;
         let last_opened = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        list.insert(0, RecentFile { path, file_name, last_opened });
-        list.truncate(10);
-        save_recent_files(&app, &list)
+        let updated = upsert_recent(list, RecentFile { path, file_name, last_opened });
+        save_recent_files(&app, &updated)
     }
 
     /// Clears the recent-files list.
@@ -265,4 +279,148 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    fn write_temp_file(dir: &Path, name: &str, contents: &str) -> PathBuf {
+        let path = dir.join(name);
+        let mut f = fs::File::create(&path).unwrap();
+        f.write_all(contents.as_bytes()).unwrap();
+        path
+    }
+
+    fn rf(path: &str, last_opened: u64) -> RecentFile {
+        RecentFile {
+            path: path.to_string(),
+            file_name: "f.md".to_string(),
+            last_opened,
+        }
+    }
+
+    // ── resolve_relative_path (RF-08A / RF-07) ────────────────────────────
+
+    #[test]
+    fn resolve_relative_path_full_url_ignores_local_base() {
+        let result = commands::resolve_relative_path(
+            "C:\\some\\local\\dir".to_string(),
+            "https://example.com/doc.md".to_string(),
+        );
+        assert_eq!(result.unwrap(), "https://example.com/doc.md");
+    }
+
+    #[test]
+    fn resolve_relative_path_remote_base_joins_as_url() {
+        let result = commands::resolve_relative_path(
+            "https://example.com/docs/".to_string(),
+            "./chapter2.md".to_string(),
+        );
+        assert_eq!(result.unwrap(), "https://example.com/docs/chapter2.md");
+    }
+
+    #[test]
+    fn resolve_relative_path_local_relative_file_resolves() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_temp_file(tmp.path(), "lesson.md", "# hi");
+        let result = commands::resolve_relative_path(
+            tmp.path().to_string_lossy().to_string(),
+            "lesson.md".to_string(),
+        );
+        assert!(result.as_ref().unwrap().ends_with("lesson.md"), "{:?}", result);
+    }
+
+    #[test]
+    fn resolve_relative_path_local_absolute_overrides_base() {
+        let tmp = tempfile::tempdir().unwrap();
+        let abs = write_temp_file(tmp.path(), "abs.md", "# hi");
+        let result = commands::resolve_relative_path(
+            "C:\\unrelated\\dir".to_string(),
+            abs.to_string_lossy().to_string(),
+        );
+        assert!(result.as_ref().unwrap().ends_with("abs.md"), "{:?}", result);
+    }
+
+    #[test]
+    fn resolve_relative_path_missing_local_file_errors() {
+        let tmp = tempfile::tempdir().unwrap();
+        let result = commands::resolve_relative_path(
+            tmp.path().to_string_lossy().to_string(),
+            "does-not-exist.md".to_string(),
+        );
+        assert!(result.is_err());
+    }
+
+    // ── upsert_recent (RF-11) ──────────────────────────────────────────────
+
+    #[test]
+    fn upsert_recent_adds_new_entry_to_front() {
+        let list = vec![rf("a.md", 1)];
+        let updated = upsert_recent(list, rf("b.md", 2));
+        assert_eq!(updated.len(), 2);
+        assert_eq!(updated[0].path, "b.md");
+    }
+
+    #[test]
+    fn upsert_recent_dedupes_and_moves_to_front() {
+        let list = vec![rf("a.md", 1), rf("b.md", 2)];
+        let updated = upsert_recent(list, rf("a.md", 3));
+        assert_eq!(updated.len(), 2, "reopening a.md must not duplicate it");
+        assert_eq!(updated[0].path, "a.md");
+        assert_eq!(updated[0].last_opened, 3);
+    }
+
+    #[test]
+    fn upsert_recent_truncates_to_ten_dropping_oldest() {
+        let mut list: Vec<RecentFile> = Vec::new();
+        for i in 0..10u64 {
+            list = upsert_recent(list, rf(&format!("{}.md", i), i));
+        }
+        assert_eq!(list.len(), 10);
+
+        list = upsert_recent(list, rf("new.md", 99));
+
+        assert_eq!(list.len(), 10, "list must stay capped at 10 entries");
+        assert_eq!(list[0].path, "new.md");
+        assert!(
+            !list.iter().any(|f| f.path == "0.md"),
+            "oldest entry (0.md) should have been evicted"
+        );
+    }
+
+    // ── filter_existing (RF-11 self-healing) ───────────────────────────────
+
+    #[test]
+    fn filter_existing_keeps_remote_and_existing_local_drops_missing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let existing = write_temp_file(tmp.path(), "exists.md", "# hi");
+        let existing_str = existing.to_string_lossy().to_string();
+        let list = vec![
+            rf(&existing_str, 1),
+            rf("C:\\definitely\\not\\a\\real\\path\\gone.md", 2),
+            rf("https://example.com/remote.md", 3),
+        ];
+
+        let filtered = filter_existing(list);
+
+        let paths: Vec<&str> = filtered.iter().map(|f| f.path.as_str()).collect();
+        assert!(paths.contains(&existing_str.as_str()), "existing local file must be kept");
+        assert!(paths.contains(&"https://example.com/remote.md"), "remote entries are never filtered by disk existence");
+        assert_eq!(filtered.len(), 2, "the missing local file must be dropped");
+    }
+
+    // ── read_file remote (RF-08A) — requires network, run with `cargo test -- --ignored` ──
+
+    #[test]
+    #[ignore = "hits the real network; run explicitly with `cargo test -- --ignored`"]
+    fn read_file_downloads_remote_markdown() {
+        let url = "https://raw.githubusercontent.com/rust-lang/rust/master/README.md";
+        let result = commands::read_file(url.to_string());
+        let doc = result.expect("remote .md should download successfully over HTTPS");
+        assert!(!doc.content.is_empty());
+        assert_eq!(doc.file_name, "README.md");
+        assert_eq!(doc.dir_path, "https://raw.githubusercontent.com/rust-lang/rust/master");
+    }
 }

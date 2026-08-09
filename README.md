@@ -10,6 +10,7 @@
 - [Características Principales](#características-principales)
 - [Requisitos](#requisitos)
 - [Cómo ejecutar en Desarrollo](#cómo-ejecutar-en-desarrollo)
+- [Tests](#-tests)
 - [Cómo parar](#cómo-parar)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Changelog](#changelog)
@@ -75,6 +76,15 @@ O ejecutando manualmente:
 npm run dev
 # o
 cargo tauri dev
+```
+
+---
+
+## ✅ Tests
+
+```bash
+npm test          # Tests unitarios (rápidos, sin red)
+npm run test:all  # Incluye el test de integración que descarga un .md real (RF-08A)
 ```
 
 ---
