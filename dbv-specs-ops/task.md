@@ -106,7 +106,7 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 - [x] Fix: `applyZoom()` y la restauración de zoom guardado en `init()` ahora aplican `style.zoom` también a `#toc-sidebar`, no solo a `#content`.
 - [x] Verificado en la app real: el modal muestra "Versión 0.2.0" correctamente.
 - [ ] **Pendiente de verificación visual:** el fix de zoom del TOC se implementó con el mismo patrón ya probado para `#content` (ADR-005), pero no se confirmó visualmente (la automatización de UI por coordenadas resultó poco fiable en este entorno — ver Lección 8 en `memory.md`). Confirmar manualmente con `Ctrl + Rueda` sobre un documento con TOC.
-- [ ] **Pendiente:** copiar el build más reciente (`src-tauri\target\release\dbv-md-reader.exe`, incluye RF-12 + fix de zoom) sobre el `.exe` de la raíz — bloqueado en el último intento por una ventana de la app abierta.
+- [x] `.exe` de la raíz actualizado con el build que incluye RF-12 + fix de zoom del TOC.
 
 ### 🔹 Fase 9: Control de versiones (2026-08-09)
 - [x] `git init` en la raíz del proyecto (no existía repositorio previamente).
