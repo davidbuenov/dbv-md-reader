@@ -496,6 +496,40 @@
   document.getElementById('btn-print').addEventListener('click', function () { window.print(); });
 
   // =========================================================================
+  // Apertura de documento remoto por URL (RF-08A)
+  // =========================================================================
+
+  var urlPanel = document.getElementById('url-panel');
+  var urlInput = document.getElementById('url-input');
+
+  function openUrlPanel() {
+    urlPanel.classList.remove('hidden');
+    urlInput.focus();
+    urlInput.select();
+  }
+  function closeUrlPanel() { urlPanel.classList.add('hidden'); }
+
+  function submitUrl() {
+    var url = urlInput.value.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) {
+      showError('[open-url] La URL debe empezar por http:// o https://');
+      alert('La URL debe empezar por http:// o https://');
+      return;
+    }
+    loadDocument(url, false, null, true);
+    closeUrlPanel();
+  }
+
+  document.getElementById('btn-open-url').addEventListener('click', openUrlPanel);
+  document.getElementById('btn-empty-url').addEventListener('click', openUrlPanel);
+  document.getElementById('url-close').addEventListener('click', closeUrlPanel);
+  document.getElementById('url-open-btn').addEventListener('click', submitUrl);
+  urlInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); submitUrl(); }
+  });
+
+  // =========================================================================
   // Drag & Drop nativo de Tauri v2
   // =========================================================================
 
@@ -575,7 +609,7 @@
     else if (e.ctrlKey && e.key === '0') { e.preventDefault(); zoomReset(); }
     else if (e.altKey  && e.key === 'ArrowLeft')  { e.preventDefault(); if (histIdx > 0) btnBack.click(); }
     else if (e.altKey  && e.key === 'ArrowRight') { e.preventDefault(); if (histIdx < history.length - 1) btnForward.click(); }
-    else if (e.key === 'Escape') { closeSearch(); recentPanel.classList.add('hidden'); closeAbout(); }
+    else if (e.key === 'Escape') { closeSearch(); recentPanel.classList.add('hidden'); closeAbout(); closeUrlPanel(); }
   });
 
   // =========================================================================

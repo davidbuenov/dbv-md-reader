@@ -412,6 +412,48 @@ body {
   color: var(--accent);
 }
 
+/* ─── Panel "Abrir desde URL" ──────────────────────────────────────────────── */
+#url-panel {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px var(--shadow);
+  padding: 8px 10px;
+  z-index: 100;
+}
+#url-input {
+  width: 320px;
+  padding: 6px 10px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+#url-input:focus { border-color: var(--accent); }
+
+.btn-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.btn-link:hover { color: var(--accent-hover); }
+
 /* ─── Modal de búsqueda ───────────────────────────────────────────────────── */
 #search-modal {
   position: fixed;
@@ -601,7 +643,7 @@ body.drag-over #reader-container {
 
 /* ─── Print ───────────────────────────────────────────────────────────────── */
 @media print {
-  #app-header, #toc-sidebar, #search-modal, #recent-panel, #about-modal, .code-copy-btn, #error-panel {
+  #app-header, #toc-sidebar, #search-modal, #recent-panel, #about-modal, #url-panel, .code-copy-btn, #error-panel {
     display: none !important;
   }
   body, #app-body, #reader-container {

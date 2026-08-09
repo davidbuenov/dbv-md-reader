@@ -8,14 +8,16 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 ## [0.2.0] - 2026-08-09
 
 ### Añadido
-- **RF-12 "Acerca de"**: panel modal con nombre, versión (sincronizada con `Cargo.toml` vía comando Rust), enlaces a `davidbuenov.com` y `github.com/davidbuenov`, y licencia.
 - **RF-11 Archivos Recientes**: botón "Recientes" en la barra superior con panel desplegable (últimos 10 documentos abiertos explícitamente, persistidos en `recent_files.json`), acceso rápido desde la pantalla "Sin archivo abierto" y botón "Limpiar historial". Comandos Rust `get_recent_files` / `add_recent_file` / `clear_recent_files`.
 - **RF-06 Auto-Reload**: observador de archivos en Rust (`notify`, comando `watch_file`) que vigila el directorio padre del documento activo y recarga la vista en caliente cuando se guarda desde otra aplicación, preservando la posición del scroll.
 - **RF-08A Documentos Markdown remotos**: `read_file` descarga y renderiza `.md` remotos (`http(s)://`) mediante `ureq`; `resolve_relative_path` resuelve enlaces e imágenes relativos a una base remota.
+- **Abrir desde URL**: botón en la barra superior y enlace en el Estado Vacío para pegar directamente una URL de un `.md` remoto (antes solo se podía llegar a un documento remoto haciendo clic en un enlace dentro de otro documento ya abierto).
+- **RF-12 "Acerca de"**: panel modal con nombre, versión (sincronizada con `Cargo.toml` vía comando Rust), enlaces a `davidbuenov.com` y `github.com/davidbuenov`, y licencia.
 
 ### Corregido
 - **RF-07 Imágenes locales**: las rutas de imagen relativas y absolutas dentro de un documento Markdown no cargaban en el WebView2 (política de origen cruzado). Ahora se resuelven y se sirven vía el protocolo de activos de Tauri (`asset://` + `convertFileSrc`).
 - **RF-03 Sanitización HTML**: el HTML embebido en los documentos (incluyendo `<script>` y atributos `on*`) se renderizaba sin ningún filtrado — riesgo de XSS. Ahora se sanitiza con DOMPurify tras el renderizado de `markdown-it`, sin afectar al resaltado de código ni a las anclas de navegación.
+- El zoom (`Ctrl + Rueda`, `Ctrl + +/-/0`) no afectaba a la Tabla de Contenidos, solo al contenido principal.
 
 ### Cambiado
 - El NFR de tamaño del instalador se relaja de <8 MB a <20 MB (decisión consciente del usuario) para poder completar RF-03/06/08A sin recortar funcionalidad. Build release actual: ~14.5 MB.

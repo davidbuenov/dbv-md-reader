@@ -119,4 +119,13 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 - [x] `cargo add tempfile --dev` para los tests que necesitan archivos reales en disco.
 - [x] 9 tests unitarios en `src-tauri/src/lib.rs` (`resolve_relative_path` local/absoluta/remota/error, `upsert_recent`, `filter_existing`) — todos en verde con `cargo test --lib`.
 - [x] 1 test de integración `#[ignore]` (`read_file_downloads_remote_markdown`) que descarga un `.md` real por HTTPS — verificado en verde con `cargo test --lib -- --ignored`, confirmando RF-08A end-to-end.
-- [ ] **Pendiente:** commitear los cambios de esta fase (refactor + tests + `Cargo.lock`/`Cargo.toml` con `tempfile`) — quedaron fuera del commit inicial `b359def`.
+- [x] Commiteado (`0982bc4`).
+
+### 🔹 Fase 11: Botón "Abrir desde URL" + confirmación de fixes (2026-08-09)
+- [x] **Zoom del TOC confirmado por el usuario:** funciona correctamente.
+- [x] **Gap detectado por el usuario:** RF-08A funcionaba a nivel de backend (verificado con test de integración, Fase 10) pero no había ninguna forma de *introducir* una URL en la app — el botón "Abrir archivo" solo lanza el selector nativo de Windows, que no admite `http(s)://`. Los documentos remotos solo eran alcanzables haciendo clic en un enlace dentro de un documento local ya abierto.
+- [x] Botón "Abrir desde URL" en la barra superior + enlace "o abrir desde una URL" en el Estado Vacío → panel con input (`#url-panel`) que invoca `loadDocument(url, false, null, true)` (misma ruta que CLI/diálogo/Drag&Drop: primary open, se registra en Recientes).
+- [x] Verificado en la app real con la URL exacta que reportó el usuario (`raw.githubusercontent.com/davidbuenov/dbv-pdf2md/refs/heads/master/implementation_plan.md`) — carga y renderiza correctamente.
+- [x] Consola de errores (`#error-panel`): ya existía y está conectada al mismo `catch` de `loadDocument`, así que cualquier fallo al abrir una URL (typo, 404, etc.) se refleja ahí sin cambios adicionales.
+- [x] `.exe` de la raíz actualizado con este build.
+- [ ] **Pendiente:** commitear estos cambios (index.html, app.js, styles.css, docs).

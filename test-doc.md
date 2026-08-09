@@ -4,7 +4,7 @@
 
 ---
 
-## ✨ Características Principales
+## ✨ Características Principales 3 
 
 1. **Rápido y Ligero:** Inicia en menos de 200 ms con menos de 64 MB de memoria RAM.
 2. **Seguridad Estricta:** Sanitización de HTML embebido con Rust Ammonia crate para prevenir ataques XSS.
