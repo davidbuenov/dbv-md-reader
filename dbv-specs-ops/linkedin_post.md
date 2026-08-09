@@ -1,49 +1,42 @@
-# 📱 LinkedIn Post & Asset: dbv-specs-ops v2.4.0
-
-Aquí tienes el texto definitivo optimizado para LinkedIn junto con la imagen promocional generada:
+# 📱 LinkedIn Post: Lanzamiento de dbv-md-reader v0.2.0
 
 ## 📝 Texto del Post (Listo para copiar/pegar)
 
 ```markdown
-🚀 Lanzamiento de dbv-specs-ops v2.4.0: Soporte Nativo para el Estándar Universal "Agent Plugins 1.0.0" e Interoperabilidad Multi-IA
+Ni siquiera sabías que lo necesitabas, pero a partir de ahora lo usarás cada día.
 
-¿Te imaginas escribir una habilidad (Agent Skill) o una herramienta (servidor MCP) para tu proyecto y que funcione de forma idéntica en cualquier cliente de IA del mercado (Claude Code, Gemini/Agents CLI, Antigravity, Cursor, Vercel...)?
+Cada vez que tenía que abrir un README.md en Windows me pasaba lo mismo: o lo abría en VS Code (demasiado para solo leer), o en el navegador (sin resaltado de código ni diagramas), o acababa instalando un visor basado en Electron que carga un Chromium entero — más de 200 MB de RAM — solo para mostrarme texto.
 
-Acabo de liberar la versión v2.4.0 de dbv-specs-ops, el framework de Spec-Driven Development (SDD) diseñado para estructurar la interacción con IAs de codificación, y esta actualización es un paso de gigante hacia la estandarización absoluta.
+Así que construí dbv-md-reader: un lector de Markdown nativo para Windows.
 
-#### 💡 Novedades clave de la v2.4.0:
+📄 Un único .exe de ~14 MB, sin instalador
+⚡ Abre cualquier .md en menos de 200 ms
+🔒 Sanitiza el HTML embebido — cero scripts maliciosos, aunque el documento no sea de confianza
+📊 Diagramas Mermaid renderizados al vuelo
+🎨 Temas Claro, Oscuro y Sepia
+🔄 Se recarga solo si editas el archivo desde otro programa, sin perder el scroll
+🌐 Le pegas la URL de un .md publicado en internet y lo abre directamente
+🗂️ Recuerda los últimos documentos que has abierto
 
-🔌 1. Integración de Agent Plugins 1.0.0
-Adoptamos el nuevo estándar universal de empaquetado impulsado por el TSC de Core Maintainers (Google, Amazon, Microsoft, OpenAI y Vercel). El framework ahora guía de forma nativa la creación de plugins portables unificando Agent Skills e integrando transportes MCP explícitos (`stdio` y `streamable-http`) mediante ficheros `plugin.json` y `mcp.json`.
+Sin Electron. Sin cuenta. Sin publicidad. Sin telemetría. Doble clic y ya está.
 
-🌐 2. Caso de Éxito Real: ¡Mi web ya es un Agent Plugin!
-He realizado la primera prueba de fuego migrando la infraestructura de mi web personal (https://davidbuenov.com) al estándar. Ahora expone de forma pública sus herramientas y skills bajo la ruta estandarizada `.well-known/agent-plugin/`. Cualquier agente inteligente externo puede descubrir e interactuar con habilidades portables como:
-*   `website-api` (para interactuar con mi API)
-*   `diagnostic-wizard` (asistente de diagnóstico)
-*   `sudoku-game` (un sudoku jugable)
+Es gratis y de código abierto (Rust + Tauri v2), y ya lo tienes disponible:
+👉 https://davidbuenov.github.io/dbv-md-reader/
 
-🔄 3. Asistente de Migración de Skills Legacy
-¿Tienes skills antiguas o configuraciones de bots ad-hoc sueltas? El asistente de actualización (`docs/UPGRADE_PROMPT.md`) ahora escanea automáticamente tu repositorio y te ofrece migrarlas al nuevo formato universal de Agent Plugins, traduciendo rutas absolutas del sistema a los placeholders `${PLUGIN_ROOT}` y `${PLUGIN_DATA}` para garantizar que no se rompan al cambiar de máquina o de IDE.
+Si trabajas con documentación técnica, notas en Markdown o simplemente tienes carpetas llenas de README.md sueltos, creo que te va a resultar útil.
 
-🔗 4. Autodescubrimiento Web y Cabeceras Link
-El framework incorpora en la fase `/ship` la verificación de cabeceras de red HTTP `Link` apuntando al recurso del plugin:
-`Link: </.well-known/agent-plugin/plugin.json>; rel="agent-plugin"; type="application/json"`
-Esto permite a buscadores y bots de IA descubrir tus servicios de forma 100% autónoma.
+¿Qué usas tú ahora mismo para leer archivos .md en Windows? 👇
 
----
-
-El desarrollo agéntico se está unificando rápidamente y la interoperabilidad de herramientas es la infraestructura clave que no debemos reinventar. Con la v2.4.0, dbv-specs-ops se coloca a la vanguardia de este ecosistema.
-
-Prueba el framework o actualiza tu proyecto aquí:
-🔗 https://github.com/davidbuenov/dbv-specs-ops
-
-¿Has empezado a empaquetar tus herramientas bajo el estándar de Agent Plugins? ¡Cuéntame tu experiencia en los comentarios! 👇
-
-#AI #SoftwareEngineering #SpecDrivenDevelopment #AgentPlugins #MCP #ModelContextProtocol #AgentSkills #WebDevelopment #Interoperability #CleanCode #Programming #FastAPI #React #NodeJS
+#OpenSource #Rust #Windows #Markdown #DesarrolladorIndependiente #SoftwareLibre #Productividad #BuildInPublic
 ```
 
 ---
 
-## 🎨 Imagen Promocional Generada
+## 🖼️ Imagen recomendada
 
-![dbv-specs-ops v2.4.0 LinkedIn Post Asset](C:/Users/bueno/.gemini/antigravity-ide/brain/8e7bdebc-36aa-48f4-a9b2-96e8987bc745/dbv_specs_ops_v240_linkedin_1786101959101.png)
+Usa la captura `docs/assets/screenshots/hero-dark.png` (o `theme-dark.png` para más resolución) del propio repositorio — es la vista principal en tema Oscuro con la Tabla de Contenidos visible. LinkedIn recorta automáticamente a 1.91:1, así que si prefieres un encuadre más panorámico usa `og-cover.png` (1200×630), pensada para ese ratio.
+
+## 💡 Notas de publicación
+
+- El hook inicial funciona mejor como primera línea *aislada* (LinkedIn trunca el post tras ~2-3 líneas antes de "ver más" — que esa frase quede sola maximiza la curiosidad para hacer clic).
+- Si quieres, puedo preparar una variante más corta para los comentarios o para republicar como "story"/carrusel más adelante.

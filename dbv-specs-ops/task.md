@@ -1,6 +1,6 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> **Estado:** Fases 0 a 13 completadas · v0.2.0 publicado en GitHub (repo + Release con `.exe` adjunto)
+> **Estado:** Fases 0 a 14 completadas · v0.2.0 publicado en GitHub (repo + Release + landing page en GitHub Pages)
 > **Última Actualización:** 2026-08-09
 
 ---
@@ -8,6 +8,10 @@
 ## ⚠️ Deuda Técnica Detectada (Auditoría 2026-08-09) — Resuelta en Fase 7
 
 Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se encontró que RF-03, RF-06, RF-07 y RF-08A estaban documentados como decisión arquitectónica pero **no implementados**. Todos se cerraron en la Fase 7 (ver detalle casilla por casilla en `docs/SPECIFICATIONS.md` §3).
+
+## ⚠️ Deuda Técnica Abierta
+
+- [ ] **Contraste de código en temas Claro/Sepia:** el resaltado de sintaxis usa siempre la hoja de estilos oscura de Prism.js (`vendor/prism-tomorrow.min.css`, cargada de forma fija en `index.html`), sin importar el tema (Claro/Oscuro/Sepia) que el usuario tenga activo. En Claro y Sepia, el texto de los bloques de código queda con muy poco contraste sobre el fondo claro (comentarios y algunos tokens casi ilegibles). Detectado el 2026-08-09 al generar las capturas de la landing page. **Solución propuesta:** cargar dinámicamente una hoja de Prism clara (ej. `prism.min.css` o `prism-solarizedlight.min.css`) cuando el tema sea Claro/Sepia, intercambiando el `href` de `#prism-theme` en `setTheme()` (`src/app.js`), igual que ya se hace con `data-theme` en `<html>`.
 
 ---
 
@@ -150,3 +154,11 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 - [x] **Gap detectado por el usuario:** el README solo hablaba de compilar desde fuente (Rust, Node, build tools) — ningún usuario no técnico podía saber que bastaba con descargar el `.exe`.
 - [x] README reestructurado: nueva sección "Descárgalo y úsalo" al principio con enlace directo de descarga (`/releases/latest/download/dbv-md-reader.exe`), pasos de doble clic y cómo asociar `.md` en Windows. Todo el contenido de compilación agrupado bajo "Para desarrolladores", con nota explícita de que no es necesario para usar la app.
 - [x] Commiteado y publicado (`584aeb4`).
+
+### 🔹 Fase 14: Landing page en GitHub Pages (2026-08-09)
+- [x] Página de presentación en `docs/` (vanilla HTML/CSS/JS, sin dependencias), orientada a usuario final: hero con descarga directa, stats de confianza, grid de 8 características, sección de capturas con selector de tema interactivo, 3 pasos de instalación, CTA final y footer con enlaces a GitHub/autor. Paleta reutilizada del tema Oscuro de la app.
+- [x] GitHub Pages activado (`gh api repos/.../pages`) sirviendo desde `master:/docs` → publicado en `https://davidbuenov.github.io/dbv-md-reader/`.
+- [x] Capturas reales generadas lanzando la app con un documento de ejemplo (arquitectura + código + diagrama Mermaid + tabla): Oscuro, Claro, Sepia, diagrama Mermaid, panel de Archivos Recientes.
+- [x] **Incidente evitado:** el panel de Archivos Recientes mostraba de forma predeterminada rutas reales del usuario (nombre de usuario de Windows y un documento personal de un curso). Se sustituyó por datos de ejemplo genéricos (ficheros dummy locales) antes de capturar, y se restauró el historial real del usuario al terminar.
+- [x] **Deuda técnica detectada durante la captura:** contraste bajo en bloques de código con temas Claro/Sepia (Prism.js fijo en tema oscuro) — registrado arriba en "Deuda Técnica Abierta", no se corrigió en esta fase.
+- [x] Commiteado y publicado (`ef9c5b7`, `3f1a24c`).
