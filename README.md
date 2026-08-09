@@ -4,34 +4,27 @@
 
 ---
 
-## 🚀 Descárgalo y úsalo — sin instalar nada
+## 🚀 Descárgalo e instálalo
 
-**No necesitas instalar Rust, Node.js, ni ninguna herramienta de programación.** `dbv-md-reader` es un único archivo `.exe` de ~14 MB, listo para usar.
+**No necesitas instalar Rust, Node.js, ni ninguna herramienta de programación.** El instalador de `dbv-md-reader` trae todo lo necesario —incluido el motor de renderizado de Windows (WebView2)— y asocia los archivos `.md` contigo automáticamente.
 
 ### 1️⃣ Descarga
 
-**[⬇️ Descargar dbv-md-reader.exe (última versión)](https://github.com/davidbuenov/dbv-md-reader/releases/latest/download/dbv-md-reader.exe)**
+**[⬇️ Ver todas las versiones (Releases)](https://github.com/davidbuenov/dbv-md-reader/releases)**
 
-También puedes ver todas las versiones en la página de [Releases](https://github.com/davidbuenov/dbv-md-reader/releases).
+Descarga el instalador de la última versión: `dbv-md-reader_x.y.z_x64-setup.exe`.
 
-### 2️⃣ Ejecuta
+### 2️⃣ Instala
 
-Haz doble clic sobre el archivo descargado. No requiere instalador, ni permisos de administrador, ni conexión a internet (salvo que abras un documento remoto). Windows puede mostrar un aviso de "Editor no reconocido" la primera vez — es normal en aplicaciones nuevas sin firma comercial; pulsa **Más información → Ejecutar de todas formas**.
+Haz doble clic sobre el instalador descargado. No requiere permisos de administrador (se instala solo para tu usuario) ni conexión a internet durante la instalación —el WebView2 necesario ya viaja incluido—. Windows puede mostrar un aviso de "Editor no reconocido" la primera vez — es normal en aplicaciones nuevas sin firma comercial; pulsa **Más información → Ejecutar de todas formas**.
 
-### 3️⃣ (Opcional) Ábrelo con doble clic desde cualquier `.md`
-
-1. Clic derecho sobre un archivo `.md` en el Explorador de Windows.
-2. **Abrir con** → **Elegir otra aplicación**.
-3. Busca y selecciona `dbv-md-reader.exe`.
-4. Marca la casilla **"Usar siempre esta aplicación para abrir archivos .md"**.
-
-Listo — a partir de ahora, cualquier `.md` se abrirá directamente con `dbv-md-reader` al hacer doble clic.
+Al terminar, el propio instalador te confirma que los archivos `.md` ya han quedado asociados con la aplicación. No hace falta ningún paso manual: haz doble clic sobre cualquier `.md` y se abrirá directamente con `dbv-md-reader`.
 
 ---
 
 ## 📑 Índice
 
-- [Descárgalo y úsalo](#-descárgalo-y-úsalo--sin-instalar-nada)
+- [Descárgalo e instálalo](#-descárgalo-e-instálalo)
 - [Sobre el proyecto](#sobre-el-proyecto)
 - [Características Principales](#características-principales)
 - [Para desarrolladores](#-para-desarrolladores)
@@ -118,6 +111,7 @@ npm run test:all  # Incluye el test de integración que descarga un .md real (RF
 dbv-md-reader/
 ├── src-tauri/             # Código fuente Rust y configuración Tauri v2
 │   ├── src/main.rs        # Punto de entrada Rust, CLI args y mando Tauri
+│   ├── nsis/              # Imágenes de marca y hooks del instalador Windows (NSIS)
 │   └── Cargo.toml         # Dependencias Rust (tauri, notify, ureq, etc.)
 ├── src/                   # Interfaz de usuario Web (HTML/CSS/JS)
 │   ├── index.html         # Maquetación principal y sidebar TOC

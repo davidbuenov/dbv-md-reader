@@ -5,6 +5,18 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.3.0] - 2026-08-09
+
+### Añadido
+- **Instalador Windows (NSIS)**: sustituye al `.exe` portable como método de distribución oficial. Incluye el instalador offline de WebView2 embebido (`bundle.windows.webviewInstallMode: offlineInstaller`), así que no depende de conexión a internet ni de la versión de WebView2 ya presente en el sistema durante la instalación.
+- **Asociación automática de `.md`**: `bundle.fileAssociations` registra `dbv-md-reader` como el visor de `.md`/`.markdown` durante la instalación, sin pasos manuales. Un hook post-instalación (`src-tauri/nsis/hooks.nsh`) muestra un aviso confirmando la asociación (omitido en instalaciones silenciosas/pasivas).
+- **Icono de aplicación**: sustituido el cuadrado azul de placeholder por un icono propio (marca "M" + acento en tema oscuro), regenerado en todos los tamaños/plataformas con `tauri icon`.
+- **Instalador de marca**: imágenes propias para las páginas del instalador (`src-tauri/nsis/sidebar.bmp`, `header.bmp`) con el icono, nombre y características clave de la app.
+
+### Corregido
+- El `.exe` de la raíz del repositorio (fuente de confusión: dos binarios con el mismo nombre en dos sitios, uno de ellos fácil de descargar corrupto desde la vista de GitHub) ya no se commitea — añadido a `.gitignore`. La distribución oficial es exclusivamente la página de Releases.
+- **Bloques anchos (código/tablas/Mermaid) desperdiciaban el espacio de la ventana**: al limitar todo el documento por igual a `800px`, un bloque de código con líneas largas hacía scroll horizontal dentro de esa franja estrecha en vez de aprovechar el resto de la ventana. Ahora el ancho de prosa (títulos, párrafos, listas, citas) se mantiene en `800px` para legibilidad, como en GitHub, mientras que código, tablas y diagramas Mermaid usan hasta `1100px`.
+
 ## [0.2.0] - 2026-08-09
 
 ### Añadido

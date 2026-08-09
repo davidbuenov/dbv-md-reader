@@ -278,9 +278,19 @@ body {
 /* ─── Contenido Markdown ──────────────────────────────────────────────────── */
 #content {
   width: 100%;
-  max-width: 800px;
+  max-width: 1100px;
   color: var(--text-primary);
   line-height: 1.75;
+}
+
+/* Elementos de prosa: ancho de lectura cómodo (~800px, como GitHub), centrados
+   dentro del contenedor más ancho. Los bloques "anchos" (código, tablas, Mermaid)
+   no llevan este límite y aprovechan hasta los 1100px de #content. */
+#content h1, #content h2, #content h3, #content h4, #content h5, #content h6,
+#content p, #content ul, #content ol, #content blockquote {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #content h1 { font-size: 2rem; font-weight: 700; margin-bottom: 16px; margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
@@ -300,7 +310,8 @@ body {
 #content li { margin-bottom: 4px; }
 
 #content blockquote {
-  margin: 16px 0;
+  margin-bottom: 16px;
+  margin-top: 16px;
   padding: 12px 16px;
   border-left: 4px solid var(--accent);
   background-color: var(--quote-bg);

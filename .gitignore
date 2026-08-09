@@ -2,6 +2,9 @@
 target/
 src-tauri/target/
 
+# Ejecutable compilado — se distribuye solo vía GitHub Releases, nunca desde el repo
+/dbv-md-reader.exe
+
 # Node dependencies & dist
 node_modules/
 dist/

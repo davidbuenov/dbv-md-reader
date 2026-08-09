@@ -47,7 +47,7 @@
   `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`
 - **Tamaño de Fuente Base:** `16px` (escalable con `Ctrl + +` / `Ctrl + -`)
 - **Line Height:** `1.6` (optimizado para legibilidad)
-- **Ancho Máximo del Documento:** `900px` centrado horizontalmente.
+- **Ancho del Documento (dos niveles, "breakout"):** los elementos de prosa (títulos, párrafos, listas, citas) se limitan a `800px` centrados, como en GitHub, para una línea de lectura cómoda. Los bloques anchos (código, tablas, diagramas Mermaid) no llevan ese límite y aprovechan hasta `1100px` (el ancho del contenedor `#content`), reduciendo el scroll horizontal en bloques con líneas largas.
 
 ---
 

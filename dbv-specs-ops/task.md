@@ -1,6 +1,6 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> **Estado:** Fases 0 a 14 completadas · v0.2.0 publicado en GitHub (repo + Release + landing page en GitHub Pages)
+> **Estado:** Fases 0 a 15 completadas · v0.2.0 publicado en GitHub (repo + Release + landing page en GitHub Pages) · instalador NSIS con icono propio pendiente de publicar en una nueva Release
 > **Última Actualización:** 2026-08-09
 
 ---
@@ -17,8 +17,8 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 
 ## 📌 Snapshot de Contexto (Estado Actual)
 
-- **Fase Actual:** Todo lo solicitado hasta ahora está completo (RF-03/06/07/08A/11/12, tests, Git). Sin tareas abiertas salvo las anotadas como pendientes más abajo.
-- **Build release:** `cargo build --release` → `dbv-md-reader.exe`, **v0.2.0, ~14.5 MB** (dentro del NFR relajado <20 MB, ver ADR-008). El `.exe` de la raíz refleja el build con RF-03/06/07/08A/11 (About + fix de zoom del TOC compilados pero no reempaquetados en el `.exe` de la raíz — ver Fase 8).
+- **Fase Actual:** Todo lo solicitado hasta ahora está completo (RF-03/06/07/08A/11/12, tests, Git, instalador NSIS). Pendiente: publicar una nueva Release (v0.2.1 o v0.3.0, a decidir) con el instalador `dbv-md-reader_x.y.z_x64-setup.exe` generado en la Fase 15.
+- **Build release:** `npm run build` (= `cargo tauri build`) → `src-tauri/target/release/bundle/nsis/dbv-md-reader_0.2.0_x64-setup.exe` (~216 MB, incluye el instalador offline de WebView2) + el `.exe` portable sin empaquetar en `src-tauri/target/release/dbv-md-reader.exe` (~14.5 MB, ya no se distribuye, solo para desarrollo/depuración). **Importante:** si solo cambian recursos (icono `.ico`, imágenes NSIS) sin tocar código Rust, `cargo`/`tauri build` puede no detectar el cambio y reusar el binario cacheado — forzar con `cargo clean -p dbv-md-reader --release` antes de reconstruir (ver Fase 15).
 - **Entorno & Toolchain:**
   - Rust toolchain: `rustc 1.97.1` / `cargo 1.97.1` (Edition 2021).
   - Node.js / NPM: Dependencias de vendor empaquetadas localmente en `src/vendor/` (`markdown-it.min.js`, `dompurify.min.js`, `prism.min.js`, `mermaid.min.js`).
@@ -162,3 +162,20 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 - [x] **Incidente evitado:** el panel de Archivos Recientes mostraba de forma predeterminada rutas reales del usuario (nombre de usuario de Windows y un documento personal de un curso). Se sustituyó por datos de ejemplo genéricos (ficheros dummy locales) antes de capturar, y se restauró el historial real del usuario al terminar.
 - [x] **Deuda técnica detectada durante la captura:** contraste bajo en bloques de código con temas Claro/Sepia (Prism.js fijo en tema oscuro) — registrado arriba en "Deuda Técnica Abierta", no se corrigió en esta fase.
 - [x] Commiteado y publicado (`ef9c5b7`, `3f1a24c`).
+
+### 🔹 Fase 15: Instalador Windows (NSIS), asociación .md e icono propio (2026-08-09)
+- [x] **Gap detectado por el usuario:** al probar el `.exe` portable en un equipo limpio (sin Rust/Node/nada instalado) aparecieron 3 problemas: avisos de SmartScreen al descargar (esperable, sin firma de código), un `.exe` de la raíz del repo que daba "no se puede ejecutar en este equipo" (descarga poco fiable desde la vista de archivo de GitHub — no desde Releases) y `.md` que se abrían como texto plano (sin asociación de tipo de archivo, al no existir instalador). Un segundo síntoma tras asociar manualmente: el documento se abría pero un diagrama Mermaid fallaba en consola — indicativo de un WebView2 Runtime del sistema desactualizado/mínimo, ya que el `.exe` portátil (14.5 MB) no lo lleva embebido.
+- [x] `.gitignore`: añadido `/dbv-md-reader.exe` — deja de commitearse el binario de la raíz (distribución oficial exclusivamente vía Releases).
+- [x] `tauri.conf.json`: `bundle.targets` limitado a `["nsis"]`; `bundle.windows.webviewInstallMode: offlineInstaller` (embebe el instalador offline de WebView2, ~127 MB, sin depender de conexión a internet ni de la versión ya instalada en el sistema); `bundle.fileAssociations` para `.md`/`.markdown` (registro automático durante la instalación, sin pasos manuales).
+- [x] Icono de aplicación: sustituido el placeholder (cuadrado azul plano, nunca reemplazado desde el bootstrap) por un diseño propio (marca "M" + acento en flecha, paleta del tema Oscuro) generado con `System.Drawing`/PowerShell y regenerado en todos los tamaños/plataformas vía `tauri icon`. **Lección:** un rebuild con caché de Cargo no reincrusta un `.ico` cambiado si el crate no recompila — hace falta `cargo clean -p dbv-md-reader --release` tras cambiar solo el icono para forzar el relink de recursos.
+- [x] Instalador de marca: `src-tauri/nsis/sidebar.bmp` (164×314, páginas Bienvenida/Fin) y `header.bmp` (150×57, resto de páginas) con icono, nombre y 3 puntos clave — sustituye a texto de "venta" en la portada, ya que Tauri no permite personalizar `MUI_WELCOMEPAGE_TITLE/TEXT` sin forkear toda la plantilla `.nsi` (~1000 líneas, coste de mantenimiento no asumido). `src-tauri/nsis/hooks.nsh` (`NSIS_HOOK_POSTINSTALL`) muestra un aviso confirmando la asociación `.md` al terminar la instalación (omitido en modo silencioso/pasivo).
+- [x] Verificado en el registro de Windows tras una instalación real: `HKCU\Software\Classes\.md` pasa a apuntar al ProgId `Documento Markdown` (con backup del valor anterior). Confirmado por el usuario que el instalador se ejecuta correctamente y crea desinstalador.
+- [x] Build verificado en verde (`npm run build` → `dbv-md-reader_x.y.z_x64-setup.exe`, ~216 MB por el WebView2 offline embebido) tras cada cambio de configuración.
+- [x] `README.md`: sección "Descárgalo e instálalo" reescrita para reflejar el instalador NSIS (ya no el `.exe` portable como método principal); eliminado el paso manual "(Opcional) asociar .md", ahora automático.
+
+### 🔹 Fase 16: Ancho de lectura "breakout" (prosa 800px / bloques anchos 1100px) + release v0.3.0 (2026-08-09)
+- [x] **Gap detectado por el usuario (con captura):** en ventanas anchas quedaba mucho hueco vacío a los lados del documento, mientras un bloque de código con líneas largas hacía scroll horizontal dentro de la franja estrecha de 800px en vez de aprovechar el espacio libre — `#content` limitaba todo por igual (prosa y bloques anchos) al mismo `max-width`.
+- [x] `src/styles.css`: `#content` pasa a `max-width: 1100px`; título/párrafo/lista/cita se reestrechan a `max-width: 800px` centrados (patrón "breakout", como GitHub); código (`pre`), tablas y diagramas Mermaid (`.mermaid-container`) no llevan ese límite y usan hasta los 1100px del contenedor. `#reader-container` ya centraba con `justify-content:center` excluyendo el ancho del TOC lateral, así que no hizo falta ningún truco con `vw`.
+- [x] `DESIGN.md` actualizado (era `900px` fijo, documentaba solo un ancho — ya no coincidía con el `800px` real del CSS).
+- [x] Versionado: `0.2.0` → `0.3.0` (minor, nueva funcionalidad de distribución sin romper nada) en `Cargo.toml`, `package.json`, `tauri.conf.json`. `CHANGELOG.md`: sección `[0.3.0]` con lo de la Fase 15 + este fix de ancho.
+- [x] Build final verificado en verde: `dbv-md-reader_0.3.0_x64-setup.exe`.
