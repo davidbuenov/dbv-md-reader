@@ -1,0 +1,264 @@
+<!--
+  dbv-md-reader — Página de presentación (GitHub Pages)
+  Copyright (c) 2026 David Bueno Vallejo
+  Licensed under the MIT License. See LICENSE for details.
+  Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dbv-md-reader — Lector de Markdown ultra-ligero para Windows</title>
+  <meta name="description" content="Lector nativo de Markdown para Windows. Ligero, rápido y seguro. Descárgalo gratis, sin instalar nada." />
+
+  <meta property="og:title" content="dbv-md-reader — Lector de Markdown ultra-ligero para Windows" />
+  <meta property="og:description" content="Abre y lee archivos .md al instante. ~14 MB, sin Electron, sin instalación. Gratis y de código abierto." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/screenshots/og-cover.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>📄</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ─── Nav ─────────────────────────────────────────────────────────────── -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="#top" class="nav-brand">
+        <span class="nav-logo">📄</span> dbv-md-reader
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Características</a>
+        <a href="#screenshots">Capturas</a>
+        <a href="#download">Descargar</a>
+        <a href="https://github.com/davidbuenov/dbv-md-reader" class="nav-github" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </nav>
+      <a href="#download" class="btn btn-primary btn-nav">Descargar</a>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ─── Hero ─────────────────────────────────────────────────────────── -->
+    <section class="hero">
+      <div class="hero-inner">
+        <p class="hero-eyebrow">Gratis · Código abierto · Solo para Windows</p>
+        <h1>El lector de Markdown que tu Windows necesitaba</h1>
+        <p class="hero-sub">
+          Abre archivos <code>.md</code> al instante, sin abrir un IDE ni un navegador.
+          ~14&nbsp;MB, arranca en menos de 200&nbsp;ms y no necesitas instalar nada.
+        </p>
+        <div class="hero-ctas">
+          <a href="https://github.com/davidbuenov/dbv-md-reader/releases/latest/download/dbv-md-reader.exe" class="btn btn-primary btn-lg">
+            ⬇️ Descargar gratis
+          </a>
+          <a href="https://github.com/davidbuenov/dbv-md-reader" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
+            Ver código en GitHub
+          </a>
+        </div>
+        <p class="hero-note">Windows 10/11 · Un solo archivo .exe · Sin cuenta, sin publicidad, sin telemetría</p>
+      </div>
+
+      <div class="hero-shot">
+        <div class="window-frame">
+          <div class="window-titlebar">
+            <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+            <span class="window-title">dbv-md-reader</span>
+          </div>
+          <img src="assets/screenshots/hero-dark.png" alt="dbv-md-reader mostrando un documento Markdown en tema oscuro, con tabla de contenidos y bloque de código resaltado" class="window-img" id="hero-img" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Stats de confianza ───────────────────────────────────────────── -->
+    <section class="stats">
+      <div class="stats-inner">
+        <div class="stat"><span class="stat-num">~14&nbsp;MB</span><span class="stat-label">Peso total</span></div>
+        <div class="stat"><span class="stat-num">&lt;200&nbsp;ms</span><span class="stat-label">Apertura instantánea</span></div>
+        <div class="stat"><span class="stat-num">&lt;64&nbsp;MB</span><span class="stat-label">RAM en reposo</span></div>
+        <div class="stat"><span class="stat-num">MIT</span><span class="stat-label">Licencia libre</span></div>
+      </div>
+    </section>
+
+    <!-- ─── Por qué ──────────────────────────────────────────────────────── -->
+    <section class="why">
+      <div class="why-inner">
+        <h2>Nada de Electron. Nada de Chromium extra.</h2>
+        <p>
+          La mayoría de lectores de Markdown están construidos sobre Electron: empaquetan un navegador
+          Chromium completo solo para mostrarte texto, consumiendo cientos de MB de RAM por una tarea sencilla.
+          <strong>dbv-md-reader</strong> está escrito en Rust sobre Tauri v2 y usa el motor WebView2 que Windows
+          ya trae instalado — el mismo resultado, una fracción del peso.
+        </p>
+      </div>
+    </section>
+
+    <!-- ─── Features ─────────────────────────────────────────────────────── -->
+    <section class="features" id="features">
+      <div class="features-inner">
+        <h2>Todo lo que necesitas para leer Markdown, nada de lo que no</h2>
+        <div class="feature-grid">
+
+          <article class="feature-card">
+            <div class="feature-icon">🗂️</div>
+            <h3>Archivos recientes</h3>
+            <p>Los últimos documentos que abriste, a un clic — nunca más tienes que volver a buscarlos.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3>Auto-recarga en vivo</h3>
+            <p>Edita el archivo con tu editor favorito y la vista se actualiza sola, sin perder el scroll.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h3>Documentos remotos</h3>
+            <p>Pega la URL de un <code>.md</code> publicado en internet y lo abres directamente, sin descargarlo a mano.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3>Seguro por diseño</h3>
+            <p>Todo el HTML embebido se sanitiza automáticamente antes de mostrarse — cero scripts maliciosos.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Diagramas Mermaid</h3>
+            <p>Los bloques <code>```mermaid</code> se convierten en diagramas vectoriales interactivos al vuelo.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <h3>Tres temas visuales</h3>
+            <p>Claro, Oscuro y Sepia para lectura prolongada — se recuerda tu elección entre sesiones.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h3>Búsqueda al instante</h3>
+            <p><kbd>Ctrl</kbd> + <kbd>F</kbd> resalta cada coincidencia en el documento mientras escribes.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🧭</div>
+            <h3>Índice automático</h3>
+            <p>Tabla de contenidos generada sola a partir de los encabezados, con navegación e historial.</p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Capturas ─────────────────────────────────────────────────────── -->
+    <section class="screenshots" id="screenshots">
+      <div class="screenshots-inner">
+        <h2>Ligero por fuera, completo por dentro</h2>
+        <p class="section-sub">Elige el tema con el que quieres verlo — la app recuerda tu preferencia igual que aquí.</p>
+
+        <div class="theme-tabs" role="tablist" aria-label="Vista previa por tema">
+          <button class="theme-tab active" data-shot="assets/screenshots/theme-dark.png" role="tab" aria-selected="true">🌙 Oscuro</button>
+          <button class="theme-tab" data-shot="assets/screenshots/theme-light.png" role="tab" aria-selected="false">☀️ Claro</button>
+          <button class="theme-tab" data-shot="assets/screenshots/theme-sepia.png" role="tab" aria-selected="false">📜 Sepia</button>
+        </div>
+
+        <div class="theme-shot">
+          <div class="window-frame window-frame-lg">
+            <div class="window-titlebar">
+              <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+            </div>
+            <img src="assets/screenshots/theme-dark.png" alt="dbv-md-reader en tema oscuro" class="window-img" id="theme-img" />
+          </div>
+        </div>
+
+        <div class="screenshot-grid">
+          <figure class="screenshot-card">
+            <img src="assets/screenshots/mermaid.png" alt="Diagrama Mermaid renderizado dentro de dbv-md-reader" />
+            <figcaption>Diagramas Mermaid renderizados al vuelo</figcaption>
+          </figure>
+          <figure class="screenshot-card">
+            <img src="assets/screenshots/recent-panel.png" alt="Panel de Archivos Recientes de dbv-md-reader" />
+            <figcaption>Archivos recientes, siempre a mano</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Cómo empezar ─────────────────────────────────────────────────── -->
+    <section class="steps">
+      <div class="steps-inner">
+        <h2>Listo para usar en tres pasos</h2>
+        <div class="step-grid">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h3>Descarga</h3>
+            <p>Un único archivo <code>dbv-md-reader.exe</code>, sin instalador ni permisos de administrador.</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h3>Ejecuta</h3>
+            <p>Doble clic y listo. No necesitas Rust, Node ni ninguna herramienta de programación.</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h3>(Opcional) Asócialo</h3>
+            <p>Clic derecho en cualquier <code>.md</code> → Abrir con → dbv-md-reader, y listo para siempre.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── CTA final ────────────────────────────────────────────────────── -->
+    <section class="cta" id="download">
+      <div class="cta-inner">
+        <h2>Pruébalo — no cuesta nada</h2>
+        <p>Gratis, de código abierto y sin ataduras. Si algo falla, abre un issue en GitHub.</p>
+        <div class="hero-ctas">
+          <a href="https://github.com/davidbuenov/dbv-md-reader/releases/latest/download/dbv-md-reader.exe" class="btn btn-primary btn-lg">
+            ⬇️ Descargar dbv-md-reader.exe
+          </a>
+          <a href="https://github.com/davidbuenov/dbv-md-reader/releases" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
+            Ver todas las versiones
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─── Footer ───────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="nav-logo">📄</span> dbv-md-reader
+        <p>Lector nativo de Markdown para Windows. Rust + Tauri v2.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Proyecto</h4>
+          <a href="https://github.com/davidbuenov/dbv-md-reader" target="_blank" rel="noopener">Código fuente</a>
+          <a href="https://github.com/davidbuenov/dbv-md-reader/releases" target="_blank" rel="noopener">Versiones</a>
+          <a href="https://github.com/davidbuenov/dbv-md-reader/issues" target="_blank" rel="noopener">Reportar un problema</a>
+          <a href="https://github.com/davidbuenov/dbv-md-reader/blob/master/dbv-specs-ops/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+        </div>
+        <div class="footer-col">
+          <h4>Autor</h4>
+          <a href="https://davidbuenov.com" target="_blank" rel="noopener">davidbuenov.com</a>
+          <a href="https://github.com/davidbuenov" target="_blank" rel="noopener">github.com/davidbuenov</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Licencia MIT · © 2026 David Bueno Vallejo</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
