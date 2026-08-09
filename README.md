@@ -4,14 +4,37 @@
 
 ---
 
+## 🚀 Descárgalo y úsalo — sin instalar nada
+
+**No necesitas instalar Rust, Node.js, ni ninguna herramienta de programación.** `dbv-md-reader` es un único archivo `.exe` de ~14 MB, listo para usar.
+
+### 1️⃣ Descarga
+
+**[⬇️ Descargar dbv-md-reader.exe (última versión)](https://github.com/davidbuenov/dbv-md-reader/releases/latest/download/dbv-md-reader.exe)**
+
+También puedes ver todas las versiones en la página de [Releases](https://github.com/davidbuenov/dbv-md-reader/releases).
+
+### 2️⃣ Ejecuta
+
+Haz doble clic sobre el archivo descargado. No requiere instalador, ni permisos de administrador, ni conexión a internet (salvo que abras un documento remoto). Windows puede mostrar un aviso de "Editor no reconocido" la primera vez — es normal en aplicaciones nuevas sin firma comercial; pulsa **Más información → Ejecutar de todas formas**.
+
+### 3️⃣ (Opcional) Ábrelo con doble clic desde cualquier `.md`
+
+1. Clic derecho sobre un archivo `.md` en el Explorador de Windows.
+2. **Abrir con** → **Elegir otra aplicación**.
+3. Busca y selecciona `dbv-md-reader.exe`.
+4. Marca la casilla **"Usar siempre esta aplicación para abrir archivos .md"**.
+
+Listo — a partir de ahora, cualquier `.md` se abrirá directamente con `dbv-md-reader` al hacer doble clic.
+
+---
+
 ## 📑 Índice
 
+- [Descárgalo y úsalo](#-descárgalo-y-úsalo--sin-instalar-nada)
 - [Sobre el proyecto](#sobre-el-proyecto)
 - [Características Principales](#características-principales)
-- [Requisitos](#requisitos)
-- [Cómo ejecutar en Desarrollo](#cómo-ejecutar-en-desarrollo)
-- [Tests](#-tests)
-- [Cómo parar](#cómo-parar)
+- [Para desarrolladores](#-para-desarrolladores)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Changelog](#changelog)
 - [Licencia](#licencia)
@@ -47,17 +70,17 @@ Sustituye la pesadez de visores basados en Electron o IDEs pesados por un ejecut
 
 ---
 
-## 🧰 Requisitos
+## 🧑‍💻 Para desarrolladores
 
-Para compilar o desarrollar el proyecto localmente:
+Todo lo anterior es lo único que necesita un usuario normal. Lo siguiente solo aplica si quieres **modificar el código fuente o compilarlo tú mismo** — no hace falta para usar la aplicación.
+
+### Requisitos
 
 - **Rust:** `rustc 1.76+` y `cargo` ([rustup.rs](https://rustup.rs/))
 - **Node.js:** `v18+` y `npm`
 - **Build Tools para Windows:** C++ Build Tools (MSVC) de Visual Studio.
 
----
-
-## ▶️ Cómo ejecutar en Desarrollo
+### Ejecutar en modo desarrollo
 
 Usa los scripts incluidos en la raíz del proyecto:
 
@@ -78,27 +101,13 @@ npm run dev
 cargo tauri dev
 ```
 
----
+Para detenerlo: `stop.cmd` (Windows) o `./stop.sh` (macOS/Linux).
 
-## ✅ Tests
+### Tests
 
 ```bash
 npm test          # Tests unitarios (rápidos, sin red)
 npm run test:all  # Incluye el test de integración que descarga un .md real (RF-08A)
-```
-
----
-
-## ⏹ Cómo parar
-
-**Windows:**
-```cmd
-stop.cmd
-```
-
-**macOS / Linux:**
-```bash
-./stop.sh
 ```
 
 ---
