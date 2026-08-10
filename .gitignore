@@ -23,3 +23,7 @@ desktop.ini
 
 # Contenido temporal usado para generar capturas de la landing page
 .demo-tmp/
+
+# Manifiesto del updater (RF-13) — se genera con scripts/generate-latest-json.mjs
+# y se sube como asset de la Release de GitHub, nunca se commitea.
+/latest.json

@@ -1,18 +1,21 @@
 {
   "name": "dbv-md-reader",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
     "tauri": "tauri",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
-    "test:all": "cargo test --manifest-path src-tauri/Cargo.toml --lib -- --include-ignored"
+    "test:all": "cargo test --manifest-path src-tauri/Cargo.toml --lib -- --include-ignored",
+    "release:manifest": "node scripts/generate-latest-json.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",
     "@tauri-apps/plugin-shell": "^2.2.0",
+    "@tauri-apps/plugin-updater": "^2.3.0",
+    "@tauri-apps/plugin-process": "^2.2.0",
     "dompurify": "^3.4.13",
     "markdown-it": "^14.1.0",
     "mermaid": "^11.4.1",

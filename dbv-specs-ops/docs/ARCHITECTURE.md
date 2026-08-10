@@ -57,6 +57,10 @@
     - Comandos `get_recent_files`, `add_recent_file` y `clear_recent_files` persisten (vía `std::fs` + `serde_json`, sin crates nuevos) hasta 10 rutas en `app.path().app_data_dir()/recent_files.json`.
     - `get_recent_files` filtra en cada lectura las rutas locales que ya no existen en disco (`Path::exists()`) y auto-purga el JSON; las entradas remotas (`http(s)://`) no se validan por existencia.
     - `add_recent_file` deduplica por ruta (mueve al principio si ya existía) y trunca la lista a 10 entradas.
+  - **Actualizaciones (`tauri-plugin-updater` + `tauri-plugin-process`, RF-13)**:
+    - Sin comando Rust propio: el frontend llama directamente a la API JS del plugin (`window.__TAURI__.updater.check()` / `update.downloadAndInstall()` / `window.__TAURI__.process.relaunch()`), igual que ya se hace con `tauri-plugin-shell` (ADR-006, sin bundler, `withGlobalTauri: true`).
+    - `plugins.updater` en `tauri.conf.json`: `dialog: false` (UI propia en el panel "Acerca de", sin el diálogo nativo por defecto del plugin), `endpoints` apunta a `.../releases/latest/download/latest.json` (manifiesto que hay que publicar a mano en cada Release — ver `README.md`, sección para desarrolladores), y `pubkey` con la clave pública `minisign` generada vía `tauri signer generate` (la clave privada vive fuera del repo, ver ADR-014 en `memory.md`).
+    - `bundle.createUpdaterArtifacts: true` hace que `cargo tauri build` también genere el archivo `.sig` de cada instalador cuando `TAURI_SIGNING_PRIVATE_KEY`/`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` están en el entorno; sin esas variables, el build sigue funcionando pero no se generan artefactos de actualización.
 
 ---
 

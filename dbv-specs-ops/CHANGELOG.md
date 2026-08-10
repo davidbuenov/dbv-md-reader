@@ -5,6 +5,21 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.3.1] - 2026-08-10
+
+### Añadido
+- **RF-13 Comprobación de actualizaciones bajo demanda**: botón "Buscar actualizaciones" en el panel "Acerca de" — nunca se comprueba al arrancar, para no penalizar el arranque instantáneo. Si hay una versión nueva, el botón cambia a "Actualizar" y descarga/instala/relanza en un clic (`tauri-plugin-updater` + `tauri-plugin-process`, sin diálogo nativo del plugin, UI 100% del panel). Los paquetes van firmados con una clave `minisign` propia (privada fuera del repositorio). Ver RF-13 en `SPECIFICATIONS.md` y ADR-014 en `memory.md`.
+- **`scripts/generate-latest-json.mjs`** (`npm run release:manifest`): genera el manifiesto `latest.json` del updater a partir de la versión en `tauri.conf.json` y el `.sig` que produce `npm run build` — evita construirlo a mano (y olvidarlo) en cada Release. Documentado como paso obligatorio en `README.md`.
+- **Instalador NSIS: pantalla de componentes para la asociación `.md`**: se forkea la plantilla NSIS de Tauri (`src-tauri/nsis/installer.nsi.template`, basada en `tauri-v2.11.5`) para insertar una página de componentes real entre "Carpeta del menú Inicio" e "Instalando", con dos casillas independientes marcadas por defecto: menú contextual (**Abrir con...**) y aplicación predeterminada. Si el usuario desmarca una, no se toca el registro correspondiente; si desinstala, solo se deshace lo que él mismo eligió instalar (`src-tauri/nsis/hooks.nsh`: macros `DBV_REGISTER_PROGID` / `DBV_SET_DEFAULT` / `DBV_RESTORE_DEFAULT` / `DBV_UNREGISTER_PROGID`).
+
+### Corregido
+- **La asociación `.md` no siempre "tomaba" tras instalar**: el instalador nunca notificaba a Windows (`SHChangeNotify`) tras escribir el registro, así que el Explorador podía seguir mostrando el estado anterior hasta cerrar sesión. Se añade `UPDATEFILEASSOC` al final de cada sección de asociación.
+- **ProgId de la asociación con espacio en el nombre** (`"Documento Markdown"`): incumplía la convención de Windows para identificadores de clase de archivo (sin espacios) y era la sospecha principal de una entrada duplicada/con icono y nombre incorrectos en el menú "Abrir con", confirmada por un usuario en un segundo equipo. Renombrado a `dbv-md-reader.md`; el texto descriptivo visible ("Documento Markdown") no cambia. La entrada antigua puede seguir apareciendo hasta desinstalar la versión previa (identificador distinto, no se limpia solo).
+- **Landing page (`docs/index.html`) con enlaces de descarga rotos**: los 3 botones "Descargar" apuntaban a `releases/latest/download/dbv-md-reader.exe`, el `.exe` portable que se dejó de publicar como asset de Release desde que se adoptó el instalador NSIS (ver `[0.3.0]` más abajo) — el enlace daba 404. Apuntan ahora a `releases/latest` (la página de la última Release, igual que hace `README.md`), estable ante futuros cambios de nombre de archivo. De paso se actualiza el copy de la página ("sin instalar nada", "un solo archivo .exe", paso "(Opcional) Asócialo") para reflejar la distribución vía instalador con pantalla de componentes.
+
+### Cambiado
+- Se abandona el enfoque inicial de esta misma tarea (dos `MessageBox` Sí/No secuenciales en `NSIS_HOOK_POSTINSTALL`, sin forkear plantilla) en favor de la página de componentes real: el usuario, tras probarlo, prefirió explícitamente una única pantalla con checkboxes. Ver ADR-013 (revisada) en `memory.md` — el coste de mantenimiento de forkear la plantilla (~1000 líneas, antes descartado en Lección 13) se acepta conscientemente a partir de ahora.
+
 ## [0.3.0] - 2026-08-09
 
 ### Añadido

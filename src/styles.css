@@ -590,6 +590,28 @@ mark.search-highlight.search-active {
   text-decoration: none;
 }
 .about-links a:hover { text-decoration: underline; }
+.about-update { margin-bottom: 18px; }
+.btn-secondary {
+  display: inline-block;
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.btn-secondary:hover { background-color: var(--bg-primary); }
+.btn-secondary:disabled { opacity: 0.6; cursor: default; }
+.about-update-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  min-height: 16px;
+}
+.about-update-status.is-available { color: var(--accent); font-weight: 600; }
 .about-author { font-size: 11px; color: var(--text-muted); }
 
 /* ─── Panel de error (debug) ──────────────────────────────────────────────── */

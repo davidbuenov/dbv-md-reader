@@ -367,6 +367,56 @@
     });
   });
 
+  // ─── Buscar actualizaciones (bajo demanda, nunca al arrancar) ─────────────
+  var btnCheckUpdate = document.getElementById('btn-check-update');
+  var updateStatus   = document.getElementById('update-status');
+  var pendingUpdate  = null; // Update de @tauri-apps/plugin-updater, ya descargable
+
+  function setUpdateStatus(text, isAvailable) {
+    updateStatus.textContent = text;
+    updateStatus.classList.toggle('is-available', !!isAvailable);
+  }
+
+  function installPendingUpdate() {
+    if (!pendingUpdate) return;
+    btnCheckUpdate.disabled = true;
+    setUpdateStatus('Descargando e instalando…', true);
+    pendingUpdate.downloadAndInstall()
+      .then(function () {
+        setUpdateStatus('Instalada. Reiniciando…', true);
+        return window.__TAURI__.process.relaunch();
+      })
+      .catch(function (err) {
+        console.warn('[updater] downloadAndInstall', err);
+        btnCheckUpdate.disabled = false;
+        setUpdateStatus('No se pudo instalar la actualización. Inténtalo de nuevo.', false);
+      });
+  }
+
+  btnCheckUpdate.addEventListener('click', function () {
+    if (pendingUpdate) { installPendingUpdate(); return; }
+
+    btnCheckUpdate.disabled = true;
+    setUpdateStatus('Buscando actualizaciones…', false);
+
+    window.__TAURI__.updater.check()
+      .then(function (update) {
+        btnCheckUpdate.disabled = false;
+        if (!update) {
+          setUpdateStatus('Ya tienes la última versión.', false);
+          return;
+        }
+        pendingUpdate = update;
+        btnCheckUpdate.textContent = 'Actualizar';
+        setUpdateStatus('Nueva versión ' + update.version + ' disponible.', true);
+      })
+      .catch(function (err) {
+        console.warn('[updater] check', err);
+        btnCheckUpdate.disabled = false;
+        setUpdateStatus('No se pudo comprobar: revisa tu conexión.', false);
+      });
+  });
+
   // =========================================================================
   // Búsqueda (Ctrl+F)
   // =========================================================================

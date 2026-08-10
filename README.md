@@ -2,6 +2,8 @@
 
 > Lector nativo de Markdown (`.md`) de solo lectura ultra-ligero, seguro y veloz para Windows basado en Rust y Tauri v2.
 
+**[🌐 Ver la web del proyecto](https://davidbuenov.github.io/dbv-md-reader/)**
+
 ---
 
 ## 🚀 Descárgalo e instálalo
@@ -14,11 +16,20 @@
 
 Descarga el instalador de la última versión: `dbv-md-reader_x.y.z_x64-setup.exe`.
 
+El navegador puede avisar de que el archivo "no se descarga habitualmente" o "no es de confianza" (SmartScreen de Microsoft Edge/Chrome). Es normal en instaladores nuevos y sin firma comercial: en Edge, abre el panel de descargas y pulsa **Mostrar más → Mantener** (o **Conservar de todos modos**).
+
 ### 2️⃣ Instala
 
-Haz doble clic sobre el instalador descargado. No requiere permisos de administrador (se instala solo para tu usuario) ni conexión a internet durante la instalación —el WebView2 necesario ya viaja incluido—. Windows puede mostrar un aviso de "Editor no reconocido" la primera vez — es normal en aplicaciones nuevas sin firma comercial; pulsa **Más información → Ejecutar de todas formas**.
+Haz doble clic sobre el instalador descargado. No requiere permisos de administrador (se instala solo para tu usuario) ni conexión a internet durante la instalación —el WebView2 necesario ya viaja incluido—. Windows puede mostrar también un aviso de "Editor no reconocido" al ejecutarlo — pulsa **Más información → Ejecutar de todas formas**.
 
-Al terminar, el propio instalador te confirma que los archivos `.md` ya han quedado asociados con la aplicación. No hace falta ningún paso manual: haz doble clic sobre cualquier `.md` y se abrirá directamente con `dbv-md-reader`.
+Antes de copiar los archivos, el instalador muestra una pantalla con dos casillas independientes (ambas marcadas por defecto, pero desmarcables):
+
+1. **Menú contextual**: que `dbv-md-reader` aparezca como opción al pulsar con el botón derecho sobre un `.md` → **Abrir con...**.
+2. **Aplicación predeterminada**: que además sea la aplicación que abre los `.md` al hacer doble clic.
+
+Puedes cambiar esta configuración cuando quieras desde **Configuración → Aplicaciones → Aplicaciones predeterminadas** de Windows.
+
+> Si ya tenías instalada una versión anterior con la pantalla de asociación de `.md` distinta (o sin ella) y el menú "Abrir con" te sigue mostrando una entrada duplicada o con el icono antiguo, desinstala primero la versión anterior desde "Aplicaciones instaladas" de Windows y luego instala la nueva — versiones previas usaban un identificador interno distinto que el desinstalador no limpia automáticamente entre versiones.
 
 ---
 
@@ -60,6 +71,7 @@ Sustituye la pesadez de visores basados en Electron o IDEs pesados por un ejecut
 - **Navegación e Índice:** Tabla de Contenidos (TOC) flotante/lateral generada automáticamente a partir de los encabezados.
 - **Búsqueda en Página:** Atajo `Ctrl + F` para buscar texto de forma rápida e intuitiva.
 - **Temas Visuales:** Soporte para modo Claro (GitHub Light), Oscuro (VS Code / GitHub Dark) y Sepia (lectura prolongada).
+- **Buscar actualizaciones:** Botón en el panel "Acerca de" — nunca se comprueba al arrancar (arranque instantáneo intacto). Si hay una versión nueva, se puede instalar en un clic sin salir de la app.
 
 ---
 
@@ -102,6 +114,27 @@ Para detenerlo: `stop.cmd` (Windows) o `./stop.sh` (macOS/Linux).
 npm test          # Tests unitarios (rápidos, sin red)
 npm run test:all  # Incluye el test de integración que descarga un .md real (RF-08A)
 ```
+
+### Publicar una nueva Release (con soporte de actualización, RF-13)
+
+⚠️ **Checklist obligatorio.** Desde que existe el botón "Buscar actualizaciones", publicar una Release sin el paso 3 (`latest.json`) dejará la app funcionando pero ese botón nunca encontrará la versión nueva — es fácil de olvidar porque el build y el `git push` siguen funcionando igual sin él.
+
+1. Sube de versión en `package.json`, `src-tauri/Cargo.toml` y `src-tauri/tauri.conf.json`, y mueve la sección `[Sin publicar]` de `dbv-specs-ops/CHANGELOG.md` a `[x.y.z] - fecha`.
+2. Compila con las variables de firma en el entorno, para que también se genere el `.sig` de cada instalador:
+   ```bash
+   export TAURI_SIGNING_PRIVATE_KEY="<ruta a tu clave privada minisign>"
+   export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<password de esa clave>"
+   npm run build
+   ```
+3. **Genera `latest.json` automáticamente** (no se construye a mano, para no equivocarse ni olvidarlo):
+   ```bash
+   npm run release:manifest -- --notes "Resumen breve de esta versión"
+   ```
+   Escribe `latest.json` en la raíz del repo (no se commitea, ver `.gitignore`) leyendo la versión de `tauri.conf.json` y el `.sig` que generó el paso 2.
+4. `git commit`, `git tag vx.y.z`, `git push origin master --tags`.
+5. Crea la Release de GitHub subiendo **los tres archivos**: el instalador `dbv-md-reader_x.y.z_x64-setup.exe`, su `.sig`, y `latest.json`.
+
+La clave privada de firma **no está en este repositorio** — la genera y custodia quien mantiene el proyecto (`npx tauri signer generate`). Perderla obliga a publicar una clave pública nueva y a que las instalaciones existentes se actualicen a mano una vez.
 
 ---
 

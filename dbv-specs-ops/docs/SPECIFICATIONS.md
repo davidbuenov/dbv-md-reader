@@ -68,6 +68,12 @@
   - La navegación interna entre documentos enlazados (RF-08A) y los botones Atrás/Adelante (RF-08B) **no** añaden entradas a esta lista — solo las aperturas explícitas cuentan como "recientes".  
   - Un botón "Limpiar historial" vacía la lista de recientes.
   - ✅ Verificado 2026-08-09: al abrir por CLI, `recent_files.json` registró correctamente la ruta, nombre y timestamp.
+- [x] **RF-13: Comprobación de Actualizaciones (bajo demanda):**  
+  - La aplicación **nunca** comprueba actualizaciones al arrancar — decisión consciente para no penalizar el arranque instantáneo (< 200 ms, RNF principal del proyecto).  
+  - El panel "Acerca de" (RF-12) incluye un botón "Buscar actualizaciones" que, al pulsarlo, consulta el manifiesto `latest.json` publicado junto a cada Release de GitHub (`tauri-plugin-updater`).  
+  - Si ya está actualizado: "Ya tienes la última versión.". Si hay una versión nueva: "Nueva versión X.Y.Z disponible." y el botón cambia a "Actualizar"; al pulsarlo, descarga e instala el nuevo instalador NSIS en segundo plano y relanza la aplicación (`tauri-plugin-process`, `relaunch()`).  
+  - Los paquetes de actualización van firmados (par de claves `minisign` generado con `tauri signer generate`, clave pública embebida en `tauri.conf.json` → `plugins.updater.pubkey`); un paquete sin firma válida o de un origen distinto no se instala.  
+  - Errores de red o de instalación se muestran como texto discreto en el propio panel, sin bloquear la aplicación ni mostrar diálogos nativos intrusivos (`plugins.updater.dialog: false`, UI 100% propia).
 
 ---
 
