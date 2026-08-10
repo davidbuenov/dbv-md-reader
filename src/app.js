@@ -200,6 +200,7 @@
           var div = document.createElement('div');
           div.className = 'mermaid-container';
           div.innerHTML = result.svg;
+          div.dataset.mermaidSource = code; // para el menú contextual "Abrir en mermaid.live"
           pre.replaceWith(div);
         })
         .catch(function (e) { console.warn('Mermaid:', e); });
@@ -342,6 +343,55 @@
     panelClosers.push(close);
     return { open: open, close: close };
   }
+
+  // =========================================================================
+  // Menú contextual sobre un diagrama Mermaid — "Abrir en mermaid.live"
+  // =========================================================================
+
+  function uint8ToUrlSafeBase64(bytes) {
+    var CHUNK = 0x8000; // evitar RangeError de String.fromCharCode.apply con diagramas grandes
+    var binary = '';
+    for (var i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  // Mismo formato que usa mermaid.live internamente (src/lib/util/serde.ts: pakoSerde)
+  // para codificar su estado en la URL, así el enlace abre el diagrama ya cargado.
+  function buildMermaidLiveUrl(code) {
+    var state = {
+      code: code,
+      mermaid: JSON.stringify({ theme: 'dark' }, null, 2), // mismo tema que usamos al renderizar (ver processMermaid)
+      updateDiagram: true,
+      rough: false,
+      grid: true
+    };
+    var bytes = new TextEncoder().encode(JSON.stringify(state));
+    var compressed = window.pako.deflate(bytes, { level: 9 });
+    return 'https://mermaid.live/edit#pako:' + uint8ToUrlSafeBase64(compressed);
+  }
+
+  var mermaidMenu = document.getElementById('mermaid-context-menu');
+  var mermaidMenuSource = null;
+
+  function hideMermaidMenu() { mermaidMenu.classList.add('hidden'); }
+
+  contentEl.addEventListener('contextmenu', function (e) {
+    var container = e.target.closest('.mermaid-container');
+    if (!container) { hideMermaidMenu(); return; }
+    e.preventDefault();
+    mermaidMenuSource = container.dataset.mermaidSource || null;
+    mermaidMenu.style.left = e.clientX + 'px';
+    mermaidMenu.style.top = e.clientY + 'px';
+    mermaidMenu.classList.remove('hidden');
+  });
+  document.addEventListener('click', hideMermaidMenu);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideMermaidMenu(); });
+  document.getElementById('mermaid-open-live').addEventListener('click', function () {
+    if (mermaidMenuSource) openExternal(buildMermaidLiveUrl(mermaidMenuSource));
+    hideMermaidMenu();
+  });
 
   // =========================================================================
   // Acerca de
@@ -714,13 +764,20 @@
     var savedZoom = parseInt(localStorage.getItem('dbv-md-zoom') || '100', 10);
     if (savedZoom !== 100) applyZoom(savedZoom, { silent: true });
 
-    invoke('get_cli_argument')
-      .then(function (cliPath) {
-        if (cliPath) loadDocument(cliPath, { isPrimaryOpen: true });
-      })
-      .catch(function (err) {
-        console.log('[init] no CLI arg:', err);
-      });
+    // RF-14: una ventana abierta por el callback de instancia única (src-tauri/src/lib.rs,
+    // open_document_window) trae su ruta inicial inyectada aquí en vez de en el argv del
+    // proceso — get_cli_argument() siempre devolvería la del arranque original.
+    if (window.__DBV_INITIAL_PATH__) {
+      loadDocument(window.__DBV_INITIAL_PATH__, { isPrimaryOpen: true });
+    } else {
+      invoke('get_cli_argument')
+        .then(function (cliPath) {
+          if (cliPath) loadDocument(cliPath, { isPrimaryOpen: true });
+        })
+        .catch(function (err) {
+          console.log('[init] no CLI arg:', err);
+        });
+    }
 
     loadRecentFiles();
   }

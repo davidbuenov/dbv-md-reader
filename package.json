@@ -1,7 +1,7 @@
 {
   "name": "dbv-md-reader",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
@@ -19,6 +19,7 @@
     "dompurify": "^3.4.13",
     "markdown-it": "^14.1.0",
     "mermaid": "^11.4.1",
+    "pako": "^3.0.1",
     "prismjs": "^1.29.0"
   },
   "devDependencies": {

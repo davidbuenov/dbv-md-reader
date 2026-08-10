@@ -74,6 +74,15 @@
   - Si ya está actualizado: "Ya tienes la última versión.". Si hay una versión nueva: "Nueva versión X.Y.Z disponible." y el botón cambia a "Actualizar"; al pulsarlo, descarga e instala el nuevo instalador NSIS en segundo plano y relanza la aplicación (`tauri-plugin-process`, `relaunch()`).  
   - Los paquetes de actualización van firmados (par de claves `minisign` generado con `tauri signer generate`, clave pública embebida en `tauri.conf.json` → `plugins.updater.pubkey`); un paquete sin firma válida o de un origen distinto no se instala.  
   - Errores de red o de instalación se muestran como texto discreto en el propio panel, sin bloquear la aplicación ni mostrar diálogos nativos intrusivos (`plugins.updater.dialog: false`, UI 100% propia).
+- [x] **RF-14: Instancia única del proceso (multi-ventana, no multi-proceso):**  
+  - Abrir un `.md` (doble clic, "Abrir con...", CLI) mientras `dbv-md-reader` ya está en marcha **no** lanza un proceso `dbv-md-reader.exe` nuevo — abre una ventana adicional dentro del **mismo** proceso (`tauri-plugin-single-instance`), visible como un único árbol en el Administrador de Tareas de Windows con varias ventanas, igual que Notepad++.  
+  - Cada ventana mantiene su documento, zoom, TOC, búsqueda y observador de archivos completamente independientes de las demás — no se comparte estado entre ventanas, solo el proceso.  
+  - Si la segunda apertura no trae ninguna ruta de archivo (p. ej. relanzar el `.exe` sin argumentos), no se abre una ventana vacía: se enfoca una ya existente.  
+  - **Fuera de alcance de este RF** (decisión consciente, ver ADR-015 en `memory.md`): abrir un archivo *desde dentro* de la app (`Ctrl+O`, panel de Recientes, Drag & Drop sobre una ventana ya abierta) sigue sustituyendo el documento de esa misma ventana, sin crear una ventana nueva — solo las aperturas *externas* (Explorador de Windows) consolidan proceso.
+- [x] **RF-15: Abrir un diagrama Mermaid en mermaid.live:**  
+  - Menú contextual (botón derecho) sobre cualquier diagrama Mermaid ya renderizado, con la opción "Abrir en mermaid.live".  
+  - Genera la URL del editor en línea codificando el código fuente del diagrama en el fragmento `#pako:...` (mismo formato que usa mermaid.live internamente para compartir enlaces — compresión `deflate` + Base64 URL-safe, sin ningún servidor intermedio) y la abre en el navegador predeterminado.  
+  - Pensado para diagramas grandes/densos donde el zoom interno de la app (tope 200%, RF-10) no basta para leer el detalle — mermaid.live ofrece pan/zoom libre.
 
 ---
 

@@ -8,9 +8,10 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::DialogExt;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -33,6 +34,37 @@ pub struct WatcherState(pub Mutex<Option<notify::RecommendedWatcher>>);
 
 fn is_remote(path: &str) -> bool {
     path.starts_with("http://") || path.starts_with("https://")
+}
+
+/// Extracts the first non-flag argument (the file path) from a CLI argv-like list,
+/// skipping argv[0] (the executable path itself). Shared by `get_cli_argument` (first
+/// launch) and the single-instance callback (RF-14, subsequent launches).
+fn first_path_argument<I: IntoIterator<Item = String>>(args: I) -> Option<String> {
+    args.into_iter().skip(1).find(|a| !a.starts_with('-'))
+}
+
+static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(0);
+
+/// Opens `path` in a brand-new window of the *same* process (RF-14), instead of the OS
+/// launching a whole new dbv-md-reader.exe per file. Each window keeps its own
+/// zoom/TOC/search/watcher state, exactly like the original main window — the frontend
+/// doesn't need to know it was opened this way. `window.__DBV_INITIAL_PATH__` stands in
+/// for the CLI argument that a normally-launched process would read via `get_cli_argument`.
+fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<()> {
+    let label = format!("doc-{}", WINDOW_COUNTER.fetch_add(1, Ordering::SeqCst));
+    let init_script = format!(
+        "window.__DBV_INITIAL_PATH__ = {};",
+        serde_json::to_string(&path).unwrap_or_else(|_| "null".to_string())
+    );
+    WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
+        .title("dbv-md-reader")
+        .inner_size(1120.0, 760.0)
+        .min_inner_size(640.0, 450.0)
+        .resizable(true)
+        .center()
+        .initialization_script(&init_script)
+        .build()?;
+    Ok(())
 }
 
 /// Inserts/moves `entry` to the front of `list`, deduplicating by path and
@@ -60,7 +92,7 @@ pub mod commands {
     /// Returns the initial file path passed as CLI argument (if any)
     #[tauri::command]
     pub fn get_cli_argument() -> Option<String> {
-        std::env::args().nth(1).filter(|a| !a.starts_with('-'))
+        first_path_argument(std::env::args())
     }
 
     /// Returns the app version declared in Cargo.toml, for the "About" panel.
@@ -270,6 +302,24 @@ pub mod commands {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // RF-14: un doble clic / "Abrir con" en un .md mientras la app ya está en
+            // marcha no debe lanzar un proceso dbv-md-reader.exe nuevo — abre una
+            // ventana más en este mismo proceso (o, sin ruta, enfoca una existente).
+            let app_handle = app.clone();
+            let path = first_path_argument(argv);
+            let _ = app_handle.clone().run_on_main_thread(move || match path {
+                Some(path) => {
+                    let _ = open_document_window(&app_handle, path);
+                }
+                None => {
+                    let windows = app_handle.webview_windows();
+                    if let Some(window) = windows.get("main").or_else(|| windows.values().next()) {
+                        let _ = window.set_focus();
+                    }
+                }
+            });
+        }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())

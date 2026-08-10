@@ -168,6 +168,16 @@ section > * , .nav-inner, .footer-inner { max-width: var(--max-width); margin-in
 .why p { color: var(--text-secondary); font-size: 16px; }
 .why strong { color: var(--text-primary); }
 
+.comparison-shot { margin-top: 32px; }
+.comparison-shot img {
+  max-width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px var(--shadow);
+}
+.comparison-caption { margin-top: 14px; font-size: 13px; color: var(--text-muted); }
+.comparison-caption code { font-size: 12px; }
+
 /* ─── Features ────────────────────────────────────────────────────────────── */
 .features { padding: 24px 24px 80px; }
 .features h2, .screenshots h2, .steps h2, .cta h2 {

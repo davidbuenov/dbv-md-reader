@@ -5,6 +5,16 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.4.0] - 2026-08-10
+
+### Añadido
+- **RF-14 Instancia única (multi-ventana, no multi-proceso)**: abrir un `.md` mientras la app ya está en marcha (doble clic, "Abrir con...") ya no lanza un `dbv-md-reader.exe` nuevo — abre una ventana más dentro del mismo proceso (`tauri-plugin-single-instance`), un único árbol en el Administrador de Tareas con varias ventanas, cada una con su documento/zoom/TOC/búsqueda/watcher totalmente independiente. `Ctrl+O`/Recientes/Drag&Drop dentro de una ventana ya abierta siguen sustituyendo su documento, sin cambios — decisión consciente, ver ADR-015.
+- **RF-15 Abrir un diagrama Mermaid en mermaid.live**: menú contextual (botón derecho) sobre cualquier diagrama renderizado, para inspeccionarlo con pan/zoom libre cuando el zoom interno (tope 200%) se queda corto en diagramas grandes. Sin servidor propio: el código se codifica en el fragmento de la URL (`#pako:...`), mismo formato que usa mermaid.live para sus propios enlaces para compartir.
+- **Comparativa real de memoria** en `README.md` y la landing page: los mismos 2 `.md` abiertos a la vez en Visual Studio Code (885,8 MB), Notepad++ (21,5 MB) y `dbv-md-reader` (5,9 MB), según el Administrador de Tareas de Windows.
+
+### Corregido
+- **Ventanas nuevas de RF-14 sin permisos (`Command plugin:event|listen not allowed by ACL`)**: `capabilities/main.json` restringía todos los permisos a la ventana `"main"` (el campo `windows` hace *glob matching* sobre la etiqueta), así que las ventanas `doc-0`, `doc-1`... que abre la instancia única se quedaban sin poder escuchar eventos (`file-changed` de RF-06, `tauri://drag-drop` de RF-09). Ampliado a `["main", "doc-*"]`.
+
 ## [0.3.1] - 2026-08-10
 
 ### Añadido

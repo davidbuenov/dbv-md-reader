@@ -474,6 +474,30 @@ body {
 /* ─── Panel de Archivos Recientes ─────────────────────────────────────────── */
 .recent-wrap { position: relative; }
 
+#mermaid-context-menu {
+  position: fixed;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--shadow);
+  padding: 4px;
+  z-index: 200;
+}
+#mermaid-context-menu button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#mermaid-context-menu button:hover { background-color: var(--bg-primary); }
+
 #recent-panel {
   position: absolute;
   top: 38px;

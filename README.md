@@ -51,6 +51,20 @@ Puedes cambiar esta configuración cuando quieras desde **Configuración → Apl
 
 Sustituye la pesadez de visores basados en Electron o IDEs pesados por un ejecutable nativo liviano con protección anti-XSS mediante **DOMPurify** sobre el HTML ya renderizado.
 
+### 📊 Comparativa real de memoria
+
+Los mismos 2 archivos `.md` abiertos a la vez en Visual Studio Code, Notepad++ y `dbv-md-reader` — memoria según el Administrador de Tareas de Windows:
+
+![Comparativa de memoria: Visual Studio Code 885,8 MB, Notepad++ 21,5 MB, dbv-md-reader 5,9 MB](docs/assets/screenshots/comparacioneficiencia.png)
+
+| Aplicación | RAM (mismos 2 archivos abiertos) |
+| --- | --- |
+| Visual Studio Code | 885,8 MB |
+| Notepad++ | 21,5 MB |
+| **dbv-md-reader** | **5,9 MB** |
+
+Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerca.
+
 **Construido con:**
 - **Core / Backend:** Rust + Tauri v2 (utiliza el motor WebView2 nativo de Windows).
 - **Seguridad:** DOMPurify (JS) sanitiza el HTML renderizado contra ataques XSS.
@@ -63,9 +77,10 @@ Sustituye la pesadez de visores basados en Electron o IDEs pesados por un ejecut
 ## ✨ Características Principales
 
 - **Apertura CLI / Doble Clic:** Abre directamente cualquier archivo `.md` desde la línea de comandos o asociándolo en *"Abrir con..."* (ej. `dbv-md-reader.exe C:\notas\readme.md`).
+- **Instancia única:** abrir varios `.md` desde el Explorador de Windows no multiplica procesos — todas las ventanas viven bajo un único proceso (visible en el Administrador de Tareas), cada una con su propio documento, zoom y búsqueda.
 - **Archivos Recientes:** Panel con los últimos documentos abiertos explícitamente, para no tener que volver a buscarlos.
 - **Auto-Reload:** La vista se recarga sola (conservando el scroll) cuando el archivo abierto se edita y guarda desde otra aplicación.
-- **Renderizado Híbrido:** Soporta Markdown estándar, HTML seguro incrustado, imágenes locales y diagramas Mermaid.
+- **Renderizado Híbrido:** Soporta Markdown estándar, HTML seguro incrustado, imágenes locales y diagramas Mermaid. Botón derecho sobre un diagrama Mermaid → "Abrir en mermaid.live" para inspeccionarlo con zoom libre.
 - **Documentos remotos:** Abre y navega enlaces a `.md` alojados en una URL (`http(s)://`), además de los locales.
 - **Seguridad Estricta:** Sanitización de etiquetas y atributos peligrosos (DOMPurify) antes de insertarse en el WebView2.
 - **Navegación e Índice:** Tabla de Contenidos (TOC) flotante/lateral generada automáticamente a partir de los encabezados.
