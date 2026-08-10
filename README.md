@@ -1,5 +1,15 @@
 # dbv-md-reader
 
+[![Release](https://img.shields.io/github/v/release/davidbuenov/dbv-md-reader?display_name=tag&sort=semver)](https://github.com/davidbuenov/dbv-md-reader/releases)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Rust](https://img.shields.io/badge/Rust-1.76+-000000?logo=rust&logoColor=white)
+![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?logo=javascript&logoColor=black)
+![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)
+![Status](https://img.shields.io/badge/status-active-success)
+[![Last Update](https://img.shields.io/github/last-commit/davidbuenov/dbv-md-reader?label=last%20update)](https://github.com/davidbuenov/dbv-md-reader/commits/master)
+[![Framework](https://img.shields.io/badge/framework-dbv--specs--ops-111827?logo=github&logoColor=white)](https://github.com/davidbuenov/dbv-specs-ops)
+
 > Lector nativo de Markdown (`.md`) de solo lectura ultra-ligero, seguro y veloz para Windows basado en Rust y Tauri v2.
 
 **[🌐 Ver la web del proyecto](https://davidbuenov.github.io/dbv-md-reader/)**
@@ -31,6 +41,13 @@ Puedes cambiar esta configuración cuando quieras desde **Configuración → Apl
 
 > Si ya tenías instalada una versión anterior con la pantalla de asociación de `.md` distinta (o sin ella) y el menú "Abrir con" te sigue mostrando una entrada duplicada o con el icono antiguo, desinstala primero la versión anterior desde "Aplicaciones instaladas" de Windows y luego instala la nueva — versiones previas usaban un identificador interno distinto que el desinstalador no limpia automáticamente entre versiones.
 
+### 3️⃣ Actualiza
+
+A partir de aquí ya no necesitas volver a esta página para cada versión nueva. Abre el panel **Acerca de** (icono ⓘ de la barra superior) y pulsa **Buscar actualizaciones**. La comprobación es siempre bajo demanda — nunca se ejecuta sola al arrancar, para no afectar al arranque instantáneo.
+
+- Si ya tienes la última versión: **"Ya tienes la última versión."**
+- Si hay una nueva: **"Nueva versión X.Y.Z disponible."** y el botón cambia a **Actualizar** — un clic descarga, instala y reinicia la app por ti, sin salir de `dbv-md-reader` ni pasar por el navegador ni por Releases.
+
 ---
 
 ## 📑 Índice
@@ -42,6 +59,7 @@ Puedes cambiar esta configuración cuando quieras desde **Configuración → Apl
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Changelog](#changelog)
 - [Licencia](#licencia)
+- [Autor y Créditos](#autor-y-créditos)
 
 ---
 
@@ -196,5 +214,20 @@ Copyright (c) 2026 David Bueno Vallejo
 
 ---
 
-> 🛠️ Desarrollado con el framework **[dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops)** — Spec-Driven Development.  
-> Creado por [David Bueno Vallejo](https://github.com/davidbuenov) — libre y gratuito.
+## ✍️ Autor y Créditos
+
+### 👤 David Bueno Vallejo
+
+> Idea original, arquitectura, dirección del proyecto y pruebas en equipos reales.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-davidbueno-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/davidbueno/)
+[![Website](https://img.shields.io/badge/Web-davidbuenov.com-6366f1?logo=googlechrome&logoColor=white)](https://davidbuenov.com)
+[![GitHub](https://img.shields.io/badge/GitHub-davidbuenov-181717?logo=github&logoColor=white)](https://github.com/davidbuenov)
+
+### 🤖 Construido con IA
+
+| Herramienta | Rol |
+| --- | --- |
+| **[Claude Code](https://claude.com/claude-code)** · *Anthropic* | Pair programming completo: arquitectura Rust/Tauri, instalador NSIS (asociación `.md`, instancia única), comprobación de actualizaciones firmadas, revisión de seguridad y ciclo `/ship` de principio a fin. |
+
+> 🛠️ Desarrollado con el framework **[dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops)** — Spec-Driven Development, libre y gratuito.
