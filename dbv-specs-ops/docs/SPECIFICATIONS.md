@@ -83,6 +83,11 @@
   - Menú contextual (botón derecho) sobre cualquier diagrama Mermaid ya renderizado, con la opción "Abrir en mermaid.live".  
   - Genera la URL del editor en línea codificando el código fuente del diagrama en el fragmento `#pako:...` (mismo formato que usa mermaid.live internamente para compartir enlaces — compresión `deflate` + Base64 URL-safe, sin ningún servidor intermedio) y la abre en el navegador predeterminado.  
   - Pensado para diagramas grandes/densos donde el zoom interno de la app (tope 200%, RF-10) no basta para leer el detalle — mermaid.live ofrece pan/zoom libre.
+- [x] **RF-16: Interfaz en español e inglés:**  
+  - Selector de idioma (ES/EN) en la barra superior, junto al selector de temas — mismo patrón visual, persistente en `localStorage`.  
+  - Detección automática al primer arranque a partir del idioma del sistema (`navigator.language`); a partir de ahí prevalece la elección manual del usuario.  
+  - Cubre toda la interfaz de la aplicación (barra de herramientas, paneles, mensajes de error, actualizaciones, tiempos relativos de "Recientes") mediante diccionarios en `src/i18n.js`, sin librería de i18n externa.  
+  - **Fuera de alcance de este RF:** el instalador NSIS y la ficha de Microsoft Store no se traducen — siguen en español (instalador) e independientemente en cada idioma (ficha de Store, ver `descripcionStore_es.md` / `descripcionStore_en.md` en la raíz del proyecto). El contenido de los documentos `.md` que el usuario abre tampoco se traduce (no tendría sentido — es su propio contenido).
 
 ---
 

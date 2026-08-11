@@ -5,6 +5,16 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [Sin publicar]
+
+### Añadido
+- **Interfaz en español e inglés (RF-16)**: selector ES/EN en la barra superior (junto al de temas), detección automática del idioma del sistema al primer arranque, elección persistente. Cubre toda la interfaz de la app (`src/i18n.js`, sin librería de i18n externa).
+- **Ficha de Microsoft Store bilingüe**: `descripcionStore_es.md` / `descripcionStore_en.md` con los textos listos para Partner Center, y 4 capturas de pantalla nuevas (`docs/assets/store/`) en ambos idiomas.
+
+### Corregido
+- **Bug de traducción con un documento abierto**: al cambiar de idioma, el nombre del archivo en la barra se sobreescribía con el texto genérico "Sin documento abierto".
+- **Envío a Microsoft Store**: nombre de manifiesto (`dbv-md-reader`) sin reservar en Partner Center — resuelto reservándolo como nombre adicional del mismo producto, sin tocar el paquete.
+
 ## [0.5.0] - 2026-08-11
 
 ### Añadido

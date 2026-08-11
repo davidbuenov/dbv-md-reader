@@ -16,10 +16,10 @@
   <header id="app-header">
     <!-- Left: Navegación + Breadcrumb -->
     <div class="toolbar-left">
-      <button id="btn-back" class="btn-icon" title="Atrás (Alt+←)" disabled>
+      <button id="btn-back" class="btn-icon" data-i18n-title="toolbar.back" disabled>
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       </button>
-      <button id="btn-forward" class="btn-icon" title="Adelante (Alt+→)" disabled>
+      <button id="btn-forward" class="btn-icon" data-i18n-title="toolbar.forward" disabled>
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
       </button>
       <div class="toolbar-divider"></div>
@@ -28,42 +28,47 @@
 
     <!-- Right: Acciones + Tema + TOC -->
     <div class="toolbar-right">
-      <button id="btn-search"    class="btn-icon" title="Buscar (Ctrl+F)">
+      <button id="btn-search"    class="btn-icon" data-i18n-title="toolbar.search">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
       </button>
-      <button id="btn-open-file" class="btn-icon" title="Abrir archivo (Ctrl+O)">
+      <button id="btn-open-file" class="btn-icon" data-i18n-title="toolbar.openFile">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/></svg>
       </button>
-      <button id="btn-open-url" class="btn-icon" title="Abrir desde URL">
+      <button id="btn-open-url" class="btn-icon" data-i18n-title="toolbar.openUrl">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5"/></svg>
       </button>
       <div class="recent-wrap">
-        <button id="btn-recent" class="btn-icon" title="Archivos recientes">
+        <button id="btn-recent" class="btn-icon" data-i18n-title="toolbar.recent">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </button>
         <div id="recent-panel" class="hidden">
           <div id="recent-panel-header">
-            <h3 class="section-label">Archivos Recientes</h3>
-            <button id="btn-clear-recent" class="btn-icon-sm" title="Limpiar historial">Limpiar</button>
+            <h3 class="section-label" data-i18n="recent.title">Archivos Recientes</h3>
+            <button id="btn-clear-recent" class="btn-icon-sm" data-i18n-title="recent.clear" data-i18n="recent.clearBtn">Limpiar</button>
           </div>
           <div id="recent-list"></div>
         </div>
       </div>
-      <button id="btn-print" class="btn-icon" title="Imprimir / PDF (Ctrl+P)">
+      <button id="btn-print" class="btn-icon" data-i18n-title="toolbar.print">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
       </button>
       <div class="toolbar-divider"></div>
       <div id="theme-switcher">
-        <button id="theme-light" class="theme-btn" title="Tema Claro">☀️ Light</button>
-        <button id="theme-dark"  class="theme-btn active" title="Tema Oscuro">🌙 Dark</button>
-        <button id="theme-sepia" class="theme-btn" title="Tema Sepia">📜 Sepia</button>
+        <button id="theme-light" class="theme-btn" data-i18n-title="theme.light">☀️ Light</button>
+        <button id="theme-dark"  class="theme-btn active" data-i18n-title="theme.dark">🌙 Dark</button>
+        <button id="theme-sepia" class="theme-btn" data-i18n-title="theme.sepia">📜 Sepia</button>
       </div>
       <div class="toolbar-divider"></div>
-      <button id="btn-toggle-toc" class="btn-icon" title="Tabla de Contenidos">
+      <div id="lang-switcher" data-i18n-title="lang.label">
+        <button id="lang-es" class="lang-btn" type="button">ES</button>
+        <button id="lang-en" class="lang-btn" type="button">EN</button>
+      </div>
+      <div class="toolbar-divider"></div>
+      <button id="btn-toggle-toc" class="btn-icon" data-i18n-title="toolbar.toc">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"/></svg>
       </button>
       <div class="toolbar-divider"></div>
-      <button id="btn-about" class="btn-icon" title="Acerca de DBV Markdown Reader">
+      <button id="btn-about" class="btn-icon" data-i18n-title="toolbar.about">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </button>
     </div>
@@ -73,25 +78,25 @@
   <div id="about-modal" class="hidden">
     <div id="about-backdrop"></div>
     <div id="about-card">
-      <button id="about-close" class="btn-icon-sm" title="Cerrar (Esc)">✕</button>
+      <button id="about-close" class="btn-icon-sm" data-i18n-title="about.close">✕</button>
       <h2>DBV Markdown Reader</h2>
-      <p id="about-version">Versión —</p>
-      <p class="about-desc">Lector nativo de Markdown de solo lectura para Windows.</p>
+      <p id="about-version" data-i18n="about.versionPlaceholder">Versión —</p>
+      <p class="about-desc" data-i18n="about.desc">Lector nativo de Markdown de solo lectura para Windows.</p>
       <div class="about-links">
         <a href="https://davidbuenov.com" id="about-link-web">🌐 davidbuenov.com</a>
         <a href="https://github.com/davidbuenov" id="about-link-github">💻 github.com/davidbuenov</a>
       </div>
       <div class="about-update">
-        <button id="btn-check-update" class="btn-secondary">Buscar actualizaciones</button>
+        <button id="btn-check-update" class="btn-secondary" data-i18n="about.checkUpdate">Buscar actualizaciones</button>
         <p id="update-status" class="about-update-status"></p>
       </div>
-      <p class="about-author">David Bueno Vallejo · Licencia MIT</p>
+      <p class="about-author" data-i18n="about.authorLine">David Bueno Vallejo · Licencia MIT</p>
     </div>
   </div>
 
   <!-- ─── Menú contextual sobre un diagrama Mermaid ──────────────────────── -->
   <div id="mermaid-context-menu" class="hidden">
-    <button id="mermaid-open-live">🔗 Abrir en mermaid.live</button>
+    <button id="mermaid-open-live" data-i18n="mermaid.openLive">🔗 Abrir en mermaid.live</button>
   </div>
 
   <!-- ─── Body: Contenido + TOC ─────────────────────────────────────────── -->
@@ -108,13 +113,13 @@
           </svg>
         </div>
         <h2>DBV Markdown Reader</h2>
-        <p>Lector nativo ultra-ligero para archivos Markdown</p>
-        <button id="btn-empty-open" class="btn-primary">Abrir archivo .md</button>
-        <span class="empty-hint">o arrastra un archivo .md aquí</span>
-        <button id="btn-empty-url" class="btn-link">o abrir desde una URL</button>
+        <p data-i18n="empty.subtitle">Lector nativo ultra-ligero para archivos Markdown</p>
+        <button id="btn-empty-open" class="btn-primary" data-i18n="empty.openButton">Abrir archivo .md</button>
+        <span class="empty-hint" data-i18n="empty.dragHint">o arrastra un archivo .md aquí</span>
+        <button id="btn-empty-url" class="btn-link" data-i18n="empty.urlLink">o abrir desde una URL</button>
 
         <div id="empty-recent" class="hidden">
-          <h3 class="section-label">Recientes</h3>
+          <h3 class="section-label" data-i18n="recent.emptyStateTitle">Recientes</h3>
           <div id="empty-recent-list"></div>
         </div>
       </div>
@@ -126,7 +131,7 @@
 
     <!-- TOC Sidebar -->
     <aside id="toc-sidebar" class="hidden">
-      <h3 class="section-label">Tabla de Contenidos</h3>
+      <h3 class="section-label" data-i18n="toolbar.toc">Tabla de Contenidos</h3>
       <nav id="toc-list"></nav>
     </aside>
 
@@ -134,18 +139,18 @@
 
   <!-- ─── Panel "Abrir desde URL" ───────────────────────────────────────── -->
   <div id="url-panel" class="floating-panel hidden">
-    <input id="url-input" class="floating-panel-input" type="url" placeholder="https://.../documento.md" autocomplete="off" spellcheck="false" />
-    <button id="url-open-btn" class="btn-icon-sm">Abrir</button>
-    <button id="url-close" class="btn-icon-sm" title="Cerrar (Esc)">✕</button>
+    <input id="url-input" class="floating-panel-input" type="url" data-i18n-placeholder="url.placeholder" placeholder="https://.../documento.md" autocomplete="off" spellcheck="false" />
+    <button id="url-open-btn" class="btn-icon-sm" data-i18n="url.openButton">Abrir</button>
+    <button id="url-close" class="btn-icon-sm" data-i18n-title="url.close">✕</button>
   </div>
 
   <!-- ─── Modal de búsqueda ─────────────────────────────────────────────── -->
   <div id="search-modal" class="floating-panel hidden">
-    <input id="search-input" class="floating-panel-input" type="text" placeholder="Buscar en el documento…" autocomplete="off" spellcheck="false" />
+    <input id="search-input" class="floating-panel-input" type="text" data-i18n-placeholder="search.placeholder" placeholder="Buscar en el documento…" autocomplete="off" spellcheck="false" />
     <span id="search-counter">0/0</span>
-    <button id="search-prev"  class="btn-icon-sm" title="Anterior (Shift+Enter)">↑</button>
-    <button id="search-next"  class="btn-icon-sm" title="Siguiente (Enter)">↓</button>
-    <button id="search-close" class="btn-icon-sm" title="Cerrar (Esc)">✕</button>
+    <button id="search-prev"  class="btn-icon-sm" data-i18n-title="search.prev">↑</button>
+    <button id="search-next"  class="btn-icon-sm" data-i18n-title="search.next">↓</button>
+    <button id="search-close" class="btn-icon-sm" data-i18n-title="search.close">✕</button>
   </div>
 
   <!-- ─── Scripts ───────────────────────────────────────────────────────── -->
@@ -154,6 +159,7 @@
   <script src="vendor/prism.min.js"></script>
   <script src="vendor/mermaid.min.js"></script>
   <script src="vendor/pako_deflate.min.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

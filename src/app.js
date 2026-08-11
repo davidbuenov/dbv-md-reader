@@ -4,6 +4,8 @@
 (function () {
   'use strict';
 
+  var t = window.DBV_I18N.t;
+
   // ─── Error display (muestra errores directamente en la ventana) ──────────
   var errorPanel = document.getElementById('error-panel');
   function showError(msg) {
@@ -19,11 +21,11 @@
 
   // ─── Verificar que Tauri está disponible ─────────────────────────────────
   if (!window.__TAURI__) {
-    showError('[FATAL] window.__TAURI__ no está disponible. ¿Estás ejecutando fuera de Tauri?');
+    showError(t('errors.fatalNoTauri'));
     return;
   }
   if (!window.__TAURI__.core || !window.__TAURI__.core.invoke) {
-    showError('[FATAL] window.__TAURI__.core.invoke no disponible.');
+    showError(t('errors.fatalNoInvoke'));
     return;
   }
 
@@ -118,7 +120,7 @@
       })
       .catch(function (err) {
         showError('[loadDocument] ' + err);
-        alert('Error al cargar: ' + err);
+        alert(t('errors.loadFailed', { error: err }));
       });
   }
 
@@ -178,12 +180,12 @@
     if (pre.querySelector('.code-copy-btn')) return;
     var btn = document.createElement('button');
     btn.className = 'code-copy-btn';
-    btn.textContent = 'Copiar';
+    btn.textContent = t('copy.copy');
     btn.addEventListener('click', function () {
       var text = (pre.querySelector('code') || {}).innerText || '';
       navigator.clipboard.writeText(text).then(function () {
-        btn.textContent = '¡Copiado!';
-        setTimeout(function () { btn.textContent = 'Copiar'; }, 2000);
+        btn.textContent = t('copy.copied');
+        setTimeout(function () { btn.textContent = t('copy.copy'); }, 2000);
       });
     });
     pre.appendChild(btn);
@@ -242,7 +244,7 @@
     tocList.innerHTML = '';
     var headers = contentEl.querySelectorAll('h1,h2,h3');
     if (!headers.length) {
-      tocList.innerHTML = '<p class="text-xs text-muted">Sin encabezados</p>';
+      tocList.innerHTML = '<p class="text-xs text-muted">' + t('toc.empty') + '</p>';
       return;
     }
     headers.forEach(function (h, i) {
@@ -296,6 +298,28 @@
 
   document.getElementById('btn-toggle-toc').addEventListener('click', function () {
     tocSidebar.classList.toggle('hidden');
+  });
+
+  // =========================================================================
+  // Idioma
+  // =========================================================================
+
+  var btnLangs = {
+    es: document.getElementById('lang-es'),
+    en: document.getElementById('lang-en')
+  };
+
+  function setLang(lang) {
+    window.DBV_I18N.setLang(lang);
+    Object.keys(btnLangs).forEach(function (k) { btnLangs[k].classList.remove('active'); });
+    if (btnLangs[lang]) btnLangs[lang].classList.add('active');
+    // El breadcrumb no lleva data-i18n (si hay un documento abierto, applyTranslations()
+    // no debe pisar su nombre de archivo con el texto de "sin documento").
+    if (!currentDoc) breadcrumb.textContent = t('toolbar.noDocument');
+  }
+
+  Object.keys(btnLangs).forEach(function (name) {
+    btnLangs[name].addEventListener('click', function () { setLang(name); });
   });
 
   // =========================================================================
@@ -402,7 +426,7 @@
     trigger: document.getElementById('btn-about'),
     onOpen: function () {
       invoke('get_app_version')
-        .then(function (version) { aboutVersion.textContent = 'Versión ' + version; })
+        .then(function (version) { aboutVersion.textContent = t('about.version', { version: version }); })
         .catch(function (err) { console.warn('[get_app_version]', err); });
     }
   });
@@ -430,16 +454,16 @@
   function installPendingUpdate() {
     if (!pendingUpdate) return;
     btnCheckUpdate.disabled = true;
-    setUpdateStatus('Descargando e instalando…', true);
+    setUpdateStatus(t('update.downloading'), true);
     pendingUpdate.downloadAndInstall()
       .then(function () {
-        setUpdateStatus('Instalada. Reiniciando…', true);
+        setUpdateStatus(t('update.installed'), true);
         return window.__TAURI__.process.relaunch();
       })
       .catch(function (err) {
         console.warn('[updater] downloadAndInstall', err);
         btnCheckUpdate.disabled = false;
-        setUpdateStatus('No se pudo instalar la actualización. Inténtalo de nuevo.', false);
+        setUpdateStatus(t('update.installFailed'), false);
       });
   }
 
@@ -451,7 +475,7 @@
   invoke('is_packaged_app').then(function (isPackaged) {
     if (isPackaged) {
       btnCheckUpdate.style.display = 'none';
-      setUpdateStatus('Las actualizaciones se instalan automáticamente desde Microsoft Store.', false);
+      setUpdateStatus(t('update.store'), false);
       return;
     }
 
@@ -459,23 +483,23 @@
       if (pendingUpdate) { installPendingUpdate(); return; }
 
       btnCheckUpdate.disabled = true;
-      setUpdateStatus('Buscando actualizaciones…', false);
+      setUpdateStatus(t('update.checking'), false);
 
       window.__TAURI__.updater.check()
         .then(function (update) {
           btnCheckUpdate.disabled = false;
           if (!update) {
-            setUpdateStatus('Ya tienes la última versión.', false);
+            setUpdateStatus(t('update.upToDate'), false);
             return;
           }
           pendingUpdate = update;
-          btnCheckUpdate.textContent = 'Actualizar';
-          setUpdateStatus('Nueva versión ' + update.version + ' disponible.', true);
+          btnCheckUpdate.textContent = t('update.button');
+          setUpdateStatus(t('update.available', { version: update.version }), true);
         })
         .catch(function (err) {
           console.warn('[updater] check', err);
           btnCheckUpdate.disabled = false;
-          setUpdateStatus('No se pudo comprobar: revisa tu conexión.', false);
+          setUpdateStatus(t('update.checkFailed'), false);
         });
     });
   });
@@ -569,10 +593,10 @@
 
   function formatRelativeTime(epochSeconds) {
     var diff = Math.max(0, Math.floor(Date.now() / 1000) - epochSeconds);
-    if (diff < 60) return 'ahora mismo';
-    if (diff < 3600) return Math.floor(diff / 60) + ' min';
-    if (diff < 86400) return Math.floor(diff / 3600) + ' h';
-    return Math.floor(diff / 86400) + ' d';
+    if (diff < 60) return t('time.now');
+    if (diff < 3600) return t('time.minutes', { n: Math.floor(diff / 60) });
+    if (diff < 86400) return t('time.hours', { n: Math.floor(diff / 3600) });
+    return t('time.days', { n: Math.floor(diff / 86400) });
   }
 
   function buildRecentItem(file) {
@@ -601,7 +625,7 @@
   function renderRecentPanel(list) {
     recentList.innerHTML = '';
     if (!list.length) {
-      recentList.innerHTML = '<p class="text-xs text-muted">Sin archivos recientes</p>';
+      recentList.innerHTML = '<p class="text-xs text-muted">' + t('recent.empty') + '</p>';
     } else {
       list.forEach(function (file) { recentList.appendChild(buildRecentItem(file)); });
     }
@@ -667,8 +691,8 @@
     var url = urlInput.value.trim();
     if (!url) return;
     if (!/^https?:\/\//i.test(url)) {
-      showError('[open-url] La URL debe empezar por http:// o https://');
-      alert('La URL debe empezar por http:// o https://');
+      showError('[open-url] ' + t('url.invalid'));
+      alert(t('url.invalid'));
       return;
     }
     loadDocument(url, { isPrimaryOpen: true });
@@ -770,6 +794,8 @@
   // =========================================================================
 
   function init() {
+    setLang(window.DBV_I18N.getLang());
+
     var theme = localStorage.getItem('dbv-md-theme') || 'dark';
     setTheme(theme);
 

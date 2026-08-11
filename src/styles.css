@@ -190,6 +190,35 @@ body {
   font-weight: 600;
 }
 
+/* ─── Selector de idioma ──────────────────────────────────────────────────── */
+#lang-switcher {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 1px;
+}
+
+.lang-btn {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lang-btn:hover { color: var(--text-primary); }
+.lang-btn.active {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 /* ─── Layout principal ────────────────────────────────────────────────────── */
 #app-body {
   display: flex;
