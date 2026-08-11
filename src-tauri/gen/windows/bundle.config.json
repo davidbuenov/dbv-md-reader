@@ -1,5 +1,6 @@
 {
   "identifier": "davidbuenov.DBVMarkdownReader",
+  "displayName": "dbv-md-reader",
   "publisher": "CN=13EE2A5D-F49E-48C9-8873-941069B15D63",
   "publisherDisplayName": "davidbuenov",
   "capabilities": {
