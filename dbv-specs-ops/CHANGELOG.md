@@ -5,7 +5,7 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
-## [Sin publicar]
+## [0.6.0] - 2026-08-11
 
 ### Añadido
 - **Interfaz en español e inglés (RF-16)**: selector ES/EN en la barra superior (junto al de temas), detección automática del idioma del sistema al primer arranque, elección persistente. Cubre toda la interfaz de la app (`src/i18n.js`, sin librería de i18n externa).

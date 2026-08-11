@@ -246,7 +246,7 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 - [x] **Envío a Microsoft Store — dos hallazgos reales durante el envío real, ambos resueltos:**
   1. Partner Center rechazó el `.msixbundle` (`Package/Properties/DisplayName usa un nombre que no tienes reservado: dbv-md-reader`) — el manifiesto usa ese nombre técnico (necesario para que coincida con el `.exe` compilado, ver ADR-016) pero solo "DBV Markdown Reader" estaba reservado. Resuelto reservando "dbv-md-reader" como nombre adicional en "Identidad del producto" de Partner Center — sin tocar ni regenerar el paquete. Se descartó la alternativa (renombrar también el `.exe` vía `mainBinaryName`) por afectar también al canal NSIS ya publicado.
   2. Aviso de "restricted capability: runFullTrust" al validar el paquete — esperado y normal para cualquier app de escritorio Win32 empaquetada como MSIX (Desktop Bridge la añade automáticamente); se revisa como parte de la certificación estándar, no requiere aprobación previa aparte. Confirmado con la documentación oficial de Microsoft.
-- [ ] **`/ship` de esta fase:** no realizado todavía — pendiente decidir versión semántica y publicar Release (la interfaz multi-idioma es candidata clara a Minor, `0.5.0` → `0.6.0`).
+- [x] **Sin ship propio:** los hallazgos de Partner Center (nombre adicional, aviso `runFullTrust`) no tocaron código — no requieren una versión nueva. El ship real pendiente es el de la Fase 21 (interfaz multi-idioma).
 
 ### 🔹 Fase 21: Interfaz en español e inglés (RF-16) + ficha de Microsoft Store bilingüe (2026-08-11)
 
