@@ -101,6 +101,26 @@ pub mod commands {
         app.package_info().version.to_string()
     }
 
+    /// Returns true if the running binary was installed as a Windows MSIX
+    /// package (Microsoft Store), detected by its install path always living
+    /// under `...\WindowsApps\...`. Used to hide the GitHub-based updater UI
+    /// (RF-13) there — Store packages update via Store/Windows Update, and
+    /// downloading/running the NSIS installer inside that sandbox would fail
+    /// or create a second, disconnected install.
+    #[tauri::command]
+    pub fn is_packaged_app() -> bool {
+        std::env::current_exe()
+            .map(|path| {
+                path.components().any(|c| {
+                    c.as_os_str()
+                        .to_str()
+                        .map(|s| s.eq_ignore_ascii_case("WindowsApps"))
+                        .unwrap_or(false)
+                })
+            })
+            .unwrap_or(false)
+    }
+
     /// Reads a local Markdown file, or downloads a remote one (RF-08A), and returns its raw text content
     #[tauri::command]
     pub fn read_file(path: String) -> Result<FilePayload, String> {
@@ -328,6 +348,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_cli_argument,
             commands::get_app_version,
+            commands::is_packaged_app,
             commands::read_file,
             commands::open_file_dialog,
             commands::resolve_relative_path,

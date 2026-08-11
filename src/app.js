@@ -443,28 +443,41 @@
       });
   }
 
-  btnCheckUpdate.addEventListener('click', function () {
-    if (pendingUpdate) { installPendingUpdate(); return; }
+  // Instalado vía MSIX (Microsoft Store): las actualizaciones las gestiona la
+  // Store/Windows Update, no este updater (que apunta a GitHub Releases y
+  // solo tiene sentido para el instalador NSIS). Descargar y ejecutar ese
+  // instalador dentro del sandbox del paquete fallaría o crearía una
+  // instalación separada y desconectada de la de la Store.
+  invoke('is_packaged_app').then(function (isPackaged) {
+    if (isPackaged) {
+      btnCheckUpdate.style.display = 'none';
+      setUpdateStatus('Las actualizaciones se instalan automáticamente desde Microsoft Store.', false);
+      return;
+    }
 
-    btnCheckUpdate.disabled = true;
-    setUpdateStatus('Buscando actualizaciones…', false);
+    btnCheckUpdate.addEventListener('click', function () {
+      if (pendingUpdate) { installPendingUpdate(); return; }
 
-    window.__TAURI__.updater.check()
-      .then(function (update) {
-        btnCheckUpdate.disabled = false;
-        if (!update) {
-          setUpdateStatus('Ya tienes la última versión.', false);
-          return;
-        }
-        pendingUpdate = update;
-        btnCheckUpdate.textContent = 'Actualizar';
-        setUpdateStatus('Nueva versión ' + update.version + ' disponible.', true);
-      })
-      .catch(function (err) {
-        console.warn('[updater] check', err);
-        btnCheckUpdate.disabled = false;
-        setUpdateStatus('No se pudo comprobar: revisa tu conexión.', false);
-      });
+      btnCheckUpdate.disabled = true;
+      setUpdateStatus('Buscando actualizaciones…', false);
+
+      window.__TAURI__.updater.check()
+        .then(function (update) {
+          btnCheckUpdate.disabled = false;
+          if (!update) {
+            setUpdateStatus('Ya tienes la última versión.', false);
+            return;
+          }
+          pendingUpdate = update;
+          btnCheckUpdate.textContent = 'Actualizar';
+          setUpdateStatus('Nueva versión ' + update.version + ' disponible.', true);
+        })
+        .catch(function (err) {
+          console.warn('[updater] check', err);
+          btnCheckUpdate.disabled = false;
+          setUpdateStatus('No se pudo comprobar: revisa tu conexión.', false);
+        });
+    });
   });
 
   // =========================================================================
