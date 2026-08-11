@@ -5,6 +5,24 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.5.0] - 2026-08-11
+
+### Añadido
+- **Instalador NSIS con tema visual moderno**: `XPStyle on` (botones y controles con el tema activo de Windows en vez del estilo clásico sin temas de Windows 2000), confirmación al cancelar a medias, textos personalizados de Bienvenida y Fin, sidebar de marca rediseñado, y descripciones fijas en la página de componentes (`MUI_COMPONENTSPAGE_SMALLDESC`).
+- **Paquete MSIX para Microsoft Store**: empaquetado con la herramienta de terceros `@choochmeque/tauri-windows-bundle` (auditada antes de usar), con la identidad real reservada en Partner Center. Sienta las bases para publicar en la Store re-firmando con el certificado de Microsoft, sin necesidad de comprar un certificado Authenticode propio. Ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` para el checklist completo.
+- **Página de política de privacidad** (`docs/privacidad.html`), enlazada desde la landing y lista para Partner Center.
+
+### Cambiado
+- **Rebrand a "DBV Markdown Reader"**: nombre visible de la aplicación (título de ventana, instalador, panel "Acerca de", Estado Vacío) — el identificador técnico interno (`com.davidbuenov.dbv-md-reader`) y la carpeta de datos de usuario no cambian, así que los Archivos Recientes y la configuración existente se conservan. Quien tenga una versión anterior instalada verá una entrada nueva en "Agregar o quitar programas" en vez de una actualización in-place.
+- **Nombre del instalador sin espacios**: `dbv-markdown-reader_x.y.z_x64-setup.exe` (antes tenía un espacio, heredado literalmente del nombre de la app). `npm run build` ahora orquesta `tauri build` + un renombrado automático (`scripts/build.mjs`).
+
+### Corregido
+- **`scripts/build.mjs` reportaba éxito aunque el renombrado del instalador fallara**: el código de salida solo reflejaba `tauri build`, no `rename-installer.mjs`. Detectado en la revisión `/code-simplify` de esta fase. Ahora se propaga el fallo real de cualquiera de los dos pasos.
+- **`scripts/installer-name.mjs` duplicaba el `productName` como literal** en vez de derivarlo de `tauri.conf.json` — un futuro rebrand podía desincronizar el nombre de archivo esperado del que realmente genera Tauri. Ambas funciones ahora reciben `productName` como parámetro.
+- **`scripts/generate-latest-json.mjs`** llamaba a `installerFileName()` con la firma antigua (un solo argumento) y su texto de notas por defecto seguía diciendo "dbv-md-reader" tras el rebrand.
+
+Auditoría de seguridad de esta fase (obligatoria, `/code-simplify`): sin secretos en el código; `@choochmeque/tauri-windows-bundle` es la única dependencia nueva, ya auditada antes de instalarla (ver más arriba); sin entradas de usuario nuevas que sanitizar (los scripts nuevos solo leen `tauri.conf.json` y el sistema de archivos local).
+
 ## [0.4.0] - 2026-08-10
 
 ### Añadido

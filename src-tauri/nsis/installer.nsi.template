@@ -6,6 +6,11 @@ ManifestDPIAware true
 ; https://github.com/tauri-apps/tauri/pull/10106
 ManifestDPIAwareness PerMonitorV2
 
+; dbv-md-reader: usa los controles con el tema visual activo de Windows
+; (botones, checkboxes, dialogos) en vez del estilo clasico sin temas de
+; Windows 2000 que NSIS dibuja por defecto sin este flag.
+XPStyle on
+
 !if "{{compression}}" == "none"
   SetCompress off
 !else
@@ -164,8 +169,14 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 !define MUI_LANGDLL_REGISTRY_KEY "${MANUPRODUCTKEY}"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
+; dbv-md-reader: confirmacion al cancelar a medias (instaladores modernos
+; no cierran de golpe sin preguntar).
+!define MUI_ABORTWARNING
+
 ; Installer pages, must be ordered as they appear
 ; 1. Welcome Page
+!define MUI_WELCOMEPAGE_TITLE "Bienvenido al instalador de ${PRODUCTNAME}"
+!define MUI_WELCOMEPAGE_TEXT "Este asistente instalara ${PRODUCTNAME} en tu equipo.$\r$\n$\r$\nApertura instantanea de archivos Markdown, 100% local y seguro (sin conexion a internet ni telemetria), con temas Claro, Oscuro y Sepia.$\r$\n$\r$\nPulsa Siguiente para continuar."
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
 !insertmacro MUI_PAGE_WELCOME
 
@@ -401,6 +412,9 @@ Var AppStartMenuFolder
 ; 6b. dbv-md-reader: opciones de asociacion de archivos .md (checkboxes,
 ;     marcadas por defecto, revocables por el usuario). Ver Section
 ;     SEC_CONTEXTMENU / SEC_DEFAULTAPP mas abajo.
+; MUI_COMPONENTSPAGE_SMALLDESC: la descripcion de cada seccion se muestra
+; fija en un cuadro bajo la lista en vez de como tooltip flotante.
+!define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
 !insertmacro MUI_PAGE_COMPONENTS
 
@@ -419,6 +433,10 @@ Var AppStartMenuFolder
 ; Show run app after installation.
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION RunMainBinary
+!define MUI_FINISHPAGE_TITLE "Instalacion de ${PRODUCTNAME} completada"
+!define MUI_FINISHPAGE_TEXT "${PRODUCTNAME} se ha instalado correctamente en tu equipo.$\r$\n$\r$\nYa puedes abrir cualquier archivo .md desde el Explorador de Windows."
+!define MUI_FINISHPAGE_LINK "Visita la pagina del proyecto"
+!define MUI_FINISHPAGE_LINK_LOCATION "https://davidbuenov.github.io/dbv-md-reader/"
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
 !insertmacro MUI_PAGE_FINISH
 

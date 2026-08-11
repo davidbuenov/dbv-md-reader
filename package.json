@@ -1,15 +1,16 @@
 {
   "name": "dbv-md-reader",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "node scripts/build.mjs",
     "tauri": "tauri",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
     "test:all": "cargo test --manifest-path src-tauri/Cargo.toml --lib -- --include-ignored",
-    "release:manifest": "node scripts/generate-latest-json.mjs"
+    "release:manifest": "node scripts/generate-latest-json.mjs",
+    "tauri:windows:build": "tauri-windows-bundle build --runner npm"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",
@@ -23,6 +24,7 @@
     "prismjs": "^1.29.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.11.4"
+    "@tauri-apps/cli": "^2.11.4",
+    "@choochmeque/tauri-windows-bundle": "^0.1.28"
   }
 }

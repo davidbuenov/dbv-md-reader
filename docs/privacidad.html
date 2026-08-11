@@ -1,0 +1,134 @@
+<!--
+  DBV Markdown Reader — Política de Privacidad (GitHub Pages)
+  Copyright (c) 2026 David Bueno Vallejo
+  Licensed under the MIT License. See LICENSE for details.
+  Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidad — DBV Markdown Reader</title>
+  <meta name="description" content="Política de privacidad de DBV Markdown Reader: la aplicación no recolecta datos personales ni telemetría. Todo el procesamiento ocurre en local." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>📄</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .legal {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 24px 96px;
+      color: var(--text-primary);
+      line-height: 1.7;
+    }
+    .legal h1 { font-size: 32px; margin-bottom: 4px; }
+    .legal .legal-updated { color: var(--text-muted); font-size: 14px; margin-bottom: 40px; }
+    .legal h2 { font-size: 20px; margin: 40px 0 12px; color: var(--accent); }
+    .legal p, .legal li { color: var(--text-secondary); font-size: 15px; }
+    .legal ul { padding-left: 20px; margin: 8px 0; }
+    .legal li { margin-bottom: 6px; }
+    .legal code {
+      font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+    .legal-summary {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 24px 0 8px;
+    }
+    .legal-summary p { color: var(--text-primary); margin: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Nav ─────────────────────────────────────────────────────────────── -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="index.html#top" class="nav-brand">
+        <span class="nav-logo">📄</span> DBV Markdown Reader
+      </a>
+      <nav class="nav-links">
+        <a href="index.html#features">Características</a>
+        <a href="index.html#screenshots">Capturas</a>
+        <a href="index.html#download">Descargar</a>
+        <a href="https://github.com/davidbuenov/dbv-md-reader" class="nav-github" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </nav>
+      <a href="index.html#download" class="btn btn-primary btn-nav">Descargar</a>
+    </div>
+  </header>
+
+  <main>
+    <article class="legal">
+      <h1>Política de Privacidad</h1>
+      <p class="legal-updated">Última actualización: 11 de agosto de 2026</p>
+
+      <div class="legal-summary">
+        <p><strong>Resumen:</strong> DBV Markdown Reader no recolecta, almacena en servidores propios, ni comparte con terceros ningún dato personal. No tiene cuentas de usuario, no incluye analítica ni publicidad, y no envía telemetría de ningún tipo. Todo el procesamiento de tus documentos ocurre en tu propio equipo.</p>
+      </div>
+
+      <h2>Qué hace la aplicación en tu equipo</h2>
+      <p>DBV Markdown Reader es un lector de archivos Markdown (<code>.md</code>) de solo lectura para Windows. Abre, procesa y muestra los documentos que tú eliges (por doble clic, "Abrir con...", el selector de archivos, o arrastrando el archivo a la ventana) enteramente en tu equipo. El contenido de esos archivos nunca se transmite a ningún servidor nuestro — no existe ningún servidor nuestro al que transmitirlo, la aplicación no tiene backend.</p>
+
+      <h2>Datos guardados localmente (nunca transmitidos)</h2>
+      <ul>
+        <li><strong>Archivos recientes:</strong> la lista de los últimos documentos abiertos se guarda en un archivo <code>recent_files.json</code> dentro de la carpeta de datos de la aplicación en tu equipo (<code>%APPDATA%</code>). Puedes borrarla en cualquier momento desde el botón "Limpiar historial".</li>
+        <li><strong>Preferencias:</strong> el tema visual (Claro/Oscuro/Sepia) y el nivel de zoom se guardan localmente en el navegador integrado de la aplicación (<code>localStorage</code>), sin salir de tu equipo.</li>
+      </ul>
+
+      <h2>Las únicas conexiones a internet que hace la aplicación</h2>
+      <p>DBV Markdown Reader no se conecta a internet salvo cuando tú lo pides explícitamente, en estos tres casos:</p>
+      <ul>
+        <li><strong>Abrir un documento remoto:</strong> si escribes o haces clic en una URL de un archivo <code>.md</code> (por ejemplo, uno alojado en GitHub), la aplicación descarga ese archivo directamente desde esa dirección. No pasa por ningún servidor intermedio nuestro.</li>
+        <li><strong>Buscar actualizaciones:</strong> solo al pulsar el botón "Buscar actualizaciones" del panel "Acerca de" — la aplicación nunca comprueba actualizaciones automáticamente al arrancar. Esta comprobación consulta la información pública de la última versión publicada en GitHub.</li>
+        <li><strong>Abrir un diagrama en mermaid.live:</strong> si usas la opción "Abrir en mermaid.live" del menú contextual de un diagrama, se abre tu navegador predeterminado con el código del diagrama codificado directamente en la dirección web — no se envía a ningún servidor nuestro, mermaid.live lo interpreta en tu propio navegador.</li>
+      </ul>
+
+      <h2>Instalación desde la Microsoft Store</h2>
+      <p>Si instalas DBV Markdown Reader desde la Microsoft Store, Microsoft puede recopilar datos de instalación, uso y diagnóstico según sus propias políticas de privacidad, independientes de esta aplicación. Consulta la <a href="https://privacy.microsoft.com/es-es/privacystatement" target="_blank" rel="noopener">Declaración de privacidad de Microsoft</a> para más información sobre esos datos.</p>
+
+      <h2>Terceros</h2>
+      <p>La aplicación no incluye analítica, publicidad, ni SDKs de terceros que recojan datos de uso. Las únicas librerías externas que usa (markdown-it, Prism.js, mermaid.js, DOMPurify) se ejecutan localmente y no realizan llamadas de red por su cuenta.</p>
+
+      <h2>Contacto</h2>
+      <p>Si tienes dudas sobre esta política, puedes abrir un <a href="https://github.com/davidbuenov/dbv-md-reader/issues" target="_blank" rel="noopener">issue en GitHub</a> o escribir a través de <a href="https://davidbuenov.com" target="_blank" rel="noopener">davidbuenov.com</a>.</p>
+    </article>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="nav-logo">📄</span> DBV Markdown Reader
+        <p>Lector nativo de Markdown para Windows. Rust + Tauri v2.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Proyecto</h4>
+          <a href="https://github.com/davidbuenov/dbv-md-reader" target="_blank" rel="noopener">Código fuente</a>
+          <a href="https://github.com/davidbuenov/dbv-md-reader/releases" target="_blank" rel="noopener">Versiones</a>
+          <a href="https://github.com/davidbuenov/dbv-md-reader/issues" target="_blank" rel="noopener">Reportar un problema</a>
+          <a href="index.html">Volver al inicio</a>
+        </div>
+        <div class="footer-col">
+          <h4>Autor</h4>
+          <a href="https://davidbuenov.com" target="_blank" rel="noopener">davidbuenov.com</a>
+          <a href="https://github.com/davidbuenov" target="_blank" rel="noopener">github.com/davidbuenov</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Licencia MIT · © 2026 David Bueno Vallejo</p>
+    </div>
+  </footer>
+
+</body>
+</html>

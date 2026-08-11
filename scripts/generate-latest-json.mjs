@@ -15,6 +15,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { installerFileName } from './installer-name.mjs';
 
 const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const REPO = 'davidbuenov/dbv-md-reader';
@@ -22,7 +23,7 @@ const REPO = 'davidbuenov/dbv-md-reader';
 const conf = JSON.parse(readFileSync(path.join(rootDir, 'src-tauri/tauri.conf.json'), 'utf8'));
 const version = conf.version;
 
-const installerName = `dbv-md-reader_${version}_x64-setup.exe`;
+const installerName = installerFileName(conf.productName, version);
 const bundleDir = path.join(rootDir, 'src-tauri/target/release/bundle/nsis');
 const installerPath = path.join(bundleDir, installerName);
 const sigPath = `${installerPath}.sig`;
@@ -44,7 +45,7 @@ const signature = readFileSync(sigPath, 'utf8').trim();
 const notesArgIndex = process.argv.indexOf('--notes');
 const notes = notesArgIndex !== -1 && process.argv[notesArgIndex + 1]
   ? process.argv[notesArgIndex + 1]
-  : `dbv-md-reader v${version}`;
+  : `${conf.productName} v${version}`;
 
 const manifest = {
   version,

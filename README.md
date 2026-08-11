@@ -1,4 +1,4 @@
-# dbv-md-reader
+# DBV Markdown Reader
 
 [![Release](https://img.shields.io/github/v/release/davidbuenov/dbv-md-reader?display_name=tag&sort=semver)](https://github.com/davidbuenov/dbv-md-reader/releases)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
@@ -18,13 +18,13 @@
 
 ## 🚀 Descárgalo e instálalo
 
-**No necesitas instalar Rust, Node.js, ni ninguna herramienta de programación.** El instalador de `dbv-md-reader` trae todo lo necesario —incluido el motor de renderizado de Windows (WebView2)— y asocia los archivos `.md` contigo automáticamente.
+**No necesitas instalar Rust, Node.js, ni ninguna herramienta de programación.** El instalador de **DBV Markdown Reader** trae todo lo necesario —incluido el motor de renderizado de Windows (WebView2)— y asocia los archivos `.md` contigo automáticamente.
 
 ### 1️⃣ Descarga
 
 **[⬇️ Ver todas las versiones (Releases)](https://github.com/davidbuenov/dbv-md-reader/releases)**
 
-Descarga el instalador de la última versión: `dbv-md-reader_x.y.z_x64-setup.exe`.
+Descarga el instalador de la última versión: `dbv-markdown-reader_x.y.z_x64-setup.exe`.
 
 El navegador puede avisar de que el archivo "no se descarga habitualmente" o "no es de confianza" (SmartScreen de Microsoft Edge/Chrome). Es normal en instaladores nuevos y sin firma comercial: en Edge, abre el panel de descargas y pulsa **Mostrar más → Mantener** (o **Conservar de todos modos**).
 
@@ -34,7 +34,7 @@ Haz doble clic sobre el instalador descargado. No requiere permisos de administr
 
 Antes de copiar los archivos, el instalador muestra una pantalla con dos casillas independientes (ambas marcadas por defecto, pero desmarcables):
 
-1. **Menú contextual**: que `dbv-md-reader` aparezca como opción al pulsar con el botón derecho sobre un `.md` → **Abrir con...**.
+1. **Menú contextual**: que **DBV Markdown Reader** aparezca como opción al pulsar con el botón derecho sobre un `.md` → **Abrir con...**.
 2. **Aplicación predeterminada**: que además sea la aplicación que abre los `.md` al hacer doble clic.
 
 Puedes cambiar esta configuración cuando quieras desde **Configuración → Aplicaciones → Aplicaciones predeterminadas** de Windows.
@@ -46,7 +46,7 @@ Puedes cambiar esta configuración cuando quieras desde **Configuración → Apl
 A partir de aquí ya no necesitas volver a esta página para cada versión nueva. Abre el panel **Acerca de** (icono ⓘ de la barra superior) y pulsa **Buscar actualizaciones**. La comprobación es siempre bajo demanda — nunca se ejecuta sola al arrancar, para no afectar al arranque instantáneo.
 
 - Si ya tienes la última versión: **"Ya tienes la última versión."**
-- Si hay una nueva: **"Nueva versión X.Y.Z disponible."** y el botón cambia a **Actualizar** — un clic descarga, instala y reinicia la app por ti, sin salir de `dbv-md-reader` ni pasar por el navegador ni por Releases.
+- Si hay una nueva: **"Nueva versión X.Y.Z disponible."** y el botón cambia a **Actualizar** — un clic descarga, instala y reinicia la app por ti, sin salir de **DBV Markdown Reader** ni pasar por el navegador ni por Releases.
 
 ---
 
@@ -65,7 +65,7 @@ A partir de aquí ya no necesitas volver a esta página para cada versión nueva
 
 ## 📌 Sobre el proyecto
 
-**dbv-md-reader** es una aplicación nativa para Windows diseñada exclusivamente para la **lectura de archivos Markdown (`.md`)**. Ofrece una apertura instantánea (< 200 ms), un ejecutable ligero (< 20 MB) y un consumo de memoria RAM inferior a 64 MB.
+**DBV Markdown Reader** es una aplicación nativa para Windows diseñada exclusivamente para la **lectura de archivos Markdown (`.md`)**. Ofrece una apertura instantánea (< 200 ms), un ejecutable ligero (< 20 MB) y un consumo de memoria RAM inferior a 64 MB.
 
 Sustituye la pesadez de visores basados en Electron o IDEs pesados por un ejecutable nativo liviano con protección anti-XSS mediante **DOMPurify** sobre el HTML ya renderizado.
 
@@ -159,15 +159,20 @@ npm run test:all  # Incluye el test de integración que descarga un .md real (RF
    export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<password de esa clave>"
    npm run build
    ```
+   `npm run build` compila y además renombra automáticamente el instalador (Tauri lo genera con el nombre completo de la app, con espacio) a `dbv-markdown-reader_x.y.z_x64-setup.exe`, sin espacios, listo para su URL de descarga.
 3. **Genera `latest.json` automáticamente** (no se construye a mano, para no equivocarse ni olvidarlo):
    ```bash
    npm run release:manifest -- --notes "Resumen breve de esta versión"
    ```
    Escribe `latest.json` en la raíz del repo (no se commitea, ver `.gitignore`) leyendo la versión de `tauri.conf.json` y el `.sig` que generó el paso 2.
 4. `git commit`, `git tag vx.y.z`, `git push origin master --tags`.
-5. Crea la Release de GitHub subiendo **los tres archivos**: el instalador `dbv-md-reader_x.y.z_x64-setup.exe`, su `.sig`, y `latest.json`.
+5. Crea la Release de GitHub subiendo **los tres archivos**: el instalador `dbv-markdown-reader_x.y.z_x64-setup.exe`, su `.sig`, y `latest.json`.
 
 La clave privada de firma **no está en este repositorio** — la genera y custodia quien mantiene el proyecto (`npx tauri signer generate`). Perderla obliga a publicar una clave pública nueva y a que las instalaciones existentes se actualicen a mano una vez.
+
+### Microsoft Store (canal MSIX, en preparación)
+
+Además del instalador NSIS de GitHub Releases, el proyecto tiene listo el empaquetado MSIX para Microsoft Store (identidad de Partner Center ya configurada, sin necesidad de certificado de firma propio — la Store firma el paquete). Checklist completo de envío y actualización de este canal en [`dbv-specs-ops/docs/MICROSOFT_STORE.md`](./dbv-specs-ops/docs/MICROSOFT_STORE.md).
 
 ---
 
