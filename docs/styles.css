@@ -94,6 +94,8 @@ section > * , .nav-inner, .footer-inner { max-width: var(--max-width); margin-in
 .nav-links { display: flex; align-items: center; gap: 28px; font-size: 14px; color: var(--text-secondary); }
 .nav-links a:hover { color: var(--text-primary); }
 .nav-github { display: flex; align-items: center; gap: 6px; }
+.nav-lang { border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-weight: 600; }
+.nav-lang:hover { border-color: var(--text-secondary); }
 
 /* ─── Hero ────────────────────────────────────────────────────────────────── */
 .hero {

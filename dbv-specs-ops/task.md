@@ -15,6 +15,12 @@ Al revisar el código real frente a `ARCHITECTURE.md`/`SPECIFICATIONS.md` se enc
 
 ---
 
+## 📝 Convenciones activas
+
+- **Landing page bilingüe (desde 2026-08-12):** `docs/index.html` (español, raíz) y `docs/en/index.html` (inglés) son dos páginas HTML independientes, sin sistema de plantillas ni diccionario JS — mismo criterio que `descripcionStore_es.md`/`_en.md` de la ficha de Microsoft Store, más simple de mantener para contenido de prosa que un sistema de claves tipo `src/i18n.js` (ese sí tiene sentido para microcopy corto de interfaz, no para esto). **Cualquier cambio futuro en la landing (nueva característica, captura, texto) debe aplicarse a mano en ambos ficheros** — no hay nada que avise si se actualiza solo uno. `docs/privacidad.html` sigue siendo solo español (enlazado igual desde ambas versiones); no se ha creado su equivalente en inglés todavía.
+
+---
+
 ## 📌 Snapshot de Contexto (Estado Actual)
 
 - **Fase Actual (Fase 20, `/ship` completado):** v0.5.0 — instalador NSIS pulido visualmente, rebrand a "DBV Markdown Reader", paquete MSIX con identidad real de Partner Center, política de privacidad publicada. Ver detalle completo en `docs/MICROSOFT_STORE.md`. **Pendiente del usuario (fuera del alcance de Claude Code):** completar la submission real en Partner Center (Ficha de la Store, capturas, enviar a certificación) — checklist paso a paso en `docs/MICROSOFT_STORE.md` §5.
