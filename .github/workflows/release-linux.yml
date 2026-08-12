@@ -23,6 +23,10 @@ name: Release Linux
 # Sin auto-actualización en Linux por ahora (deuda técnica consciente, ver
 # dbv-specs-ops/memory.md): no se pasan las variables TAURI_SIGNING_*, así que
 # no se genera .sig ni se sube manifiesto de updater para esta plataforma.
+# `createUpdaterArtifacts: false` en tauri.linux.conf.json es imprescindible
+# para esto — sin él, `tauri build` termina en exit 1 ("se ha encontrado una
+# clave pública pero no la privada") aunque el .deb/.AppImage se generen bien,
+# el mismo problema ya documentado para Windows en la Lección 16 de memory.md.
 
 on:
   push:
@@ -47,7 +51,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Leer versión de tauri.conf.json
         id: version
@@ -71,9 +75,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Instalar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Instalar dependencias de Node
         run: npm install
@@ -87,4 +91,4 @@ jobs:
           releaseName: ${{ steps.version.outputs.tag }}
           releaseDraft: ${{ steps.draft.outputs.value }}
           prerelease: false
-          uploadUpdaterJson: false
+          includeUpdaterJson: false
