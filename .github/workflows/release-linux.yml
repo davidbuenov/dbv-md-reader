@@ -13,6 +13,13 @@ name: Release Linux
 # la 0.7.0 — ver ADR-019 en dbv-specs-ops/memory.md), sin depender de que se
 # empuje un tag nuevo.
 #
+# El input `draft` (solo aplica a workflow_dispatch; en un push de tag siempre
+# es "true") controla si se busca/crea un borrador o si se añade directamente
+# a una Release ya publicada. tauri-action *falla* si le pides "true" y solo
+# existe una Release publicada con ese tag (no la toca, simplemente no la
+# encuentra) — así que para una versión que ya se publicó a mano (como
+# v0.7.0), hay que lanzarlo con `draft: false` explícitamente.
+#
 # Sin auto-actualización en Linux por ahora (deuda técnica consciente, ver
 # dbv-specs-ops/memory.md): no se pasan las variables TAURI_SIGNING_*, así que
 # no se genera .sig ni se sube manifiesto de updater para esta plataforma.
@@ -22,6 +29,19 @@ on:
     tags:
       - "v*.*.*"
   workflow_dispatch:
+    inputs:
+      draft:
+        description: >
+          "true" (normal): crea/usa un borrador para esa versión, a completar a mano con
+          los ficheros de Windows antes de publicar. "false": la Release de esa versión ya
+          existe PUBLICADA (como v0.7.0) y solo quieres añadirle los artefactos de Linux,
+          sin tocar su estado ni crear un borrador nuevo.
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 jobs:
   build-linux:
@@ -32,6 +52,15 @@ jobs:
       - name: Leer versión de tauri.conf.json
         id: version
         run: echo "tag=v$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Determinar si la Release debe crearse/tratarse como borrador
+        id: draft
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.draft }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Instalar dependencias del sistema (WebKitGTK)
         run: |
@@ -55,7 +84,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ steps.version.outputs.tag }}
-          releaseName: "dbv-md-reader ${{ steps.version.outputs.tag }}"
-          releaseDraft: true
+          releaseName: ${{ steps.version.outputs.tag }}
+          releaseDraft: ${{ steps.draft.outputs.value }}
           prerelease: false
           uploadUpdaterJson: false

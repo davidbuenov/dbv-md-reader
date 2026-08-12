@@ -212,7 +212,10 @@ Además del instalador NSIS de GitHub Releases, el proyecto tiene listo el empaq
 
 ### Release de Linux (automática, vía CI)
 
-A diferencia de Windows, el `.deb` y el `.AppImage` de Linux **no se compilan a mano**: `.github/workflows/release-linux.yml` los construye automáticamente en cada `git push --tags` de una versión `vX.Y.Z` y los sube como borrador de GitHub Release. El único paso manual sigue siendo el de Windows (subir los 3 ficheros del checklist de arriba) — hazlo sobre ese mismo borrador que ya habrá creado la Action, en vez de crear la Release desde cero, y pulsa **Publish** cuando ambas plataformas estén listas.
+A diferencia de Windows, el `.deb` y el `.AppImage` de Linux **no se compilan a mano**: `.github/workflows/release-linux.yml` los construye automáticamente.
+
+- **Versión nueva (caso normal):** al hacer `git push --tags` de `vX.Y.Z`, el workflow se dispara solo y sube los artefactos como **borrador** de GitHub Release. Completa ese mismo borrador con los 3 ficheros de Windows (checklist de arriba) en vez de crear la Release desde cero, y pulsa **Publish** cuando ambas plataformas estén listas.
+- **Añadir Linux a una versión que ya se publicó a mano (como pasó con la 0.7.0):** lánzalo manualmente desde la pestaña **Actions** de GitHub (`Release Linux` → `Run workflow`) con el input `draft` puesto a **`false`** — así se une a la Release ya publicada de esa versión en vez de buscar (y no encontrar) un borrador. Con `draft: true` sobre una Release ya publicada, el workflow falla a propósito en vez de arriesgarse a tocarla mal.
 
 ---
 
