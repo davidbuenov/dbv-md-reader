@@ -117,6 +117,10 @@
 - **Tamaño del Instalador:** Menor a 20 MB (`.msi` o `.exe` para Windows). *(Relajado el 2026-08-09 de <8 MB a <20 MB — decisión consciente del usuario: prioriza la funcionalidad completa (seguridad, auto-reload, imágenes, remotos) sobre el tamaño mínimo. Sigue siendo drásticamente inferior a una app Electron equivalente.)*
 - **Consumo de RAM:** Menor a 64 MB en reposo con un documento abierto.
 - **Tiempo de Respuesta:** Renderizado inicial completado en menos de 200 ms tras abrir el archivo.
+- **Soporte de Plataforma (RNF-01, 2026-08-12):**
+  - **Windows:** canal oficial completo — instalador NSIS firmado, auto-actualización (RF-13) y ficha de Microsoft Store (MSIX). Sin cambios respecto a las fases anteriores.
+  - **Linux:** canal oficial vía CI (GitHub Actions) — `.deb` y `.AppImage` publicados como Release de GitHub en cada tag `vX.Y.Z`. **Sin auto-actualización** en esta fase (RF-13 queda fuera de alcance para Linux — ver ADR-019 en `memory.md`); el usuario descarga manualmente cada versión nueva.
+  - **macOS:** **sin canal oficial** — no se publica ningún binario, firmado ni sin firmar (decisión consciente: evitar el coste de la cuenta Apple Developer, 99 $/año, necesaria para firma/notarización). Se documentan instrucciones de auto-compilación (`cargo tauri build`) en `README.md` para que cada usuario genere su propio ejecutable.
 
 ---
 

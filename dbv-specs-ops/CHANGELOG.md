@@ -7,9 +7,14 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [0.7.0] - 2026-08-12
 
+> **Nota:** el paquete Windows de esta versión ya está en certificación en Microsoft Store al añadir lo de más abajo (Fase 24, 2026-08-12) — se decidió conscientemente **no** subir de versión, porque el código de aplicación (Rust/JS) no cambia en absoluto, solo empaquetado/CI/documentación para Linux y macOS. La build de Windows que está en certificación sigue siendo exactamente la 0.7.0.
+
 ### Añadido
 - **RF-17 Ecuaciones matemáticas (LaTeX)**: renderizado con **KaTeX** vendorizado localmente (`src/vendor/`, sin CDN, mismo patrón que Mermaid). Sintaxis soportada: inline `$...$`, bloque `$$...$$` y bloque de código ` ```math `. Preprocesado (`extractMath()`) protege las fórmulas del Markdown crudo antes del parseo (mismo tipo de problema de capa que RF-03/ADR-009: `$...$` es texto normal de párrafo, a diferencia de un bloque ` ```mermaid ``` ` ya opaco desde el principio) y postprocesado (`processMath()`) las renderiza tras el sanitizado, con `throwOnError: false` para que un LaTeX inválido no rompa el resto del documento. Ver ADR-018 en `memory.md`.
 - **RF-10 mejorado — paginación real de impresión/PDF**: `@page` (A4, márgenes), evita títulos/tablas/código/imágenes/diagramas/fórmulas partidos entre páginas, muestra la URL junto a cada enlace y fuerza contraste legible en el bloque de código al imprimir.
+- **Distribución para Linux (Release oficial vía CI)**: `.github/workflows/release-linux.yml` construye `.deb` y `.AppImage` en cada tag `vX.Y.Z` y los adjunta como borrador de GitHub Release. Sin auto-actualización en esta plataforma por ahora (deuda técnica consciente, ver ADR-019 en `memory.md`).
+- **Instrucciones de compilación para macOS**: sin Release oficial ni binario firmado (evita el coste de la cuenta Apple Developer) — `README.md` documenta cómo compilar localmente con `cargo tauri build` y cómo abrir la app sin firma.
+- Configuración de Tauri separada por plataforma (`src-tauri/tauri.windows.conf.json`, `tauri.linux.conf.json`, `tauri.macos.conf.json`), fusionada automáticamente por el propio Tauri v2 según el sistema operativo de build. El flujo de Release de Windows no cambia.
 
 ### Corregido
 - **Rechazo de Microsoft Store (política 10.1.1.11 "On Device Tiles")**: el mosaico ancho del paquete MSIX (`Wide310x150Logo.png`, 310×150) era un rectángulo negro sólido en vez del icono real de la app — quedó así tras el pulido visual de la Fase 20 sin terminar de generarse correctamente. Regenerado centrando el icono real sobre un lienzo transparente (mismo criterio que usa la propia herramienta de empaquetado). Ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` §4bis.

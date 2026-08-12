@@ -1,7 +1,7 @@
 # 🏛️ Arquitectura Técnica: dbv-md-reader
 
-> **Proyecto:** dbv-md-reader (Lector de Markdown de Solo Lectura para Windows)  
-> **Stack Principal:** Rust + Tauri v2 + WebView2 + HTML5 / Tailwind CSS / JS (markdown-it, mermaid.js, Prism.js, KaTeX)  
+> **Proyecto:** dbv-md-reader (Lector de Markdown de Solo Lectura — Windows y Linux con Release oficial, macOS por auto-compilación)  
+> **Stack Principal:** Rust + Tauri v2 + WebView nativo del sistema (WebView2 en Windows, WebKitGTK en Linux, WKWebView en macOS) + HTML5 / Tailwind CSS / JS (markdown-it, mermaid.js, Prism.js, KaTeX)  
 > **Fase:** `/plan` (Arquitectura)  
 
 ---
@@ -101,3 +101,22 @@
 - **ADR-005:** Archivos Recientes persistidos en `recent_files.json` (app data dir) sin nuevo crate; solo aperturas explícitas (CLI/diálogo/Drag & Drop) registran entrada.
 - **ADR-009 (2026-08-09):** RF-03 se sanitiza con DOMPurify (JS, post-render) en lugar de `ammonia` (Rust, pre-render) — evita corromper bloques de código con `<`/`&`. Ver `memory.md`.
 - **ADR-010 (2026-08-09):** RF-06 vigila el directorio padre del archivo (no el archivo directamente) con `notify`, para sobrevivir a guardados atómicos de editores. Ver `memory.md`.
+- **ADR-019 (2026-08-12):** Estrategia de distribución multiplataforma — Linux con Release oficial vía CI, macOS solo por auto-compilación sin firmar. Ver `memory.md`.
+
+---
+
+## 5. Soporte Multiplataforma (Windows, Linux, macOS)
+
+El código de aplicación (`src-tauri/src/lib.rs`) es 100% cross-platform: no usa APIs específicas de Windows (sin registro, sin `cfg(windows)`), y las dependencias clave (`tauri-plugin-single-instance` 2.4.3+, `notify`, `ureq`, `tauri-plugin-dialog/updater/process`) soportan oficialmente Windows, Linux y macOS. Lo que sí difiere por plataforma es exclusivamente el **empaquetado**, resuelto con el mecanismo nativo de Tauri v2 de fusión de configuración por sistema operativo (`tauri.<platform>.conf.json` se fusiona automáticamente sobre `tauri.conf.json` según el SO donde se ejecuta `cargo tauri build`, sin flags adicionales):
+
+- **`src-tauri/tauri.windows.conf.json`:** `bundle.targets: ["nsis"]` + configuración de instalador NSIS con imágenes de marca (igual que antes de esta separación).
+- **`src-tauri/tauri.linux.conf.json`:** `bundle.targets: ["appimage", "deb"]`. El `.deb` registra la asociación de `.md` vía `.desktop`/`fileAssociations` al instalarse con `dpkg`/`apt`; el `.AppImage` es portátil pero **no** se asocia automáticamente sin una herramienta adicional como AppImageLauncher (limitación inherente del formato, no del proyecto).
+- **`src-tauri/tauri.macos.conf.json`:** `bundle.targets: ["dmg", "app"]`, usado únicamente para compilaciones locales del propio usuario (ver más abajo).
+
+### Linux — Release oficial vía CI
+
+`.github/workflows/release-linux.yml` construye el `.deb` y el `.AppImage` en un runner `ubuntu-22.04` en cada tag `vX.Y.Z` (mismo tag que ya crea el maintainer manualmente para Windows) y los adjunta como **borrador** de GitHub Release, que el maintainer completa subiendo a mano los 3 ficheros de Windows antes de publicar. **Sin auto-actualización todavía** (RF-13 queda limitado a Windows en esta fase): las variables `TAURI_SIGNING_*` no se pasan a este job porque el par de claves `minisign` se usa hoy solo en la máquina local donde se firma el build de Windows — fusionar en un único `latest.json` una firma generada en CI (Linux) con otra generada en local (Windows) para el mismo Release introduciría una coordinación cross-máquina no resuelta en este ciclo (ver riesgo aceptado en `memory.md`). El usuario de Linux descarga manualmente las versiones nuevas desde Releases, igual que macOS.
+
+### macOS — Solo auto-compilación, sin firma ni notarización
+
+No se publica ningún binario de macOS. La cuenta de Apple Developer (99 $/año, requisito de Apple para firmar y notarizar) queda fuera de alcance por decisión consciente del usuario. En su lugar, `README.md` documenta cómo un usuario de Mac compila su propio ejecutable (`cargo tauri build` tras clonar el repo) y cómo abrir la app resultante pese a no estar firmada (Gatekeeper la bloquea por defecto: clic derecho → Abrir, o `xattr -cr` sobre el `.app`). Sin CI, sin Release, sin auto-actualización para esta plataforma.

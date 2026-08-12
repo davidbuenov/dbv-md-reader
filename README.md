@@ -6,6 +6,8 @@
 ![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?logo=javascript&logoColor=black)
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-.deb%20%2F%20AppImage-FCC624?logo=linux&logoColor=black)
+![macOS](https://img.shields.io/badge/macOS-compilaci%C3%B3n%20local-000000?logo=apple&logoColor=white)
 ![Status](https://img.shields.io/badge/status-active-success)
 [![Last Update](https://img.shields.io/github/last-commit/davidbuenov/dbv-md-reader?label=last%20update)](https://github.com/davidbuenov/dbv-md-reader/commits/master)
 [![Framework](https://img.shields.io/badge/framework-dbv--specs--ops-111827?logo=github&logoColor=white)](https://github.com/davidbuenov/dbv-specs-ops)
@@ -50,9 +52,42 @@ A partir de aquí ya no necesitas volver a esta página para cada versión nueva
 
 ---
 
+## 🐧 Linux
+
+**[⬇️ Descarga el `.deb` o el `.AppImage` desde Releases](https://github.com/davidbuenov/dbv-md-reader/releases)** — se generan automáticamente en cada versión.
+
+- **`.deb` (Debian, Ubuntu, Linux Mint y derivadas):** `sudo dpkg -i dbv-md-reader_x.y.z_amd64.deb` (o doble clic desde el gestor de archivos). Es la opción recomendada — instala la app en el sistema y registra la asociación con `.md`.
+- **`.AppImage` (cualquier distribución):** dale permisos de ejecución (`chmod +x dbv-md-reader_x.y.z_amd64.AppImage`) y ejecútalo directamente. Es portátil (no requiere instalación), pero **no** se asocia automáticamente con archivos `.md` — para eso hace falta una herramienta adicional como [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher).
+
+> **Nota:** el canal de Linux todavía no tiene comprobación de actualizaciones integrada (botón "Buscar actualizaciones" del panel "Acerca de") — descarga la versión nueva desde Releases cuando quieras actualizar.
+
+---
+
+## 🍎 macOS
+
+No se publica un instalador de macOS: la firma y notarización de Apple requieren una cuenta de pago (Apple Developer Program, 99 $/año) que este proyecto no usa. En su lugar, puedes compilar tu propio ejecutable en un par de minutos:
+
+```bash
+git clone https://github.com/davidbuenov/dbv-md-reader.git
+cd dbv-md-reader
+npm install
+npm run tauri build
+```
+
+El `.app` resultante queda en `src-tauri/target/release/bundle/macos/`. Al no estar firmado, **macOS lo bloqueará la primera vez** ("no se puede abrir porque su desarrollador no puede verificarse"). Para abrirlo:
+
+- Clic derecho (o `Ctrl` + clic) sobre `DBV Markdown Reader.app` → **Abrir** → confirmar en el diálogo. Solo hace falta la primera vez.
+- O, desde la Terminal: `xattr -cr "src-tauri/target/release/bundle/macos/DBV Markdown Reader.app"` antes de abrirlo.
+
+Requiere tener instalados Xcode Command Line Tools (`xcode-select --install`), [Rust](https://rustup.rs/) y Node.js 18+ — ver la sección [Para desarrolladores](#-para-desarrolladores) más abajo para el detalle común a las tres plataformas.
+
+---
+
 ## 📑 Índice
 
 - [Descárgalo e instálalo](#-descárgalo-e-instálalo)
+- [Linux](#-linux)
+- [macOS](#-macos)
 - [Sobre el proyecto](#sobre-el-proyecto)
 - [Características Principales](#características-principales)
 - [Para desarrolladores](#-para-desarrolladores)
@@ -65,7 +100,7 @@ A partir de aquí ya no necesitas volver a esta página para cada versión nueva
 
 ## 📌 Sobre el proyecto
 
-**DBV Markdown Reader** es una aplicación nativa para Windows diseñada exclusivamente para la **lectura de archivos Markdown (`.md`)**. Ofrece una apertura instantánea (< 200 ms), un ejecutable ligero (< 20 MB) y un consumo de memoria RAM inferior a 64 MB.
+**DBV Markdown Reader** es una aplicación nativa diseñada exclusivamente para la **lectura de archivos Markdown (`.md`)** — con Release oficial para Windows y Linux, y compilación local para macOS. Ofrece una apertura instantánea (< 200 ms), un ejecutable ligero (< 20 MB) y un consumo de memoria RAM inferior a 64 MB.
 
 Sustituye la pesadez de visores basados en Electron o IDEs pesados por un ejecutable nativo liviano con protección anti-XSS mediante **DOMPurify** sobre el HTML ya renderizado.
 
@@ -84,7 +119,7 @@ Los mismos 2 archivos `.md` abiertos a la vez en Visual Studio Code, Notepad++ y
 Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerca.
 
 **Construido con:**
-- **Core / Backend:** Rust + Tauri v2 (utiliza el motor WebView2 nativo de Windows).
+- **Core / Backend:** Rust + Tauri v2 (motor de renderizado nativo del sistema: WebView2 en Windows, WebKitGTK en Linux, WKWebView en macOS).
 - **Seguridad:** DOMPurify (JS) sanitiza el HTML renderizado contra ataques XSS.
 - **Auto-Reload & Remotos:** `notify` (observador de archivos) y `ureq` (cliente HTTP para `.md` remotos) en Rust.
 - **Frontend:** HTML5, CSS3 (Tailwind CSS), JavaScript (Vanilla).
@@ -175,6 +210,10 @@ La clave privada de firma **no está en este repositorio** — la genera y custo
 
 Además del instalador NSIS de GitHub Releases, el proyecto tiene listo el empaquetado MSIX para Microsoft Store (identidad de Partner Center ya configurada, sin necesidad de certificado de firma propio — la Store firma el paquete). Checklist completo de envío y actualización de este canal en [`dbv-specs-ops/docs/MICROSOFT_STORE.md`](./dbv-specs-ops/docs/MICROSOFT_STORE.md).
 
+### Release de Linux (automática, vía CI)
+
+A diferencia de Windows, el `.deb` y el `.AppImage` de Linux **no se compilan a mano**: `.github/workflows/release-linux.yml` los construye automáticamente en cada `git push --tags` de una versión `vX.Y.Z` y los sube como borrador de GitHub Release. El único paso manual sigue siendo el de Windows (subir los 3 ficheros del checklist de arriba) — hazlo sobre ese mismo borrador que ya habrá creado la Action, en vez de crear la Release desde cero, y pulsa **Publish** cuando ambas plataformas estén listas.
+
 ---
 
 ## 📂 Estructura del Proyecto
@@ -184,7 +223,9 @@ dbv-md-reader/
 ├── src-tauri/             # Código fuente Rust y configuración Tauri v2
 │   ├── src/main.rs        # Punto de entrada Rust, CLI args y mando Tauri
 │   ├── nsis/              # Imágenes de marca y hooks del instalador Windows (NSIS)
+│   ├── tauri.conf.json    # Config base + tauri.windows/linux/macos.conf.json (fusión por plataforma)
 │   └── Cargo.toml         # Dependencias Rust (tauri, notify, ureq, etc.)
+├── .github/workflows/     # CI: release-linux.yml (build .deb/.AppImage en cada tag)
 ├── src/                   # Interfaz de usuario Web (HTML/CSS/JS)
 │   ├── index.html         # Maquetación principal y sidebar TOC
 │   ├── app.js             # Lógica de renderizado (markdown-it, mermaid, Prism)

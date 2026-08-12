@@ -9,10 +9,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DBV Markdown Reader — Lector de Markdown ultra-ligero para Windows</title>
-  <meta name="description" content="Lector nativo de Markdown para Windows. Ligero, rápido y seguro. Descárgalo gratis con el instalador oficial." />
+  <title>DBV Markdown Reader — Lector de Markdown ultra-ligero para Windows y Linux</title>
+  <meta name="description" content="Lector nativo de Markdown para Windows y Linux (macOS por compilación local). Ligero, rápido y seguro. Descárgalo gratis con el instalador oficial." />
 
-  <meta property="og:title" content="DBV Markdown Reader — Lector de Markdown ultra-ligero para Windows" />
+  <meta property="og:title" content="DBV Markdown Reader — Lector de Markdown ultra-ligero para Windows y Linux" />
   <meta property="og:description" content="Abre y lee archivos .md al instante. ~14 MB, sin Electron. Gratis y de código abierto." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="assets/screenshots/og-cover.png" />
@@ -50,7 +50,7 @@
     <!-- ─── Hero ─────────────────────────────────────────────────────────── -->
     <section class="hero">
       <div class="hero-inner">
-        <p class="hero-eyebrow">Gratis · Código abierto · Solo para Windows · Español/English 🆕</p>
+        <p class="hero-eyebrow">Gratis · Código abierto · Windows y Linux · Español/English 🆕</p>
         <h1>El lector de Markdown que tu Windows necesitaba</h1>
         <p class="hero-sub">
           Abre archivos <code>.md</code> al instante, sin abrir un IDE ni un navegador.
@@ -65,7 +65,7 @@
             Ver código en GitHub
           </a>
         </div>
-        <p class="hero-note">Windows 10/11 · Instalador sin permisos de administrador · Sin cuenta, sin publicidad, sin telemetría</p>
+        <p class="hero-note">Windows 10/11 · Linux (.deb / .AppImage) · macOS por compilación local · Sin cuenta, sin publicidad, sin telemetría</p>
       </div>
 
       <div class="hero-shot">
@@ -96,8 +96,8 @@
         <p>
           La mayoría de lectores de Markdown están construidos sobre Electron: empaquetan un navegador
           Chromium completo solo para mostrarte texto, consumiendo cientos de MB de RAM por una tarea sencilla.
-          <strong>DBV Markdown Reader</strong> está escrito en Rust sobre Tauri v2 y usa el motor WebView2 que Windows
-          ya trae instalado — el mismo resultado, una fracción del peso.
+          <strong>DBV Markdown Reader</strong> está escrito en Rust sobre Tauri v2 y usa el motor de renderizado que tu
+          sistema ya trae instalado (WebView2 en Windows, WebKitGTK en Linux) — el mismo resultado, una fracción del peso.
         </p>
 
         <div class="comparison-shot">
@@ -219,7 +219,7 @@
           <div class="step">
             <span class="step-num">1</span>
             <h3>Descarga</h3>
-            <p>El instalador <code>dbv-markdown-reader_x.y.z_x64-setup.exe</code> desde la página de Releases. No necesitas Rust, Node ni ninguna herramienta de programación.</p>
+            <p>El instalador de Windows (<code>.exe</code>) o el paquete de Linux (<code>.deb</code> / <code>.AppImage</code>) desde la página de Releases. No necesitas Rust, Node ni ninguna herramienta de programación. ¿Usas macOS? Se compila localmente — instrucciones en el <a href="https://github.com/davidbuenov/dbv-md-reader#-macos" target="_blank" rel="noopener">README</a>.</p>
           </div>
           <div class="step">
             <span class="step-num">2</span>
@@ -239,10 +239,10 @@
     <section class="cta" id="download">
       <div class="cta-inner">
         <h2>Pruébalo — no cuesta nada</h2>
-        <p>Gratis, de código abierto y sin ataduras. Si algo falla, abre un issue en GitHub.</p>
+        <p>Gratis, de código abierto y sin ataduras. Windows y Linux con instalador listo; macOS por compilación local. Si algo falla, abre un issue en GitHub.</p>
         <div class="hero-ctas">
           <a href="https://github.com/davidbuenov/dbv-md-reader/releases/latest" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
-            ⬇️ Descargar el instalador
+            ⬇️ Descargar (Windows / Linux)
           </a>
           <a href="https://github.com/davidbuenov/dbv-md-reader/releases" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
             Ver todas las versiones
@@ -258,7 +258,7 @@
     <div class="footer-inner">
       <div class="footer-brand">
         <span class="nav-logo">📄</span> DBV Markdown Reader
-        <p>Lector nativo de Markdown para Windows. Rust + Tauri v2.</p>
+        <p>Lector nativo de Markdown para Windows y Linux (macOS por compilación local). Rust + Tauri v2.</p>
       </div>
       <div class="footer-links">
         <div class="footer-col">

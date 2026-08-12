@@ -1,0 +1,50 @@
+name: Release Linux
+
+# Construye los paquetes .deb y .AppImage para Linux y los adjunta como
+# borrador de GitHub Release en cada tag vX.Y.Z. El flujo de Windows sigue
+# siendo manual (ver README.md, sección "Publicar una nueva Release") — este
+# workflow crea/actualiza el mismo borrador para que el maintainer solo tenga
+# que subir los 3 ficheros de Windows encima y pulsar "Publish".
+#
+# Sin auto-actualización en Linux por ahora (deuda técnica consciente, ver
+# dbv-specs-ops/memory.md): no se pasan las variables TAURI_SIGNING_*, así que
+# no se genera .sig ni se sube manifiesto de updater para esta plataforma.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependencias del sistema (WebKitGTK)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+
+      - name: Instalar Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias de Node
+        run: npm install
+
+      - name: Build y Release (Linux)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "dbv-md-reader ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+          uploadUpdaterJson: false

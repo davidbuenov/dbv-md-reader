@@ -34,7 +34,6 @@
     "active": true,
     "publisher": "David Bueno Vallejo",
     "createUpdaterArtifacts": true,
-    "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -49,20 +48,7 @@
         "description": "Documento Markdown",
         "role": "Viewer"
       }
-    ],
-    "windows": {
-      "webviewInstallMode": {
-        "type": "offlineInstaller",
-        "silent": true
-      },
-      "nsis": {
-        "installerIcon": "icons/icon.ico",
-        "headerImage": "nsis/header.bmp",
-        "sidebarImage": "nsis/sidebar.bmp",
-        "installerHooks": "nsis/hooks.nsh",
-        "template": "nsis/installer.nsi.template"
-      }
-    }
+    ]
   },
   "plugins": {
     "updater": {
