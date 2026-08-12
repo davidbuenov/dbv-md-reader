@@ -1,7 +1,7 @@
 {
   "name": "dbv-md-reader",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
@@ -14,17 +14,18 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-process": "^2.2.0",
     "@tauri-apps/plugin-shell": "^2.2.0",
     "@tauri-apps/plugin-updater": "^2.3.0",
-    "@tauri-apps/plugin-process": "^2.2.0",
     "dompurify": "^3.4.13",
+    "katex": "^0.18.4",
     "markdown-it": "^14.1.0",
     "mermaid": "^11.4.1",
     "pako": "^3.0.1",
     "prismjs": "^1.29.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.11.4",
-    "@choochmeque/tauri-windows-bundle": "^0.1.28"
+    "@choochmeque/tauri-windows-bundle": "^0.1.28",
+    "@tauri-apps/cli": "^2.11.4"
   }
 }

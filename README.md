@@ -88,7 +88,7 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Seguridad:** DOMPurify (JS) sanitiza el HTML renderizado contra ataques XSS.
 - **Auto-Reload & Remotos:** `notify` (observador de archivos) y `ureq` (cliente HTTP para `.md` remotos) en Rust.
 - **Frontend:** HTML5, CSS3 (Tailwind CSS), JavaScript (Vanilla).
-- **Renderizado:** `markdown-it` (CommonMark), `Prism.js` (Syntax Highlighting) y `mermaid.js` (Diagramas vectoriales SVG).
+- **Renderizado:** `markdown-it` (CommonMark), `Prism.js` (Syntax Highlighting), `mermaid.js` (Diagramas vectoriales SVG) y `KaTeX` (Ecuaciones matemáticas LaTeX).
 
 ---
 
@@ -99,6 +99,7 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Archivos Recientes:** Panel con los últimos documentos abiertos explícitamente, para no tener que volver a buscarlos.
 - **Auto-Reload:** La vista se recarga sola (conservando el scroll) cuando el archivo abierto se edita y guarda desde otra aplicación.
 - **Renderizado Híbrido:** Soporta Markdown estándar, HTML seguro incrustado, imágenes locales y diagramas Mermaid. Botón derecho sobre un diagrama Mermaid → "Abrir en mermaid.live" para inspeccionarlo con zoom libre.
+- **Ecuaciones matemáticas:** Sintaxis LaTeX inline (`$...$`), en bloque (`$$...$$` o ` ```math `) renderizada con KaTeX — fracciones, raíces, sumatorios, subíndices/superíndices y símbolos.
 - **Documentos remotos:** Abre y navega enlaces a `.md` alojados en una URL (`http(s)://`), además de los locales.
 - **Seguridad Estricta:** Sanitización de etiquetas y atributos peligrosos (DOMPurify) antes de insertarse en el WebView2.
 - **Navegación e Índice:** Tabla de Contenidos (TOC) flotante/lateral generada automáticamente a partir de los encabezados.

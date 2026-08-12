@@ -57,7 +57,7 @@
 - [x] **RF-10: Utilerías de Lectura (Copiar Código, Zoom, Exportar PDF):**  
   - Botón disimulado "Copy" en bloques de código. ✅  
   - Zoom de lectura con `Ctrl + +`, `Ctrl + -` y `Ctrl + 0`. ✅ El zoom se aplica tanto al contenido (`#content`) como a la Tabla de Contenidos (`#toc-sidebar`) — corregido 2026-08-09 (antes solo afectaba al contenido).  
-  - Impresión / Exportación a PDF mediante `Ctrl + P`. ✅
+  - Impresión / Exportación a PDF mediante `Ctrl + P`. ✅ El `@media print` controla paginación real (`@page` con tamaño A4 y márgenes, evita títulos/tablas/imágenes/diagramas/fórmulas partidos entre páginas, muestra la URL junto a cada enlace) en vez de solo ocultar cabecera/paneles — actualizado 2026-08-12. Sigue siendo el diálogo de impresión nativo del sistema operativo (`window.print()`), no una exportación sin diálogo (ver RF-18 en el roadmap, fuera de alcance de esta fase).
 - [x] **RF-12: "Acerca de":**  
   Botón en la barra superior que abre un panel modal con el nombre de la aplicación, la versión actual (leída dinámicamente del backend Rust vía `get_app_version`, sincronizada siempre con `Cargo.toml`), enlaces a la web del autor (`davidbuenov.com`) y su GitHub (`github.com/davidbuenov`) abiertos en el navegador del sistema, y la licencia. ✅ Implementado y verificado 2026-08-09.
 - [x] **RF-11: Archivos Recientes (Recent Files):**  
@@ -88,6 +88,12 @@
   - Detección automática al primer arranque a partir del idioma del sistema (`navigator.language`); a partir de ahí prevalece la elección manual del usuario.  
   - Cubre toda la interfaz de la aplicación (barra de herramientas, paneles, mensajes de error, actualizaciones, tiempos relativos de "Recientes") mediante diccionarios en `src/i18n.js`, sin librería de i18n externa.  
   - **Fuera de alcance de este RF:** el instalador NSIS y la ficha de Microsoft Store no se traducen — siguen en español (instalador) e independientemente en cada idioma (ficha de Store, ver `descripcionStore_es.md` / `descripcionStore_en.md` en la raíz del proyecto). El contenido de los documentos `.md` que el usuario abre tampoco se traduce (no tendría sentido — es su propio contenido).
+- [x] **RF-17: Renderizado de ecuaciones matemáticas (LaTeX):**  
+  - Sintaxis soportada: inline `$...$`, bloque `$$...$$` y bloque de código ` ```math `. Delimitador de apertura sin espacio pegado, de cierre sin espacio precedente, `\$` escapa un símbolo de dólar literal (misma convención que Pandoc/GitHub/Obsidian) — colisión conocida y aceptada con precios (`$5 y $10`): si son cifras reales, se escriben con `\$`.  
+  - Renderizado con **KaTeX** (vendorizado en `src/vendor/`, sin CDN, mismo patrón que Mermaid), síncrono y sin coste de arranque perceptible.  
+  - Un `$...$`/`$$...$$` extraído del Markdown crudo antes del parseo (preprocesado, respetando bloques y spans de código) y sustituido por LaTeX renderizado tras el parseo (postprocesado, junto a los diagramas Mermaid) — necesario porque, a diferencia de un bloque ` ```mermaid `, la sintaxis `$...$` es texto normal dentro de un párrafo y las reglas `emphasis`/`typographer` de `markdown-it` podrían corromperla si se dejara pasar sin proteger (mismo tipo de problema de capa que RF-03, ver ADR-009).  
+  - Un LaTeX mal formado en el documento del usuario no rompe el resto del render — se muestra el error en rojo in-place (`throwOnError: false`), coherente con la filosofía de solo lectura tolerante a documentos ajenos.  
+  - Fuera de alcance: sintaxis alternativa `\(...\)`/`\[...\]` (tampoco la soportan GitHub/Pandoc por defecto).
 
 ---
 
@@ -102,6 +108,7 @@
 - **Parser de Markdown:** **markdown-it** (CommonMark + soporte de HTML integrado).
 - **Resaltado de Sintaxis:** **Prism.js**.
 - **Diagramas:** **mermaid.js** (generación de SVG vectorial).
+- **Matemáticas:** **KaTeX** (renderizado LaTeX síncrono, vendorizado localmente sin CDN — RF-17).
 
 ---
 

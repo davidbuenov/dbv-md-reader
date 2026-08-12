@@ -5,6 +5,17 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.7.0] - 2026-08-12
+
+### Añadido
+- **RF-17 Ecuaciones matemáticas (LaTeX)**: renderizado con **KaTeX** vendorizado localmente (`src/vendor/`, sin CDN, mismo patrón que Mermaid). Sintaxis soportada: inline `$...$`, bloque `$$...$$` y bloque de código ` ```math `. Preprocesado (`extractMath()`) protege las fórmulas del Markdown crudo antes del parseo (mismo tipo de problema de capa que RF-03/ADR-009: `$...$` es texto normal de párrafo, a diferencia de un bloque ` ```mermaid ``` ` ya opaco desde el principio) y postprocesado (`processMath()`) las renderiza tras el sanitizado, con `throwOnError: false` para que un LaTeX inválido no rompa el resto del documento. Ver ADR-018 en `memory.md`.
+- **RF-10 mejorado — paginación real de impresión/PDF**: `@page` (A4, márgenes), evita títulos/tablas/código/imágenes/diagramas/fórmulas partidos entre páginas, muestra la URL junto a cada enlace y fuerza contraste legible en el bloque de código al imprimir.
+
+### Corregido
+- **Rechazo de Microsoft Store (política 10.1.1.11 "On Device Tiles")**: el mosaico ancho del paquete MSIX (`Wide310x150Logo.png`, 310×150) era un rectángulo negro sólido en vez del icono real de la app — quedó así tras el pulido visual de la Fase 20 sin terminar de generarse correctamente. Regenerado centrando el icono real sobre un lienzo transparente (mismo criterio que usa la propia herramienta de empaquetado). Ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` §4bis.
+
+Auditoría de seguridad de esta fase (obligatoria, `/code-simplify`): sin secretos en el código; única dependencia nueva es `katex` (vendorizada, no cargada en runtime vía npm); la salida de KaTeX se pasa por `DOMPurify.sanitize()` antes de inyectarse en el DOM (defensa en profundidad, además del `trust:false` por defecto de la propia librería) — verificado visualmente que no recorta MathML ni los SVG de radicales.
+
 ## [0.6.0] - 2026-08-11
 
 ### Añadido

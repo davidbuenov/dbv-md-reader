@@ -1,7 +1,7 @@
 # 🏛️ Arquitectura Técnica: dbv-md-reader
 
 > **Proyecto:** dbv-md-reader (Lector de Markdown de Solo Lectura para Windows)  
-> **Stack Principal:** Rust + Tauri v2 + WebView2 + HTML5 / Tailwind CSS / JS (markdown-it, mermaid.js, Prism.js)  
+> **Stack Principal:** Rust + Tauri v2 + WebView2 + HTML5 / Tailwind CSS / JS (markdown-it, mermaid.js, Prism.js, KaTeX)  
 > **Fase:** `/plan` (Arquitectura)  
 
 ---
@@ -34,8 +34,9 @@
 |  - Parseador: markdown-it (CommonMark)                                            |
 |  - Resaltador: Prism.js (+ Botón Copy)                                            |
 |  - Diagramas: mermaid.js (SVG vectorial)                                          |
+|  - Matemáticas: KaTeX (LaTeX inline/bloque, pre/postprocesado alrededor del render)|
 |  - Componentes UX: Tabla de Contenidos (TOC), Buscador Ctrl+F, Selector de Temas  |
-|  - Utilerías: Zoom Ctrl+/-, Exportar PDF Ctrl+P, Drag & Drop Empty State          |
+|  - Utilerías: Zoom Ctrl+/-, Exportar PDF Ctrl+P (paginación real vía @page), D&D  |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -81,12 +82,13 @@
   - Selector de temas (Claro, Oscuro, Sepia).
   - Panel desplegable "Recientes" (`#recent-panel`) anclado al botón de la barra superior, y lista corta de recientes dentro del Estado Vacío (`#empty-state`).
 - **`app.js`**:
-  - Renderizado con `markdown-it` + Prism.js + mermaid.js.
+  - Renderizado con `markdown-it` + Prism.js + mermaid.js + KaTeX.
   - Interceptor de clics en enlaces:
     - Si el enlace finaliza en `.md` o es una ruta relativa: solicita a Rust cargar y sanitizar el nuevo archivo en la aplicación.
     - Si es una URL externa general: invoca el comando de Rust para abrir el navegador del S.O.
   - Atajos de teclado: `Ctrl + F` (Buscador), `Ctrl + O` (Abrir), `Ctrl + P` (Imprimir/PDF), `Ctrl + + / -` (Zoom).
   - `loadDocument()` acepta un flag `isPrimaryOpen`: solo se marca `true` en CLI inicial, diálogo nativo y Drag & Drop, para invocar `add_recent_file` — la navegación por enlaces internos y Atrás/Adelante no ensucia la lista de recientes.
+  - **Matemáticas (RF-17)**: `extractMath(raw)` corre *antes* de `md.render()` — escanea el Markdown crudo (respetando fenced code blocks y code spans), sustituye cada `$...$`/`$$...$$` por un placeholder HTML crudo de una sola línea (`<span class="dbv-math" data-i="N" data-display="0|1">`) que `markdown-it` (con `html: true`) pasa intacto sin que `emphasis`/`typographer` lo toquen, y guarda el LaTeX de cada match aparte. `processMath()` corre *después* de `DOMPurify.sanitize()`, junto a `processMermaid()` (`renderMarkdown()`) — recorre esos placeholders y los bloques ` ```math `, y llama `katex.renderToString(latex, { displayMode, throwOnError: false })` para inyectar el resultado final. Necesario partirlo en dos pasadas porque, a diferencia de un bloque ` ```mermaid ` (ya opaco para markdown-it desde el principio), `$...$` es texto normal dentro de un párrafo — ver ADR-018.
 
 ---
 

@@ -88,6 +88,22 @@ Cuenta creada y nombre reservado: **"DBV Markdown Reader"** (`Package/Identity/N
 
 ---
 
+## 4bis. Primer envío rechazado (12/08/2026) — política 10.1.1.11 "On Device Tiles"
+
+**Informe de certificación:** *"The available product tile icons include a default image. Tile icons must uniquely represent product..."* — `Status: Attention needed`.
+
+**Causa raíz encontrada:** `src-tauri/gen/windows/Assets/Wide310x150Logo.png` (el mosaico ancho, 310×150) era un rectángulo negro sólido de un único color (`RGBA(0,0,0,255)`, sin transparencia) — exactamente la imagen negra adjunta en el informe de Microsoft. El resto de tiles (`Square150x150Logo.png`, `Square44x44Logo.png`, `StoreLogo.png`) sí llevaban el icono real "M" de la app.
+
+**Cómo llegó a estar roto:** la propia herramienta `@choochmeque/tauri-windows-bundle` (`generateAssets()` → `generateWideTile()` en `node_modules/@choochmeque/tauri-windows-bundle/dist/index.js`) sabe generar el mosaico ancho centrando el icono cuadrado sobre un lienzo transparente — pero si esa composición falla (candidatos probados: `Square150x150Logo.png` → `Square142x142Logo.png` → `icon.png` → `128x128.png`, con `try/catch` silencioso por candidato), cae a un PNG de repuesto. El fichero roto no coincide con el color de repuesto de la versión instalada del paquete (que es gris `128,128,128` en RGB sin alfa, no negro RGBA) — indica que se generó en otro momento/versión de la herramienta, probablemente durante el pulido visual de la Fase 20, y quedó pendiente de terminar.
+
+**Fix aplicado:** regenerado `Wide310x150Logo.png` con Pillow replicando el algoritmo real de la herramienta — `Square150x150Logo.png` redimensionado a 150×150 y centrado horizontalmente (`x = (310-150)/2 = 80`) sobre un lienzo `310×150` **transparente** (coherente con `BackgroundColor="transparent"` del manifiesto). Verificado visualmente: el icono "M" se ve completo y centrado.
+
+**Por qué el fix no se pierde en un rebuild:** `src-tauri/gen/windows/Assets/` solo se regenera con `init` (paso único ya ejecutado) o con `build --regenerate-assets` (flag explícito, no usado por el script `tauri:windows:build` del proyecto) — un `npx @choochmeque/tauri-windows-bundle build --runner npm` normal reutiliza los assets ya presentes en disco, así que este fix persiste entre builds sin volver a tocar nada.
+
+**Pendiente para la resubmisión:** regenerar el `.msix`/`.msixbundle` (paso 3 del checklist más abajo) y volver a enviarlo a Partner Center citando el Product ID (`9N7BMDZGCP0S`) si hace falta contactar soporte.
+
+---
+
 ## 5. Checklist de envío en Partner Center (para cuando el nombre esté reservado)
 
 1. Reservar nombre → `MSIX or PWA app`.
@@ -98,6 +114,7 @@ Cuenta creada y nombre reservado: **"DBV Markdown Reader"** (`Package/Identity/N
 6. Ficha de la Store: descripción, capturas (reutilizables de la landing page, Fase 14), edad recomendada.
 7. Paquetes: subir el `.msix`/`.msixupload` generado.
 8. (Recomendado, no obligatorio) Pasar el Windows App Certification Kit (WACK) local antes de enviar.
+8bis. **Verificar que ningún asset de `src-tauri/gen/windows/Assets/*.png` sea un placeholder** (abrirlos y comprobar visualmente, o `python3 -c "from PIL import Image; print(Image.open(f).getcolors(100000))"` — un único color casi seguro indica un placeholder) antes de cada resubmisión. Ver 4bis: ya causó un rechazo real por la política 10.1.1.11.
 9. Enviar a certificación (automatizada + revisión manual, ~3 días hábiles según la documentación oficial).
 
 ---
