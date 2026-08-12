@@ -6,6 +6,13 @@ name: Release Linux
 # workflow crea/actualiza el mismo borrador para que el maintainer solo tenga
 # que subir los 3 ficheros de Windows encima y pulsar "Publish".
 #
+# La versión se lee de src-tauri/tauri.conf.json (no de github.ref_name):
+# permite lanzar este workflow a mano (workflow_dispatch) sobre `master` para
+# adjuntar los artefactos de Linux a una Release cuyo tag ya existe (p.ej. si
+# la versión no cambió respecto al último tag, como decidió el proyecto para
+# la 0.7.0 — ver ADR-019 en dbv-specs-ops/memory.md), sin depender de que se
+# empuje un tag nuevo.
+#
 # Sin auto-actualización en Linux por ahora (deuda técnica consciente, ver
 # dbv-specs-ops/memory.md): no se pasan las variables TAURI_SIGNING_*, así que
 # no se genera .sig ni se sube manifiesto de updater para esta plataforma.
@@ -21,6 +28,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
+      - name: Leer versión de tauri.conf.json
+        id: version
+        run: echo "tag=v$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Instalar dependencias del sistema (WebKitGTK)
         run: |
@@ -43,8 +54,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "dbv-md-reader ${{ github.ref_name }}"
+          tagName: ${{ steps.version.outputs.tag }}
+          releaseName: "dbv-md-reader ${{ steps.version.outputs.tag }}"
           releaseDraft: true
           prerelease: false
           uploadUpdaterJson: false
