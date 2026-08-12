@@ -50,6 +50,12 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-22.04
+    # El GITHUB_TOKEN por defecto del repo es de solo lectura (Settings → Actions →
+    # Workflow permissions), así que sin esto tauri-action falla al subir los
+    # artefactos con "Resource not accessible by integration". Se concede permiso
+    # de escritura solo a este workflow, no al valor por defecto de todo el repo.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
