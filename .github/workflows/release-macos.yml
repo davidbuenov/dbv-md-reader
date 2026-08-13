@@ -35,6 +35,13 @@ name: Release macOS
 # de "desarrollador no verificado" (ver README.md, sección "🍎 macOS"). Es el
 # mismo artefacto pensado también para publicarse en Uptodown, que a
 # diferencia de Microsoft Store / Mac App Store no exige firma de Apple.
+#
+# Build universal (--target universal-apple-darwin), no solo aarch64: el
+# runner `macos-latest` de GitHub es Apple Silicon, así que sin esto
+# tauri-action compilaría solo para la arquitectura nativa del runner y el
+# .dmg resultante no arrancaría en absoluto en un Mac Intel (Rosetta traduce
+# x86_64→Apple Silicon, no al revés). Requiere tener instalados ambos targets
+# de Rust (`aarch64-apple-darwin` + `x86_64-apple-darwin`) antes del build.
 
 on:
   push:
@@ -80,8 +87,10 @@ jobs:
             echo "value=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Instalar Rust
+      - name: Instalar Rust (targets Intel + Apple Silicon)
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "aarch64-apple-darwin,x86_64-apple-darwin"
 
       - name: Instalar Node.js
         uses: actions/setup-node@v5
@@ -96,6 +105,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          args: --target universal-apple-darwin
           tagName: ${{ steps.version.outputs.tag }}
           releaseName: ${{ steps.version.outputs.tag }}
           releaseDraft: ${{ steps.draft.outputs.value }}
