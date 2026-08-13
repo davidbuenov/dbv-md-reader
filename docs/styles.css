@@ -123,7 +123,9 @@ section > * , .nav-inner, .footer-inner { max-width: var(--max-width); margin-in
   letter-spacing: -0.02em;
 }
 .hero-sub { color: var(--text-secondary); font-size: 17px; margin-bottom: 28px; max-width: 46ch; }
-.hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: center; }
+.store-badge { display: inline-flex; align-items: center; line-height: 0; }
+.store-badge img { height: 48px; width: auto; display: block; }
 .hero-note { color: var(--text-muted); font-size: 13px; }
 
 .hero-shot { position: relative; }

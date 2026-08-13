@@ -7,19 +7,25 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [0.7.0] - 2026-08-12
 
-> **Nota:** el paquete Windows de esta versión ya está en certificación en Microsoft Store al añadir lo de más abajo (Fase 24, 2026-08-12) — se decidió conscientemente **no** subir de versión, porque el código de aplicación (Rust/JS) no cambia en absoluto, solo empaquetado/CI/documentación para Linux y macOS. La build de Windows que está en certificación sigue siendo exactamente la 0.7.0.
+> **Nota:** el paquete Windows de esta versión ya está en certificación en Microsoft Store al añadir lo de más abajo (Fase 24, 2026-08-12) — se decidió conscientemente **no** subir de versión, porque el código de aplicación (Rust/JS) no cambia en absoluto, solo empaquetado/CI/documentación para Linux y macOS. La build de Windows que está en certificación sigue siendo exactamente la 0.7.0. **Actualización (Fase 25, 2026-08-13):** mismo criterio — Microsoft Store ya está publicada y macOS pasa a Release oficial vía CI, de nuevo sin tocar el código de aplicación.
 
 ### Añadido
 - **RF-17 Ecuaciones matemáticas (LaTeX)**: renderizado con **KaTeX** vendorizado localmente (`src/vendor/`, sin CDN, mismo patrón que Mermaid). Sintaxis soportada: inline `$...$`, bloque `$$...$$` y bloque de código ` ```math `. Preprocesado (`extractMath()`) protege las fórmulas del Markdown crudo antes del parseo (mismo tipo de problema de capa que RF-03/ADR-009: `$...$` es texto normal de párrafo, a diferencia de un bloque ` ```mermaid ``` ` ya opaco desde el principio) y postprocesado (`processMath()`) las renderiza tras el sanitizado, con `throwOnError: false` para que un LaTeX inválido no rompa el resto del documento. Ver ADR-018 en `memory.md`.
 - **RF-10 mejorado — paginación real de impresión/PDF**: `@page` (A4, márgenes), evita títulos/tablas/código/imágenes/diagramas/fórmulas partidos entre páginas, muestra la URL junto a cada enlace y fuerza contraste legible en el bloque de código al imprimir.
 - **Distribución para Linux (Release oficial vía CI)**: `.github/workflows/release-linux.yml` construye `.deb` y `.AppImage` en cada tag `vX.Y.Z` y los adjunta como borrador de GitHub Release. Sin auto-actualización en esta plataforma por ahora (deuda técnica consciente, ver ADR-019 en `memory.md`).
-- **Instrucciones de compilación para macOS**: sin Release oficial ni binario firmado (evita el coste de la cuenta Apple Developer) — `README.md` documenta cómo compilar localmente con `cargo tauri build` y cómo abrir la app sin firma.
+- **Distribución para macOS vía CI (Release oficial)**: `.github/workflows/release-macos.yml` construye el `.dmg`/`.app` (sin firmar) en cada tag `vX.Y.Z` y lo adjunta como borrador de GitHub Release, mismo patrón que Linux — amplía la decisión inicial de solo compilación local (ver ADR-020 en `memory.md`). El mismo artefacto queda preparado para publicarse también en Uptodown (alta manual, fuera de CI).
+- **Microsoft Store como descarga preferente en Windows 11**: README y landing de GitHub Pages (`docs/index.html` + `docs/en/index.html`) actualizados con el badge oficial y el enlace a la ficha ya publicada (`apps.microsoft.com/detail/9n7bmdzgcp0s`), presentándola como la vía recomendada (sin aviso de SmartScreen, auto-actualización nativa) frente al instalador NSIS.
 - Configuración de Tauri separada por plataforma (`src-tauri/tauri.windows.conf.json`, `tauri.linux.conf.json`, `tauri.macos.conf.json`), fusionada automáticamente por el propio Tauri v2 según el sistema operativo de build. El flujo de Release de Windows no cambia.
+
+### Cambiado
+- `dbv-specs-ops/docs/MICROSOFT_STORE.md`: estado actualizado de "en preparación" a publicado.
 
 ### Corregido
 - **Rechazo de Microsoft Store (política 10.1.1.11 "On Device Tiles")**: el mosaico ancho del paquete MSIX (`Wide310x150Logo.png`, 310×150) era un rectángulo negro sólido en vez del icono real de la app — quedó así tras el pulido visual de la Fase 20 sin terminar de generarse correctamente. Regenerado centrando el icono real sobre un lienzo transparente (mismo criterio que usa la propia herramienta de empaquetado). Ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` §4bis.
 
 Auditoría de seguridad de esta fase (obligatoria, `/code-simplify`): sin secretos en el código; única dependencia nueva es `katex` (vendorizada, no cargada en runtime vía npm); la salida de KaTeX se pasa por `DOMPurify.sanitize()` antes de inyectarse en el DOM (defensa en profundidad, además del `trust:false` por defecto de la propia librería) — verificado visualmente que no recorta MathML ni los SVG de radicales.
+
+Auditoría de seguridad de la Fase 25 (`release-macos.yml` + landing + docs, obligatoria antes de `/ship`): sin secretos filtrados (escaneado el diff completo, único uso de credenciales es `${{ secrets.GITHUB_TOKEN }}`, igual que `release-linux.yml`); sin dependencias nuevas (mismas GitHub Actions ya auditadas: `actions/checkout@v5`, `dtolnay/rust-toolchain@stable`, `actions/setup-node@v5`, `tauri-apps/tauri-action@v0`); el único input de usuario del workflow (`draft`, `workflow_dispatch`) es de tipo `choice` restringido a `true`/`false`, sin superficie de inyección de shell. Hallazgo incidental (no relacionado con el cambio de esta fase): un byte NUL suelto en `memory.md` (ADR-018, sesión anterior) hacía que Git tratara el fichero como binario — eliminado, sin pérdida de contenido.
 
 ## [0.6.0] - 2026-08-11
 

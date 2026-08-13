@@ -1,7 +1,7 @@
 # 🏬 Publicación en Microsoft Store: dbv-md-reader
 
-> **Estado:** En preparación — cuenta de Partner Center creada, nombre de producto aún sin reservar.
-> **Última revisión:** 2026-08-11
+> **Estado:** ✅ Publicado — ficha en vivo en [apps.microsoft.com/detail/9n7bmdzgcp0s](https://apps.microsoft.com/detail/9n7bmdzgcp0s) (`9N7BMDZGCP0S`).
+> **Última revisión:** 2026-08-13
 
 Documento operativo (no una especificación de producto): checklist accionable para publicar `dbv-md-reader` en la Microsoft Store, y registro de las decisiones técnicas que llevaron hasta aquí. Complementa a `ARCHITECTURE.md` (que documenta el instalador NSIS existente) sin sustituirlo — ambos canales de distribución coexisten.
 
@@ -82,7 +82,7 @@ El usuario reservó "DBV Markdown Reader" en Partner Center y pidió unificar el
 
 ## 4. Estado de Partner Center — ✅ resuelto
 
-Cuenta creada y nombre reservado: **"DBV Markdown Reader"** (`Package/Identity/Name: davidbuenov.DBVMarkdownReader`, Id. de Store `9N7BMDZGCP0S`). La identidad real ya está en `bundle.config.json` (sección 2) y verificada contra el `AppxManifest.xml` generado. El vínculo profundo y la URL de la tienda web solo estarán disponibles tras publicar el producto (mensaje de Partner Center: "Disponible después de que el producto se publique").
+Cuenta creada y nombre reservado: **"DBV Markdown Reader"** (`Package/Identity/Name: davidbuenov.DBVMarkdownReader`, Id. de Store `9N7BMDZGCP0S`). La identidad real ya está en `bundle.config.json` (sección 2) y verificada contra el `AppxManifest.xml` generado. **Producto publicado** — ficha en vivo: [apps.microsoft.com/detail/9n7bmdzgcp0s](https://apps.microsoft.com/detail/9n7bmdzgcp0s).
 
 **Nombre del producto — pendiente de decidir:** el nombre interno del paquete (`productName` en `tauri.conf.json`, `dbv-md-reader`) es independiente del nombre público mostrado en la ficha de la Store — se puede usar un nombre más comercial en Partner Center sin tocar el código. Opciones discutidas: mantener `dbv-md-reader` (coherente con GitHub/landing page) vs. algo más descriptivo tipo "DBV Markdown Reader" (evitar terminaciones tipo "Pro" en una app 100% gratuita, para no sugerir un nivel de pago que no existe).
 
@@ -122,6 +122,7 @@ Cuenta creada y nombre reservado: **"DBV Markdown Reader"** (`Package/Identity/N
 ## 6. Fuera de alcance de esta fase
 
 - Crear la cuenta de Partner Center — ya hecho por el usuario.
-- Reservar el nombre definitivo del producto y decidir el nombre comercial — pendiente, discusión abierta (sección 4).
-- Enviar la submission real a certificación — requiere la identidad real de Partner Center, no la provisional usada para las pruebas locales de esta sesión.
+- Reservar el nombre definitivo del producto y decidir el nombre comercial — ✅ hecho, "DBV Markdown Reader".
+- Enviar la submission real a certificación — ✅ hecho, producto publicado (sección 4).
 - Migrar la asociación de archivos `.md` del canal MSIX a un flujo de opt-in idéntico al de NSIS (checkboxes) — no es necesario ni posible con el mecanismo estándar de MSIX; se documenta como diferencia de UX esperada (sección 2).
+- Publicación en Uptodown (macOS, sin firma de Apple) — canal de distribución independiente de la Store, ver `.github/workflows/release-macos.yml` y ADR-020 en `memory.md`.

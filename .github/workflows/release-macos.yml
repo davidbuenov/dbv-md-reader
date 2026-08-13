@@ -1,0 +1,103 @@
+name: Release macOS
+
+# Construye el .dmg y el .app para macOS (sin firmar) y los adjunta como
+# borrador de GitHub Release en cada tag vX.Y.Z, igual que release-linux.yml.
+# El flujo de Windows sigue siendo manual (ver README.md, sección "Publicar
+# una nueva Release") — este workflow crea/actualiza el mismo borrador para
+# que el maintainer solo tenga que subir los 3 ficheros de Windows encima y
+# pulsar "Publish".
+#
+# La versión se lee de src-tauri/tauri.conf.json (no de github.ref_name):
+# permite lanzar este workflow a mano (workflow_dispatch) sobre `master` para
+# adjuntar los artefactos de macOS a una Release cuyo tag ya existe, sin
+# depender de que se empuje un tag nuevo — mismo motivo que en
+# release-linux.yml (ver ADR-019 en dbv-specs-ops/memory.md).
+#
+# El input `draft` (solo aplica a workflow_dispatch; en un push de tag siempre
+# es "true") controla si se busca/crea un borrador o si se añade directamente
+# a una Release ya publicada. tauri-action *falla* si le pides "true" y solo
+# existe una Release publicada con ese tag (no la toca, simplemente no la
+# encuentra) — así que para una versión que ya se publicó a mano hay que
+# lanzarlo con `draft: false` explícitamente.
+#
+# Build sin firmar ni notarizar (no hay cuenta de Apple Developer de pago) y
+# sin auto-actualización en macOS (deuda técnica consciente, igual que Linux):
+# no se pasan las variables TAURI_SIGNING_*, así que no se genera .sig ni se
+# sube manifiesto de updater para esta plataforma. `createUpdaterArtifacts:
+# false` en tauri.macos.conf.json es imprescindible para esto — sin él,
+# `tauri build` termina en exit 1 aunque el .dmg/.app se generen bien (mismo
+# problema documentado en la Lección 16 de memory.md para Windows). El
+# archivo tauri.macos.conf.json (targets: dmg + app) se fusiona
+# automáticamente por convención de nombre de plataforma, sin necesidad de
+# pasar --config a mano.
+#
+# El .dmg resultante no está firmado: al abrirlo en un Mac, Gatekeeper avisa
+# de "desarrollador no verificado" (ver README.md, sección "🍎 macOS"). Es el
+# mismo artefacto pensado también para publicarse en Uptodown, que a
+# diferencia de Microsoft Store / Mac App Store no exige firma de Apple.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: >
+          "true" (normal): crea/usa un borrador para esa versión, a completar a mano con
+          los ficheros de Windows antes de publicar. "false": la Release de esa versión ya
+          existe PUBLICADA y solo quieres añadirle los artefactos de macOS, sin tocar su
+          estado ni crear un borrador nuevo.
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    # El GITHUB_TOKEN por defecto del repo es de solo lectura (Settings → Actions →
+    # Workflow permissions), así que sin esto tauri-action falla al subir los
+    # artefactos con "Resource not accessible by integration". Se concede permiso
+    # de escritura solo a este workflow, no al valor por defecto de todo el repo.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Leer versión de tauri.conf.json
+        id: version
+        run: echo "tag=v$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Determinar si la Release debe crearse/tratarse como borrador
+        id: draft
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.draft }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Instalar dependencias de Node
+        run: npm install
+
+      - name: Build y Release (macOS)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ steps.version.outputs.tag }}
+          releaseName: ${{ steps.version.outputs.tag }}
+          releaseDraft: ${{ steps.draft.outputs.value }}
+          prerelease: false
+          includeUpdaterJson: false
