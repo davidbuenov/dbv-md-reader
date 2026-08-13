@@ -118,6 +118,7 @@ Todo lo anterior es lo único que necesita un usuario normal. Lo siguiente solo 
 - **Rust:** `rustc 1.76+` y `cargo` ([rustup.rs](https://rustup.rs/))
 - **Node.js:** `v18+` y `npm`
 - **Build Tools para Windows:** C++ Build Tools (MSVC) de Visual Studio.
+- **Build Tools para macOS:** Xcode Command Line Tools (`xcode-select --install`).
 
 ### Ejecutar en modo desarrollo
 
@@ -175,6 +176,41 @@ La clave privada de firma **no está en este repositorio** — la genera y custo
 
 Además del instalador NSIS de GitHub Releases, el proyecto tiene listo el empaquetado MSIX para Microsoft Store (identidad de Partner Center ya configurada, sin necesidad de certificado de firma propio — la Store firma el paquete). Checklist completo de envío y actualización de este canal en [`dbv-specs-ops/docs/MICROSOFT_STORE.md`](./dbv-specs-ops/docs/MICROSOFT_STORE.md).
 
+### macOS (soporte en desarrollo)
+
+Aún no hay instalador firmado ni Release pública para macOS — de momento sólo se compila localmente. Soporta Apple Silicon, Intel, o ambos en un único binario universal.
+
+**Compilar el `.app` (y opcionalmente el `.dmg`):**
+
+```bash
+npm install
+npx tauri build --debug          # quita --debug para un build de release optimizado
+npm run tauri:macos:dmg          # genera el .dmg a partir del .app recién compilado
+```
+
+El `.app` queda en `src-tauri/target/debug/bundle/macos/` (o `target/release/...` sin `--debug`), y el `.dmg` en la subcarpeta `dmg/` de esa misma ruta.
+
+> ⚠️ **Por qué el `.dmg` no lo genera `tauri build` directamente:** el bundler de `.dmg` de Tauri lanza una AppleScript para posicionar los iconos en la ventana del Finder, lo que exige permiso de Automation hacia Finder — falla con `Not authorized to send Apple events to Finder (-1743)` en shells no interactivos (y en cualquier runner de CI headless). Por eso `tauri.macos.conf.json` limita `bundle.targets` a `["app"]` en macOS, y `scripts/build-dmg-macos.sh` genera el `.dmg` aparte con `hdiutil` puro — la app y un enlace a `/Applications`, sin el fondo/iconos posicionados, pero sin depender de ningún permiso de la GUI.
+
+**Universal binary (Apple Silicon + Intel en un solo `.app`):**
+
+```bash
+rustup target add x86_64-apple-darwin
+npx tauri build --debug --target universal-apple-darwin
+npm run tauri:macos:dmg -- universal-apple-darwin/debug
+```
+
+Compila para ambas arquitecturas y las combina con `lipo` en un único ejecutable — no son dos builds que mantener por separado, es un solo `.app` que corre nativo en cualquier Mac.
+
+**Primer arranque: aviso de Gatekeeper ("desarrollador no verificado").** Sin firma de Apple Developer ID (cuenta de pago, no disponible aún para este fork), macOS bloquea el primer intento de abrir el `.app` con un aviso de que no puede verificar al desarrollador. Para abrirlo de todas formas:
+
+1. Clic derecho (o Control + clic) sobre `DBV Markdown Reader.app` → **Abrir**.
+2. En el diálogo de aviso, pulsa **Abrir** otra vez — sólo hace falta la primera vez; los siguientes arranques ya no preguntan.
+
+Si el aviso ya se descartó sin esa opción, o al abrirlo por doble clic sólo aparece "mover a la papelera": **Configuración del Sistema → Privacidad y Seguridad**, baja hasta el aviso sobre `DBV Markdown Reader` cerca de la sección Seguridad, y pulsa **Abrir de todas formas**.
+
+**Asociar `.md` con la app.** macOS registra la asociación automáticamente en cuanto el `.app` se ejecuta una vez desde su ubicación — en una instalación limpia (sin otro lector de Markdown ya registrado), doble clic sobre un `.md` en Finder abre directamente **DBV Markdown Reader**, verificado en este build. Si tu Mac ya tiene otro cliente de Markdown asociado (VS Code, MacDown, Typora, Obsidian…), macOS no cambia el predeterminado por sí solo: clic derecho sobre un `.md` → **Abrir con** → **DBV Markdown Reader** (aparece como "Otra…" si aún no salió en la lista) → marca **Cambiar todos** si quieres fijarlo como predeterminado.
+
 ---
 
 ## 📂 Estructura del Proyecto
@@ -183,8 +219,12 @@ Además del instalador NSIS de GitHub Releases, el proyecto tiene listo el empaq
 dbv-md-reader/
 ├── src-tauri/             # Código fuente Rust y configuración Tauri v2
 │   ├── src/main.rs        # Punto de entrada Rust, CLI args y mando Tauri
+│   ├── src/lib.rs         # Comandos Tauri, ventanas y menú nativo de macOS
 │   ├── nsis/              # Imágenes de marca y hooks del instalador Windows (NSIS)
+│   ├── tauri.macos.conf.json  # Override de bundle para macOS (ver sección macOS)
 │   └── Cargo.toml         # Dependencias Rust (tauri, notify, ureq, etc.)
+├── scripts/
+│   └── build-dmg-macos.sh # Genera el .dmg de macOS sin pasar por Finder/AppleScript
 ├── src/                   # Interfaz de usuario Web (HTML/CSS/JS)
 │   ├── index.html         # Maquetación principal y sidebar TOC
 │   ├── app.js             # Lógica de renderizado (markdown-it, mermaid, Prism)
