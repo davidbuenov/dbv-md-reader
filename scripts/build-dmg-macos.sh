@@ -28,7 +28,17 @@ if [[ ! -d "$APP_PATH" ]]; then
   exit 1
 fi
 
-ARCH="$(uname -m | sed 's/x86_64/x64/; s/arm64/aarch64/')"
+# Deriva el arco del propio binario (no de `uname -m`) para que un build
+# `--target universal-apple-darwin` se nombre "universal" y no "aarch64"
+# sólo porque se compiló en un Mac Apple Silicon.
+BIN_PATH="$APP_PATH/Contents/MacOS/$(defaults read "$APP_PATH/Contents/Info" CFBundleExecutable)"
+ARCHS="$(lipo -archs "$BIN_PATH")"
+case "$ARCHS" in
+  *" "*) ARCH="universal" ;;
+  x86_64) ARCH="x64" ;;
+  arm64) ARCH="aarch64" ;;
+  *) ARCH="$ARCHS" ;;
+esac
 SLUG=$(echo "$PRODUCT_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
 OUT_DIR="$ROOT_DIR/src-tauri/target/$PROFILE/bundle/dmg"
 DMG_PATH="$OUT_DIR/${SLUG}_${VERSION}_${ARCH}.dmg"
