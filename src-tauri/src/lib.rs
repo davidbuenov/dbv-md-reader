@@ -6,6 +6,7 @@
 // =============================================================================
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -32,8 +33,42 @@ pub struct RecentFile {
 /// Holds the single active file watcher (RF-06). Replacing it drops/stops the previous one.
 pub struct WatcherState(pub Mutex<Option<notify::RecommendedWatcher>>);
 
+/// Holds the file path macOS delivers via `RunEvent::Opened` (Finder "Open With"/double-click)
+/// when the app is launched cold. On macOS this event fires *before* any window exists — see
+/// the `Opened -> Ready -> Window` ordering — so there's no window yet to hand the path to.
+/// `get_cli_argument` reads it as a fallback once the frontend is ready to receive it, exactly
+/// like it already reads `std::env::args()` on Windows.
+pub struct OpenedFileState(pub Mutex<Option<String>>);
+
+/// Maps a document's canonical path to the label of the window currently displaying it, so a
+/// repeat "Open With" on the same file focuses that window instead of stacking a duplicate.
+/// Resolved live against `app_handle.webview_windows()` on lookup, so a closed window's stale
+/// entry is simply ignored rather than requiring explicit cleanup on window-close.
+pub struct OpenDocumentsState(pub Mutex<HashMap<String, String>>);
+
 fn is_remote(path: &str) -> bool {
     path.starts_with("http://") || path.starts_with("https://")
+}
+
+/// Canonicalizes a local path for use as a dedupe key in `OpenDocumentsState` (same two
+/// differently-spelled paths to the same file must map to the same key); remote URLs are
+/// already a stable identifier and are returned as-is.
+fn canonical_path_str(path: &str) -> String {
+    if is_remote(path) {
+        return path.to_string();
+    }
+    fs::canonicalize(path)
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|_| path.to_string())
+}
+
+/// Restores `window` if minimized and brings it to the front. Best-effort (`set_focus` can fail
+/// if the window is mid-teardown) — shared by every "bring this window to the user" case: an
+/// already-open document being reopened, an already-running app receiving no path, and a
+/// freshly created document window.
+fn focus_window(window: &tauri::WebviewWindow) {
+    let _ = window.unminimize();
+    let _ = window.set_focus();
 }
 
 /// Extracts the first non-flag argument (the file path) from a CLI argv-like list,
@@ -56,7 +91,7 @@ fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<(
         "window.__DBV_INITIAL_PATH__ = {};",
         serde_json::to_string(&path).unwrap_or_else(|_| "null".to_string())
     );
-    WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
+    let window = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .title("dbv-md-reader")
         .inner_size(1120.0, 760.0)
         .min_inner_size(640.0, 450.0)
@@ -64,7 +99,39 @@ fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<(
         .center()
         .initialization_script(&init_script)
         .build()?;
+    focus_window(&window);
     Ok(())
+}
+
+/// Opens `path` in a new window, unless a live window already displays that exact document —
+/// in that case brings the existing window to the front instead of stacking a duplicate. Used
+/// by every "open a file while the app is already running" entry point (RF-14 single-instance
+/// callback, macOS `RunEvent::Opened` while already running) so repeated "Open With" on the
+/// same file always converges on one window instead of accumulating copies.
+fn open_or_focus_document(app: &tauri::AppHandle, path: String) {
+    let canonical = canonical_path_str(&path);
+    let existing_label = app
+        .state::<OpenDocumentsState>()
+        .0
+        .lock()
+        .unwrap()
+        .get(&canonical)
+        .cloned();
+    if let Some(label) = existing_label {
+        if let Some(window) = app.webview_windows().get(&label) {
+            focus_window(window);
+            return;
+        }
+    }
+    let _ = open_document_window(app, path);
+}
+
+/// Converts a `file://` URL delivered by macOS's `RunEvent::Opened` (Finder "Open With") to a
+/// plain filesystem path. Non-`file` URLs (shouldn't occur for this app, no custom URL scheme
+/// is registered) are skipped rather than mis-parsed as a path.
+#[cfg(target_os = "macos")]
+fn opened_url_to_path(url: &tauri::Url) -> Option<String> {
+    url.to_file_path().ok().map(|p| p.to_string_lossy().to_string())
 }
 
 /// Inserts/moves `entry` to the front of `list`, deduplicating by path and
@@ -89,10 +156,30 @@ fn filter_existing(list: Vec<RecentFile>) -> Vec<RecentFile> {
 pub mod commands {
     use super::*;
 
-    /// Returns the initial file path passed as CLI argument (if any)
+    /// Returns the initial file path to open: a CLI argument (Windows/Linux "Open With") if
+    /// present, otherwise whatever macOS delivered via `RunEvent::Opened` before this window
+    /// existed (`OpenedFileState`, see its doc comment). `.take()` consumes the stashed value
+    /// so it isn't handed to a second window that happens to call this later.
     #[tauri::command]
-    pub fn get_cli_argument() -> Option<String> {
+    pub fn get_cli_argument(app: tauri::AppHandle) -> Option<String> {
         first_path_argument(std::env::args())
+            .or_else(|| app.state::<OpenedFileState>().0.lock().unwrap().take())
+    }
+
+    /// Records that `window` is currently displaying the document at `path` (RF-14 dedupe),
+    /// called from the frontend after every successful document load. Lets a later "Open With"
+    /// on the same file focus this window instead of opening a duplicate.
+    #[tauri::command]
+    pub fn register_open_document(
+        window: tauri::WebviewWindow,
+        state: tauri::State<OpenDocumentsState>,
+        path: String,
+    ) {
+        let canonical = canonical_path_str(&path);
+        let label = window.label().to_string();
+        let mut map = state.0.lock().unwrap();
+        map.retain(|_, v| v != &label);
+        map.insert(canonical, label);
     }
 
     /// Returns the app version declared in Cargo.toml, for the "About" panel.
@@ -329,13 +416,11 @@ pub fn run() {
             let app_handle = app.clone();
             let path = first_path_argument(argv);
             let _ = app_handle.clone().run_on_main_thread(move || match path {
-                Some(path) => {
-                    let _ = open_document_window(&app_handle, path);
-                }
+                Some(path) => open_or_focus_document(&app_handle, path),
                 None => {
                     let windows = app_handle.webview_windows();
                     if let Some(window) = windows.get("main").or_else(|| windows.values().next()) {
-                        let _ = window.set_focus();
+                        focus_window(window);
                     }
                 }
             });
@@ -345,6 +430,8 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(WatcherState(Mutex::new(None)))
+        .manage(OpenedFileState(Mutex::new(None)))
+        .manage(OpenDocumentsState(Mutex::new(HashMap::new())))
         .invoke_handler(tauri::generate_handler![
             commands::get_cli_argument,
             commands::get_app_version,
@@ -355,10 +442,26 @@ pub fn run() {
             commands::watch_file,
             commands::get_recent_files,
             commands::add_recent_file,
-            commands::clear_recent_files
+            commands::clear_recent_files,
+            commands::register_open_document
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, _event| {
+            // macOS delivers "Open With"/double-click as an Apple Event, surfaced only through
+            // this RunEvent — never through argv (see OpenedFileState's doc comment). Event
+            // order is Opened -> Ready -> Window, so "no window yet" reliably means cold start.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = _event {
+                if let Some(path) = urls.iter().find_map(opened_url_to_path) {
+                    if _app_handle.webview_windows().is_empty() {
+                        *_app_handle.state::<OpenedFileState>().0.lock().unwrap() = Some(path);
+                    } else {
+                        open_or_focus_document(_app_handle, path);
+                    }
+                }
+            }
+        });
 }
 
 #[cfg(test)]
@@ -489,6 +592,30 @@ mod tests {
         assert!(paths.contains(&existing_str.as_str()), "existing local file must be kept");
         assert!(paths.contains(&"https://example.com/remote.md"), "remote entries are never filtered by disk existence");
         assert_eq!(filtered.len(), 2, "the missing local file must be dropped");
+    }
+
+    // ── canonical_path_str (RF-14 dedupe) ──────────────────────────────────
+
+    #[test]
+    fn canonical_path_str_keeps_remote_url_as_is() {
+        assert_eq!(
+            canonical_path_str("https://example.com/doc.md"),
+            "https://example.com/doc.md"
+        );
+    }
+
+    #[test]
+    fn canonical_path_str_resolves_local_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = write_temp_file(tmp.path(), "doc.md", "# hi");
+        let canonical = canonical_path_str(&path.to_string_lossy());
+        assert!(canonical.ends_with("doc.md"), "{:?}", canonical);
+    }
+
+    #[test]
+    fn canonical_path_str_falls_back_to_input_for_missing_file() {
+        let missing = "C:\\definitely\\not\\a\\real\\path\\gone.md";
+        assert_eq!(canonical_path_str(missing), missing);
     }
 
     // ── read_file remote (RF-08A) — requires network, run with `cargo test -- --ignored` ──

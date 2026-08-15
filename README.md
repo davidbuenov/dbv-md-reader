@@ -292,6 +292,14 @@ Copyright (c) 2026 David Bueno Vallejo
 [![Website](https://img.shields.io/badge/Web-davidbuenov.com-6366f1?logo=googlechrome&logoColor=white)](https://davidbuenov.com)
 [![GitHub](https://img.shields.io/badge/GitHub-davidbuenov-181717?logo=github&logoColor=white)](https://github.com/davidbuenov)
 
+### 🙏 Agradecimientos
+
+Gracias a quienes han colaborado probando la aplicación, encontrando errores y proponiendo mejoras:
+
+- José M. Alarcón Aguín
+- Victor Estival
+- Julio Lorca
+
 ### 🤖 Construido con IA
 
 | Herramienta | Rol |

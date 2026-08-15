@@ -2,7 +2,7 @@
 
 > **Fase:** `/spec` (Especificación)  
 > **Estado:** Validado  
-> **Última Revisión:** 2026-08-08  
+> **Última Revisión:** 2026-08-15  
 
 ---
 
@@ -27,8 +27,9 @@
 
 ## ✨ 3. Requisitos Funcionales (MVP & Mejoras)
 
-- [x] **RF-01: Apertura mediante Argumento CLI:**  
-  La aplicación acepta una ruta de archivo como argumento al iniciarse (ej. `dbv-md-reader.exe C:\notas\readme.md`). Permite asociar el ejecutable como visor predeterminado en Windows mediante *"Abrir con..."*.
+- [x] **RF-01: Apertura mediante Argumento CLI / "Abrir con":**  
+  La aplicación acepta una ruta de archivo como argumento al iniciarse (ej. `dbv-md-reader.exe C:\notas\readme.md`). Permite asociar el ejecutable como visor predeterminado en Windows mediante *"Abrir con..."*.  
+  **macOS (añadido 2026-08-15):** Finder no lanza "Abrir con"/doble clic pasando la ruta como argumento de línea de comandos (a diferencia del Explorador de Windows) — envía un Apple Event `kAEOpenDocuments`, expuesto por Tauri v2 únicamente como `RunEvent::Opened { urls }`. La app escucha ese evento (orden `Opened → Ready → Window`, antes de que exista ninguna ventana): en arranque en frío guarda la ruta en estado gestionado (`OpenedFileState`) hasta que el frontend la recoge vía `get_cli_argument`; con la app ya en marcha reutiliza el mismo flujo de apertura de ventana que RF-14. Corrige un bug reportado por un usuario real (v0.7.0): "Abrir con" lanzaba la app vacía en macOS.
 - [x] **RF-02: Renderizado Completo e Híbrido:**  
   - **Markdown Estándar:** Soporte para títulos (`#`..`######`), listas, tablas, enlaces, imágenes y bloques de código con resaltado de sintaxis (Prism.js). ✅ Implementado (`markdown-it` + Prism.js).
   - **HTML Integrado:** Las etiquetas HTML válidas dentro del documento se renderizan respetando el diseño web estándar. ✅ Implementado (`html: true` en `markdown-it`) — **sin sanitizar**, ver riesgo en RF-03.
@@ -79,6 +80,7 @@
   - Cada ventana mantiene su documento, zoom, TOC, búsqueda y observador de archivos completamente independientes de las demás — no se comparte estado entre ventanas, solo el proceso.  
   - Si la segunda apertura no trae ninguna ruta de archivo (p. ej. relanzar el `.exe` sin argumentos), no se abre una ventana vacía: se enfoca una ya existente.  
   - **Fuera de alcance de este RF** (decisión consciente, ver ADR-015 en `memory.md`): abrir un archivo *desde dentro* de la app (`Ctrl+O`, panel de Recientes, Drag & Drop sobre una ventana ya abierta) sigue sustituyendo el documento de esa misma ventana, sin crear una ventana nueva — solo las aperturas *externas* (Explorador de Windows) consolidan proceso.
+  - **Foco y deduplicación de ventanas (añadido 2026-08-15):** un bug reportado por un usuario real hacía que la ventana nueva no viniera al frente al reabrir un archivo con la app ya en marcha — el usuario, sin ver ningún cambio visible, repetía el doble clic y acumulaba varias ventanas con el mismo documento. Ahora: (1) toda ventana nueva o reutilizada se trae al frente (`unminimize` + `set_focus`); (2) si el archivo que se pide abrir ya se está mostrando en una ventana viva de este mismo proceso (`OpenDocumentsState`, comparación por ruta canonicalizada), esa ventana se enfoca en vez de abrir un duplicado.
 - [x] **RF-15: Abrir un diagrama Mermaid en mermaid.live:**  
   - Menú contextual (botón derecho) sobre cualquier diagrama Mermaid ya renderizado, con la opción "Abrir en mermaid.live".  
   - Genera la URL del editor en línea codificando el código fuente del diagrama en el fragmento `#pako:...` (mismo formato que usa mermaid.live internamente para compartir enlaces — compresión `deflate` + Base64 URL-safe, sin ningún servidor intermedio) y la abre en el navegador predeterminado.  

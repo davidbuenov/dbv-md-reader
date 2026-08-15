@@ -5,6 +5,14 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.7.1] - 2026-08-15
+
+### Corregido
+- **macOS: "Abrir con" no cargaba el archivo (RF-01):** Finder entrega la ruta vía Apple Event (`RunEvent::Opened`), no como argumento de línea de comandos — la app nunca escuchaba ese evento, así que la ventana se abría vacía. Reportado por un usuario real tras probar la Release de macOS de la Fase 25.
+- **RF-14: ventana nueva no venía al frente y "Abrir con" repetido duplicaba ventanas:** `open_document_window()` no llamaba a `set_focus()` tras crear la ventana, y no existía ningún registro de qué archivo mostraba cada ventana. Ahora toda apertura trae la ventana al frente, y reabrir un archivo ya visible en una ventana existente la enfoca en vez de abrir un duplicado.
+
+---
+
 ## [0.7.0] - 2026-08-12
 
 > **Nota:** el paquete Windows de esta versión ya está en certificación en Microsoft Store al añadir lo de más abajo (Fase 24, 2026-08-12) — se decidió conscientemente **no** subir de versión, porque el código de aplicación (Rust/JS) no cambia en absoluto, solo empaquetado/CI/documentación para Linux y macOS. La build de Windows que está en certificación sigue siendo exactamente la 0.7.0. **Actualización (Fase 25, 2026-08-13):** mismo criterio — Microsoft Store ya está publicada y macOS pasa a Release oficial vía CI, de nuevo sin tocar el código de aplicación.
