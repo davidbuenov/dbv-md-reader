@@ -50,6 +50,13 @@ fn is_remote(path: &str) -> bool {
     path.starts_with("http://") || path.starts_with("https://")
 }
 
+/// Renders a filesystem path as a `String`, tolerating non-UTF-8 components. Centralizes the
+/// `to_string_lossy().to_string()` conversion repeated across `read_file`, `resolve_relative_path`
+/// and `canonical_path_str`.
+fn path_to_string(p: &Path) -> String {
+    p.to_string_lossy().to_string()
+}
+
 /// Canonicalizes a local path for use as a dedupe key in `OpenDocumentsState` (same two
 /// differently-spelled paths to the same file must map to the same key); remote URLs are
 /// already a stable identifier and are returned as-is.
@@ -58,7 +65,7 @@ fn canonical_path_str(path: &str) -> String {
         return path.to_string();
     }
     fs::canonicalize(path)
-        .map(|p| p.to_string_lossy().to_string())
+        .map(|p| path_to_string(&p))
         .unwrap_or_else(|_| path.to_string())
 }
 
@@ -245,16 +252,16 @@ pub mod commands {
 
         let file_name = canonical
             .file_name()
-            .map(|s| s.to_string_lossy().to_string())
+            .map(|s| path_to_string(Path::new(s)))
             .unwrap_or_else(|| "documento.md".to_string());
 
         let dir_path = canonical
             .parent()
-            .map(|p| p.to_string_lossy().to_string())
+            .map(path_to_string)
             .unwrap_or_default();
 
         Ok(FilePayload {
-            path: canonical.to_string_lossy().to_string(),
+            path: path_to_string(&canonical),
             content,
             dir_path,
             file_name,
@@ -285,7 +292,7 @@ pub mod commands {
         let joined = PathBuf::from(&base_dir).join(&relative_path);
         let canonical = fs::canonicalize(&joined)
             .map_err(|e| format!("Error resolviendo '{}': {}", relative_path, e))?;
-        Ok(canonical.to_string_lossy().to_string())
+        Ok(path_to_string(&canonical))
     }
 
     /// Watches the parent directory of `path` (RF-06) and emits `file-changed` when it's modified.
