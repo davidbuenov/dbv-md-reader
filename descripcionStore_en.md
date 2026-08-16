@@ -52,6 +52,11 @@ v0.5.0: refreshed installer design, now also available on the Microsoft Store, a
 13. Export to PDF (Ctrl+P)
 14. Proportional document zoom (Ctrl+Wheel)
 15. Interface available in English and Spanish
+16. *(pending: whatever is currently live in Partner Center as #16 — not recorded in this file, reconcile when convenient)*
+17. Syntax highlighting for 24+ languages, colors matched to each theme
+18. Table of contents highlights the section you're reading
+19. Estimated reading time and a scroll progress bar
+20. Code blocks show line numbers, with a line-wrap toggle
 
 ---
 

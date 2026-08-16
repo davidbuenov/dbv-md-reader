@@ -52,6 +52,11 @@ v0.5.0: instalador con un diseño renovado, ahora disponible también en Microso
 13. Exportación a PDF (Ctrl+P)
 14. Zoom proporcional del documento (Ctrl+Rueda)
 15. Interfaz disponible en español e inglés
+16. *(pendiente: lo que tengas ahora mismo en Partner Center como #16 — no quedó registrado en este fichero, sincronizar cuando puedas)*
+17. Resaltado de sintaxis en más de 24 lenguajes, con colores adaptados a cada tema
+18. La tabla de contenidos resalta la sección que estás leyendo
+19. Tiempo de lectura estimado y barra de progreso de scroll
+20. Números de línea y ajuste de línea en los bloques de código
 
 ---
 
