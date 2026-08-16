@@ -57,6 +57,7 @@ v0.5.0: refreshed installer design, now also available on the Microsoft Store, a
 18. Table of contents highlights the section you're reading
 19. Estimated reading time and a scroll progress bar
 20. Code blocks show line numbers, with a line-wrap toggle
+21. Math equations in LaTeX, rendered with KaTeX *(⚠️ the field says max 20 — drop one of the earlier ones before pasting into Partner Center, or try if it accepts 21)*
 
 ---
 

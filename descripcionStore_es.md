@@ -57,6 +57,7 @@ v0.5.0: instalador con un diseño renovado, ahora disponible también en Microso
 18. La tabla de contenidos resalta la sección que estás leyendo
 19. Tiempo de lectura estimado y barra de progreso de scroll
 20. Números de línea y ajuste de línea en los bloques de código
+21. Ecuaciones matemáticas en LaTeX, renderizadas con KaTeX *(⚠️ el campo indica máximo 20 — quitar alguna de las anteriores antes de pegarlo en Partner Center, o probar si admite 21)*
 
 ---
 
