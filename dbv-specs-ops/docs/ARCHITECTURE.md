@@ -120,3 +120,17 @@ El código de aplicación (`src-tauri/src/lib.rs`) es 100% cross-platform: no us
 ### macOS — Solo auto-compilación, sin firma ni notarización
 
 No se publica ningún binario de macOS. La cuenta de Apple Developer (99 $/año, requisito de Apple para firmar y notarizar) queda fuera de alcance por decisión consciente del usuario. En su lugar, `README.md` documenta cómo un usuario de Mac compila su propio ejecutable (`cargo tauri build` tras clonar el repo) y cómo abrir la app resultante pese a no estar firmada (Gatekeeper la bloquea por defecto: clic derecho → Abrir, o `xattr -cr` sobre el `.app`). Sin CI, sin Release, sin auto-actualización para esta plataforma.
+
+> ⚠️ **Nota (2026-08-16):** esta sección describe el estado de la Fase 19. Desde la Fase 25 (ver `task.md`/ADR-020 en `memory.md`), macOS **sí** tiene Release oficial vía CI (`release-macos.yml`, `.dmg` universal sin firmar). Pendiente de actualizar esta sección para que no diverja — dejado anotado aquí en vez de corregido de pasada, para no mezclarlo con un cambio no relacionado.
+
+### Diferencias conocidas entre motores de WebView (Windows / Linux / macOS)
+
+El entorno de desarrollo de este proyecto es Windows — cualquier cambio de frontend se prueba en la práctica solo contra **WebView2 (Chromium)**. `WebKitGTK` (Linux) y `WKWebView` (macOS) son motores distintos y pueden comportarse de forma diferente para lo mismo. Tabla de diferencias ya detectadas (ampliar cuando aparezca una nueva, no reescribir de memoria):
+
+| Área | WebView2 (Windows) | WebKitGTK (Linux) / WKWebView (macOS) | Fuente |
+| --- | --- | --- | --- |
+| Diálogo de impresión / pie de página | El diálogo nativo (Chromium) puede añadir un pie con la URL/fecha ("Encabezados y pies de página" en "Más opciones") | Sin confirmar — el panel de impresión de macOS y el diálogo GTK de Linux son distintos, puede que ni tengan esa opción | Sesión 2026-08-16, ver `README.md` |
+| Caché de assets del WebView entre reinicios del proceso | Confirmado: `EBWebView/Default/Cache` persiste en disco entre lanzamientos y puede servir `index.html`/`app.js`/`styles.css` obsoletos tras editar el frontend en desarrollo | Sin confirmar si WebKitGTK/WKWebView tienen el mismo comportamiento de caché persistente | ADR-022 en `memory.md` |
+| `::-webkit-scrollbar` (usado en `#reader-container`, `styles.css`) | Sin efecto — WebView2 no es un motor WebKit | Debería aplicarse tal cual (WebKitGTK y WKWebView sí son WebKit) | No verificado en esta sesión |
+
+**Regla práctica:** ante la duda sobre si algo se comporta igual en los 3 motores, no asumir que sí — registrar la duda (aquí o en `task.md` como riesgo aceptado) y, si el cambio es visible para el usuario, incluirlo en la lista de pruebas para colaboradores del siguiente `/ship`.

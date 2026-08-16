@@ -5,6 +5,20 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.8.0] - 2026-08-16
+
+### Añadido
+- **RF-02 ampliado — cobertura de lenguajes en Prism.js**: vendorizados ~20 componentes adicionales (`c`, `cpp`, `python`, `bash`, `json`, `yaml`, `typescript`, `jsx`, `tsx`, `go`, `java`, `rust`, `csharp`, `sql`, `toml`, `diff`, `markdown`, `powershell`, `docker`, `ini`) — el build de Prism.js vendorizado solo traía `markup`/`css`/`clike`/`javascript`, así que el resto de lenguajes se mostraban sin colorear.
+- **RF-04 ampliado — TOC con sección activa, tiempo de lectura y barra de progreso**: la Tabla de Contenidos resalta el encabezado visible mientras se hace scroll (`IntersectionObserver`); tiempo de lectura estimado junto al nombre del documento (200 palabras/min); barra de progreso de scroll en el borde inferior de la cabecera.
+- **RF-10 ampliado — números de línea y ajuste de línea (wrap) en código**: numeración de línea por defecto (plugin oficial `prism-line-numbers`) y un botón "Wrap line" junto al de copiar para alternar el scroll horizontal por salto de línea en bloques con líneas muy largas.
+
+### Cambiado
+- **RF-05 ampliado — colores de sintaxis adaptados a cada tema (cierra deuda técnica)**: sustituida la hoja de estilos de Prism.js fija (pensada para tema oscuro, con muy poco contraste en Claro/Sepia) por variables CSS propias por tema, mapeadas a los tokens de Prism.js. El tema Oscuro conserva el aspecto anterior. Ver ADR-022 en `memory.md`.
+
+Auditoría de seguridad de esta fase (obligatoria, `/code-simplify`): sin secretos en el código; las ~22 librerías vendorizadas nuevas (componentes de Prism.js + plugin de números de línea) se copiaron directamente de `node_modules/prismjs/` (paquete ya instalado y auditado, sin tipear código a mano ni descargar de un CDN); sin cambios en Rust ni en las dependencias de `Cargo.toml`; sin nuevas superficies de entrada de usuario (los cambios son de renderizado/CSS/JS de solo lectura sobre contenido que ya pasaba por DOMPurify).
+
+---
+
 ## [0.7.1] - 2026-08-15
 
 ### Corregido

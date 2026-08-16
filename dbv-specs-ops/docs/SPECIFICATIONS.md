@@ -2,7 +2,7 @@
 
 > **Fase:** `/spec` (Especificación)  
 > **Estado:** Validado  
-> **Última Revisión:** 2026-08-15  
+> **Última Revisión:** 2026-08-16  
 
 ---
 
@@ -31,7 +31,8 @@
   La aplicación acepta una ruta de archivo como argumento al iniciarse (ej. `dbv-md-reader.exe C:\notas\readme.md`). Permite asociar el ejecutable como visor predeterminado en Windows mediante *"Abrir con..."*.  
   **macOS (añadido 2026-08-15):** Finder no lanza "Abrir con"/doble clic pasando la ruta como argumento de línea de comandos (a diferencia del Explorador de Windows) — envía un Apple Event `kAEOpenDocuments`, expuesto por Tauri v2 únicamente como `RunEvent::Opened { urls }`. La app escucha ese evento (orden `Opened → Ready → Window`, antes de que exista ninguna ventana): en arranque en frío guarda la ruta en estado gestionado (`OpenedFileState`) hasta que el frontend la recoge vía `get_cli_argument`; con la app ya en marcha reutiliza el mismo flujo de apertura de ventana que RF-14. Corrige un bug reportado por un usuario real (v0.7.0): "Abrir con" lanzaba la app vacía en macOS.
 - [x] **RF-02: Renderizado Completo e Híbrido:**  
-  - **Markdown Estándar:** Soporte para títulos (`#`..`######`), listas, tablas, enlaces, imágenes y bloques de código con resaltado de sintaxis (Prism.js). ✅ Implementado (`markdown-it` + Prism.js).
+  - **Markdown Estándar:** Soporte para títulos (`#`..`######`), listas, tablas, enlaces, imágenes y bloques de código con resaltado de sintaxis (Prism.js). ✅ Implementado (`markdown-it` + Prism.js).  
+    **Cobertura de lenguajes (ampliado 2026-08-16):** el build de Prism.js vendorizado originalmente solo traía las gramáticas `markup`/`css`/`clike`/`javascript` (build "core" por defecto) — cualquier otro lenguaje (C/C++, Python, Rust, Bash, JSON, YAML, TypeScript, Go, Java, C#, SQL, TOML, Diff, Markdown, PowerShell, Docker, INI...) se mostraba sin colorear. Añadidos ~20 componentes más vendorizados manualmente en `src/vendor/` (mismo patrón sin bundler que el resto de librerías), cargados como `<script>` adicionales tras `prism.min.js` en `index.html`.
   - **HTML Integrado:** Las etiquetas HTML válidas dentro del documento se renderizan respetando el diseño web estándar. ✅ Implementado (`html: true` en `markdown-it`) — **sin sanitizar**, ver riesgo en RF-03.
   - **Diagramas Mermaid:** Los bloques de código identificados con ` ```mermaid ` son procesados e inyectados como gráficos vectoriales (SVG). ✅ Implementado.
 - [x] **RF-03: Sanitización de HTML y Seguridad Estricta:**  
@@ -40,8 +41,10 @@
   - Interfaz minimalista sin barras de herramientas pesadas. ✅  
   - Barra lateral flotante o colapsable con Tabla de Contenidos (TOC) generada automáticamente a partir de encabezados (`#`, `##`, `###`). ✅  
   - Atajo de teclado (`Ctrl + F`) para abrir una barra de búsqueda interna de texto rápida. ✅  
+  - **TOC con sección activa, tiempo de lectura y barra de progreso (añadido 2026-08-16):** la Tabla de Contenidos resalta el encabezado actualmente visible mientras se hace scroll (`IntersectionObserver` sobre el contenedor de lectura, sin listener manual de `scroll`). Junto al nombre del documento se muestra el tiempo de lectura estimado (200 palabras/min sobre el markdown crudo). Una barra fina en el borde inferior de la cabecera indica el progreso de scroll del documento actual. Los tres se recalculan/reinician en cada carga de documento (apertura, navegación, auto-recarga).
 - [x] **RF-05: Modos Visuales (Temas):**  
-  Soporte para tres temas básicos: Claro (estilo GitHub), Oscuro (estilo VS Code / GitHub Dark) y Sepia (lectura prolongada). ✅ Implementado con persistencia en `localStorage`.
+  Soporte para tres temas básicos: Claro (estilo GitHub), Oscuro (estilo VS Code / GitHub Dark) y Sepia (lectura prolongada). ✅ Implementado con persistencia en `localStorage`.  
+  **Colores de sintaxis por tema (añadido 2026-08-16, cierra deuda técnica):** el resaltado de código usaba siempre una hoja de estilos de Prism.js fija pensada para tema oscuro, así que en Claro/Sepia el texto quedaba con muy poco contraste. Sustituida por variables CSS propias por tema (`--code-keyword`, `--code-string`, `--code-comment`, `--code-function`, `--code-number`, `--code-tag`, `--code-class`, `--code-operator`) mapeadas a los tokens de Prism.js — el tema Oscuro conserva el aspecto anterior, Claro y Sepia pasan a tener contraste correcto. Ver ADR-022 en `memory.md`.
 - [x] **RF-06: Auto-Reload por Modificación Externa (File Watcher):**  
   Integración de un observador de archivos en Rust (`notify` crate, comando `watch_file`, vigila el directorio padre — ADR-010). Si el archivo abierto es editado y guardado por otra aplicación, la vista de `dbv-md-reader` se recarga automáticamente en caliente sin perder la posición del scroll (evento `file-changed` + debounce en `app.js`). ✅ Verificado 2026-08-09: al añadir una sección al `.md` abierto, la Tabla de Contenidos se actualizó sola sin recarga manual.
 - [x] **RF-07: Carga y Resolución de Imágenes Locales:**  
@@ -58,7 +61,8 @@
 - [x] **RF-10: Utilerías de Lectura (Copiar Código, Zoom, Exportar PDF):**  
   - Botón disimulado "Copy" en bloques de código. ✅  
   - Zoom de lectura con `Ctrl + +`, `Ctrl + -` y `Ctrl + 0`. ✅ El zoom se aplica tanto al contenido (`#content`) como a la Tabla de Contenidos (`#toc-sidebar`) — corregido 2026-08-09 (antes solo afectaba al contenido).  
-  - Impresión / Exportación a PDF mediante `Ctrl + P`. ✅ El `@media print` controla paginación real (`@page` con tamaño A4 y márgenes, evita títulos/tablas/imágenes/diagramas/fórmulas partidos entre páginas, muestra la URL junto a cada enlace) en vez de solo ocultar cabecera/paneles — actualizado 2026-08-12. Sigue siendo el diálogo de impresión nativo del sistema operativo (`window.print()`), no una exportación sin diálogo (ver RF-18 en el roadmap, fuera de alcance de esta fase).
+  - Impresión / Exportación a PDF mediante `Ctrl + P`. ✅ El `@media print` controla paginación real (`@page` con tamaño A4 y márgenes, evita títulos/tablas/imágenes/diagramas/fórmulas partidos entre páginas, muestra la URL junto a cada enlace) en vez de solo ocultar cabecera/paneles — actualizado 2026-08-12. Sigue siendo el diálogo de impresión nativo del sistema operativo (`window.print()`), no una exportación sin diálogo (ver RF-18 en el roadmap, fuera de alcance de esta fase). **Revisado 2026-08-16:** confirmado que ese alcance se mantiene conscientemente (RF-18 nativo sigue fuera, ver ADR-022) — no fue necesario tocar código, el tooltip ya mencionaba "PDF".
+  - **Números de línea y ajuste de línea (wrap) en bloques de código (añadido 2026-08-16):** todo bloque de código muestra numeración de línea (plugin oficial `prism-line-numbers`, vendorizado). Un botón "Wrap line" junto al de copiar alterna entre el scroll horizontal por defecto y el ajuste de línea, para líneas muy largas.
 - [x] **RF-12: "Acerca de":**  
   Botón en la barra superior que abre un panel modal con el nombre de la aplicación, la versión actual (leída dinámicamente del backend Rust vía `get_app_version`, sincronizada siempre con `Cargo.toml`), enlaces a la web del autor (`davidbuenov.com`) y su GitHub (`github.com/davidbuenov`) abiertos en el navegador del sistema, y la licencia. ✅ Implementado y verificado 2026-08-09.
 - [x] **RF-11: Archivos Recientes (Recent Files):**  

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DBV Markdown Reader</title>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="vendor/prism-tomorrow.min.css" id="prism-theme" />
+  <link rel="stylesheet" href="vendor/prism-line-numbers.min.css" />
   <link rel="stylesheet" href="vendor/katex.min.css" />
 </head>
 <body>
@@ -25,6 +25,7 @@
       </button>
       <div class="toolbar-divider"></div>
       <span id="doc-breadcrumb" title="">Sin documento abierto</span>
+      <span id="doc-reading-time" class="hidden"></span>
     </div>
 
     <!-- Right: Acciones + Tema + TOC -->
@@ -73,6 +74,7 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </button>
     </div>
+    <div id="reading-progress"><div id="reading-progress-fill"></div></div>
   </header>
 
   <!-- ─── Modal "Acerca de" ─────────────────────────────────────────────── -->
@@ -158,6 +160,30 @@
   <script src="vendor/markdown-it.min.js"></script>
   <script src="vendor/dompurify.min.js"></script>
   <script src="vendor/prism.min.js"></script>
+  <!-- defer: solo se usan de forma asíncrona dentro de renderMarkdown() (tras un
+       invoke de Tauri), nunca durante la carga de la página — así los ~20
+       ficheros se piden en paralelo en vez de bloquear el parseo uno a uno. -->
+  <script src="vendor/prism-c.min.js" defer></script>
+  <script src="vendor/prism-cpp.min.js" defer></script>
+  <script src="vendor/prism-csharp.min.js" defer></script>
+  <script src="vendor/prism-python.min.js" defer></script>
+  <script src="vendor/prism-bash.min.js" defer></script>
+  <script src="vendor/prism-json.min.js" defer></script>
+  <script src="vendor/prism-yaml.min.js" defer></script>
+  <script src="vendor/prism-typescript.min.js" defer></script>
+  <script src="vendor/prism-jsx.min.js" defer></script>
+  <script src="vendor/prism-tsx.min.js" defer></script>
+  <script src="vendor/prism-go.min.js" defer></script>
+  <script src="vendor/prism-java.min.js" defer></script>
+  <script src="vendor/prism-rust.min.js" defer></script>
+  <script src="vendor/prism-sql.min.js" defer></script>
+  <script src="vendor/prism-toml.min.js" defer></script>
+  <script src="vendor/prism-diff.min.js" defer></script>
+  <script src="vendor/prism-markdown.min.js" defer></script>
+  <script src="vendor/prism-powershell.min.js" defer></script>
+  <script src="vendor/prism-docker.min.js" defer></script>
+  <script src="vendor/prism-ini.min.js" defer></script>
+  <script src="vendor/prism-line-numbers.min.js" defer></script>
   <script src="vendor/mermaid.min.js"></script>
   <script src="vendor/katex.min.js"></script>
   <script src="vendor/pako_deflate.min.js"></script>

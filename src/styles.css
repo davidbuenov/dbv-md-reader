@@ -21,6 +21,15 @@
   --code-bg:       #161b22;
   --quote-bg:      rgba(88, 166, 255, 0.08);
   --shadow:        rgba(0, 0, 0, 0.4);
+  /* Resaltado de sintaxis (réplica del tema Prism "Tomorrow" que sustituye) */
+  --code-keyword:  #cc99cd;
+  --code-string:   #7ec699;
+  --code-comment:  #999999;
+  --code-function: #f08d49;
+  --code-number:   #f08d49;
+  --code-tag:      #e2777a;
+  --code-class:    #f8c555;
+  --code-operator: #67cdcc;
 }
 
 [data-theme="light"] {
@@ -36,6 +45,15 @@
   --code-bg:       #f6f8fa;
   --quote-bg:      rgba(9, 105, 218, 0.05);
   --shadow:        rgba(0, 0, 0, 0.12);
+  /* Resaltado de sintaxis (paleta estilo GitHub Light) */
+  --code-keyword:  #cf222e;
+  --code-string:   #0a3069;
+  --code-comment:  #6e7781;
+  --code-function: #8250df;
+  --code-number:   #0550ae;
+  --code-tag:      #116329;
+  --code-class:    #953800;
+  --code-operator: #24292f;
 }
 
 [data-theme="sepia"] {
@@ -51,6 +69,15 @@
   --code-bg:       #f2e8cc;
   --quote-bg:      rgba(139, 69, 19, 0.07);
   --shadow:        rgba(0, 0, 0, 0.15);
+  /* Resaltado de sintaxis (paleta cálida a juego con el resto del tema Sepia) */
+  --code-keyword:  #9a3324;
+  --code-string:   #5b7553;
+  --code-comment:  #9c7e65;
+  --code-function: #8b4513;
+  --code-number:   #6b4f8f;
+  --code-tag:      #7a4419;
+  --code-class:    #b3701f;
+  --code-operator: #6b5240;
 }
 
 /* ─── Reset / Base ────────────────────────────────────────────────────────── */
@@ -117,6 +144,29 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0 4px;
+}
+
+#doc-reading-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Barra de progreso de lectura (borde inferior de la cabecera) ─────────── */
+#reading-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  background-color: transparent;
+}
+#reading-progress-fill {
+  height: 100%;
+  width: 0%;
+  background-color: var(--accent);
+  transition: width 0.1s linear;
 }
 
 /* ─── Botones icono ───────────────────────────────────────────────────────── */
@@ -382,10 +432,74 @@ body {
   font-size: 0.875em;
 }
 
-.code-copy-btn {
+/* Ajuste de línea opcional (botón de wrap) — sustituye el scroll horizontal */
+#content pre.wrapped {
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Números de línea (plugin oficial de Prism) alineados con el resto del tema.
+   3.8em replica el padding-left por defecto de prism-line-numbers.min.css —
+   #content pre (id) ya lo pisa con su padding:16px, así que hay que
+   reafirmarlo aquí; revisar este valor si se actualiza el plugin. */
+#content pre.line-numbers { padding-left: 3.8em; }
+.line-numbers .line-numbers-rows { border-right-color: var(--border); }
+.line-numbers-rows > span:before { color: var(--text-muted); }
+
+/* ─── Colores de sintaxis (adaptados a cada tema, sustituye al tema Prism fijo) */
+.token.comment,
+.token.block-comment,
+.token.prolog,
+.token.doctype,
+.token.cdata { color: var(--code-comment); }
+.token.keyword,
+.token.selector,
+.token.important,
+.token.atrule,
+.token.builtin { color: var(--code-keyword); }
+.token.string,
+.token.char,
+.token.attr-value,
+.token.regex,
+.token.variable { color: var(--code-string); }
+.token.function,
+.token.function-name { color: var(--code-function); }
+.token.boolean,
+.token.number { color: var(--code-number); }
+.token.tag,
+.token.attr-name,
+.token.namespace,
+.token.deleted { color: var(--code-tag); }
+.token.property,
+.token.class-name,
+.token.constant,
+.token.symbol { color: var(--code-class); }
+.token.operator,
+.token.entity,
+.token.url { color: var(--code-operator); }
+.token.punctuation { color: var(--text-secondary); }
+.token.important,
+.token.bold { font-weight: bold; }
+.token.italic { font-style: italic; }
+
+/* Contenedor de los botones flotantes de un bloque de código (Copiar, Ajustar
+   línea): posicionamiento y aparición al hover en un solo sitio; los botones
+   se apilan en columna, así que ninguno necesita un "top" fijo a mano. */
+.code-actions {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#content pre:hover .code-actions { opacity: 1; }
+
+.code-action-btn {
   padding: 3px 10px;
   font-size: 11px;
   font-family: 'Inter', sans-serif;
@@ -394,11 +508,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 4px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s;
+  transition: background 0.15s;
 }
-#content pre:hover .code-copy-btn { opacity: 1; }
-.code-copy-btn:hover { background-color: var(--accent); color: #fff; border-color: var(--accent); }
+.code-action-btn:hover { background-color: var(--accent); color: #fff; border-color: var(--accent); }
 
 /* ─── Mermaid ─────────────────────────────────────────────────────────────── */
 .mermaid-container {
@@ -437,6 +549,12 @@ body {
 .toc-item-h1 { font-weight: 600; font-size: 13px; color: var(--text-primary); }
 .toc-item-h2 { font-size: 13px; padding-left: 12px; color: var(--text-secondary); }
 .toc-item-h3 { font-size: 12px; padding-left: 24px; color: var(--text-muted); }
+
+#toc-list a.active {
+  background-color: var(--bg-tertiary);
+  color: var(--accent);
+  font-weight: 600;
+}
 
 #toc-list a {
   display: block;
@@ -696,7 +814,7 @@ body.drag-over #reader-container {
 }
 
 @media print {
-  #app-header, #toc-sidebar, #search-modal, #recent-panel, #about-modal, #url-panel, .code-copy-btn, #error-panel {
+  #app-header, #toc-sidebar, #search-modal, #recent-panel, #about-modal, #url-panel, .code-actions, #error-panel {
     display: none !important;
   }
   body, #app-body, #reader-container {
