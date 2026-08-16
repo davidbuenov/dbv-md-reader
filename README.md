@@ -17,6 +17,8 @@
 
 **[🌐 Ver la web del proyecto](https://davidbuenov.github.io/dbv-md-reader/)**
 
+<a href="https://www.producthunt.com/products/dbv-markdown-reader?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-dbv-markdown-reader" target="_blank" rel="noopener noreferrer"><img alt="DBV Markdown Reader - Ultra-fast, native Markdown reader for Windows, Linux &amp; Mac | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1223973&amp;theme=light&amp;t=1786861415426"></a>
+
 ---
 
 ## 🚀 Descárgalo e instálalo
