@@ -1,1 +1,1 @@
-{"main-capability":{"identifier":"main-capability","description":"Permisos principales de la aplicación","local":true,"windows":["main","doc-*"],"permissions":["core:default","dialog:allow-open","shell:allow-open","updater:default","process:allow-restart"]}}
+{"main-capability":{"identifier":"main-capability","description":"Permisos principales de la aplicación","local":true,"windows":["main","doc-*"],"permissions":["core:default","dialog:allow-open","shell:allow-open","updater:default","process:allow-restart","core:webview:allow-print"]}}

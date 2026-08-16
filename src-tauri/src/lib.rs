@@ -413,6 +413,114 @@ pub mod commands {
     }
 }
 
+/// Barra de menú nativa de macOS. Se parte de la misma estructura que
+/// `tauri::menu::Menu::default` (App/File/Edit/View/Window/Help), pero con
+/// un "Abrir archivo…" real en File: el default de Tauri sólo trae Close
+/// Window ahí, y un File "vacío" no es lo que un usuario de Mac espera.
+#[cfg(target_os = "macos")]
+mod macos_menu {
+    use tauri::menu::{
+        AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu, HELP_SUBMENU_ID,
+        WINDOW_SUBMENU_ID,
+    };
+    use tauri::{AppHandle, Runtime};
+
+    pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
+        let pkg_info = handle.package_info();
+        let config = handle.config();
+        let about_metadata = AboutMetadata {
+            name: Some(pkg_info.name.clone()),
+            version: Some(pkg_info.version.to_string()),
+            copyright: config.bundle.copyright.clone(),
+            authors: config.bundle.publisher.clone().map(|p| vec![p]),
+            ..Default::default()
+        };
+
+        let app_menu = Submenu::with_items(
+            handle,
+            pkg_info.name.clone(),
+            true,
+            &[
+                &PredefinedMenuItem::about(handle, None, Some(about_metadata))?,
+                &PredefinedMenuItem::separator(handle)?,
+                &PredefinedMenuItem::services(handle, None)?,
+                &PredefinedMenuItem::separator(handle)?,
+                &PredefinedMenuItem::hide(handle, None)?,
+                &PredefinedMenuItem::hide_others(handle, None)?,
+                &PredefinedMenuItem::separator(handle)?,
+                &PredefinedMenuItem::quit(handle, None)?,
+            ],
+        )?;
+
+        let open_file_item = MenuItem::with_id(
+            handle,
+            "open_file",
+            "Abrir archivo…",
+            true,
+            Some("CmdOrCtrl+O"),
+        )?;
+        let file_menu = Submenu::with_items(
+            handle,
+            "File",
+            true,
+            &[
+                &open_file_item,
+                &PredefinedMenuItem::separator(handle)?,
+                &PredefinedMenuItem::close_window(handle, None)?,
+            ],
+        )?;
+
+        let edit_menu = Submenu::with_items(
+            handle,
+            "Edit",
+            true,
+            &[
+                &PredefinedMenuItem::undo(handle, None)?,
+                &PredefinedMenuItem::redo(handle, None)?,
+                &PredefinedMenuItem::separator(handle)?,
+                &PredefinedMenuItem::cut(handle, None)?,
+                &PredefinedMenuItem::copy(handle, None)?,
+                &PredefinedMenuItem::paste(handle, None)?,
+                &PredefinedMenuItem::select_all(handle, None)?,
+            ],
+        )?;
+
+        let view_menu = Submenu::with_items(
+            handle,
+            "View",
+            true,
+            &[&PredefinedMenuItem::fullscreen(handle, None)?],
+        )?;
+
+        let window_menu = Submenu::with_id_and_items(
+            handle,
+            WINDOW_SUBMENU_ID,
+            "Window",
+            true,
+            &[
+                &PredefinedMenuItem::minimize(handle, None)?,
+                &PredefinedMenuItem::maximize(handle, None)?,
+                &PredefinedMenuItem::separator(handle)?,
+                &PredefinedMenuItem::close_window(handle, None)?,
+            ],
+        )?;
+
+        let help_menu = Submenu::with_id_and_items(handle, HELP_SUBMENU_ID, "Help", true, &[])?;
+
+        Menu::with_items(
+            handle,
+            &[
+                &app_menu,
+                &file_menu,
+                &edit_menu,
+                &view_menu,
+                &window_menu,
+                &help_menu,
+            ],
+        )
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -436,6 +544,34 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            // macOS espera la barra de menú superior del SO (Cmd+Q, Cmd+H,
+            // Editar con Cortar/Copiar/Pegar, etc.) — sin ella la app no se
+            // siente nativa. Windows/Linux ya tienen su propia UI para esto
+            // dentro de la ventana, así que se deja intacto.
+            #[cfg(target_os = "macos")]
+            {
+                let menu = macos_menu::build(app.handle())?;
+                app.handle().set_menu(menu)?;
+            }
+            Ok(())
+        })
+        .on_menu_event(|app, event| {
+            // "Abrir archivo…" del menú File (macOS) reusa el flujo que ya tiene
+            // el frontend para el botón de la toolbar — sólo hace falta avisar
+            // a la ventana enfocada, no reimplementar el diálogo en Rust.
+            if event.id() == "open_file" {
+                let windows = app.webview_windows();
+                let target = windows
+                    .values()
+                    .find(|w| w.is_focused().unwrap_or(false))
+                    .or_else(|| windows.get("main"))
+                    .or_else(|| windows.values().next());
+                if let Some(window) = target {
+                    let _ = window.emit("menu-open-file", ());
+                }
+            }
+        })
         .manage(WatcherState(Mutex::new(None)))
         .manage(OpenedFileState(Mutex::new(None)))
         .manage(OpenDocumentsState(Mutex::new(HashMap::new())))
