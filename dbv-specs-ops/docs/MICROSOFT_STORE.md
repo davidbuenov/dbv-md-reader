@@ -1,7 +1,9 @@
 # 🏬 Publicación en Microsoft Store: dbv-md-reader
 
-> **Estado:** ✅ Publicado — ficha en vivo en [apps.microsoft.com/detail/9n7bmdzgcp0s](https://apps.microsoft.com/detail/9n7bmdzgcp0s) (`9N7BMDZGCP0S`).
-> **Última revisión:** 2026-08-13
+> **Estado:** ✅ Publicado — ficha en vivo en [apps.microsoft.com/detail/9n7bmdzgcp0s](https://apps.microsoft.com/detail/9n7bmdzgcp0s) (`9N7BMDZGCP0S`). **Resubmission `v0.8.0` pendiente de subida manual.**
+> **Última revisión:** 2026-08-16
+
+**Nota (2026-08-16):** `.msixbundle` de `v0.8.0` regenerado en local (`npx @choochmeque/tauri-windows-bundle build --runner npm`, `src-tauri/target/msix/dbv-md-reader_0.8.0.0.msixbundle`) con la identidad real ya configurada — assets verificados sin placeholders (ningún PNG de un solo color, ver incidente §4bis). **Pendiente del usuario, fuera del alcance de Claude Code:** subir ese `.msixbundle` a Partner Center y enviarlo a certificación (checklist §5, pasos 7-9) — la sesión pospuso esta resubmisión desde `v0.7.1` (fix de foco/deduplicación de ventanas) para agruparla con las mejoras de `v0.8.0`.
 
 Documento operativo (no una especificación de producto): checklist accionable para publicar `dbv-md-reader` en la Microsoft Store, y registro de las decisiones técnicas que llevaron hasta aquí. Complementa a `ARCHITECTURE.md` (que documenta el instalador NSIS existente) sin sustituirlo — ambos canales de distribución coexisten.
 
