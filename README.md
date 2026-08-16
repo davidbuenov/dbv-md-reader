@@ -157,6 +157,8 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Imprimir / Exportar a PDF:** `Ctrl + P` abre el diálogo nativo de impresión, con paginación real (A4, sin títulos/tablas/código partidos entre páginas). *Truco (Windows):* si no quieres que el PDF lleve el pie con la URL/hora que añade el propio diálogo (motor Chromium de WebView2), despliega "Más opciones" y desmarca "Encabezados y pies de página" — el navegador recuerda esa preferencia para las siguientes veces. En macOS/Linux el diálogo nativo es distinto (panel de impresión de macOS / GTK en Linux) y no se ha confirmado si añade el mismo pie.
 - **Buscar actualizaciones:** Botón en el panel "Acerca de" — nunca se comprueba al arrancar (arranque instantáneo intacto). Si hay una versión nueva, se puede instalar en un clic sin salir de la app.
 
+> 🧪 **¿Quieres ver todo esto en acción sin buscar tus propios archivos?** Abre cualquiera de los ficheros de [`testfiles/`](testfiles/) (`demo-funcionalidades_es.md` / `demo-funcionalidades_en.md`) — un único documento con resaltado de sintaxis en 8 lenguajes, un diagrama Mermaid, ecuaciones KaTeX y una tabla, pensado para probar o mostrar de un vistazo las funcionalidades del lector.
+
 ---
 
 ## 🧑‍💻 Para desarrolladores
