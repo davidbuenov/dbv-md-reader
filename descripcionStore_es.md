@@ -30,7 +30,7 @@ Sin conexión a internet requerida para funcionar, sin recopilación de datos pe
 
 ## Novedades de esta versión
 
-v0.5.0: instalador con un diseño renovado, ahora disponible también en Microsoft Store, y la app pasa a llamarse DBV Markdown Reader.
+v0.8.0: colores de resaltado de sintaxis reales para más de 24 lenguajes de programación (antes solo se coloreaban JavaScript/CSS/HTML), con colores que ahora se adaptan a cada tema de lectura en vez de usar siempre una paleta oscura fija. La tabla de contenidos resalta la sección que estás leyendo, junto al nombre del documento se muestra el tiempo de lectura estimado y una barra de progreso de scroll, y los bloques de código ahora incluyen números de línea con un botón para ajustar la línea.
 
 ---
 
