@@ -108,6 +108,7 @@ Requiere tener instalados Xcode Command Line Tools (`xcode-select --install`), [
 - [Para desarrolladores](#-para-desarrolladores)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Changelog](#changelog)
+- [Curiosidad: candidato a PowerToys](#-curiosidad-candidato-natural-a-microsoft-powertoys)
 - [Licencia](#licencia)
 - [Autor y Créditos](#autor-y-créditos)
 
@@ -119,9 +120,20 @@ Requiere tener instalados Xcode Command Line Tools (`xcode-select --install`), [
 
 Sustituye la pesadez de visores basados en Electron o IDEs pesados por un ejecutable nativo liviano con protección anti-XSS mediante **DOMPurify** sobre el HTML ya renderizado.
 
-### 📊 Comparativa real de memoria
+### 📊 Rendimiento — medido, no solo afirmado
 
-Los mismos 2 archivos `.md` abiertos a la vez en Visual Studio Code, Notepad++ y `dbv-md-reader` — memoria según el Administrador de Tareas de Windows:
+Benchmark reproducible (7 repeticiones por medición, se descarta la mejor y la peor, se promedia el resto — metodología y datos del equipo de referencia en [`dbv-specs-ops/BENCHMARK_RESULTS.md`](./dbv-specs-ops/BENCHMARK_RESULTS.md), regenerable por cualquiera con `pwsh scripts/benchmark.ps1`):
+
+| Medición | Resultado |
+| --- | --- |
+| Arranque (frío / caliente) | ~20 ms |
+| RAM del proceso propio (memoria privada) | ~7-8 MB |
+| RAM total, incluido el motor WebView2 (memoria privada) | ~215-250 MB |
+| CPU en reposo | 0 % |
+
+*"Memoria privada" excluye las páginas de código que Windows comparte físicamente entre cualquier app que use WebView2 (el motor de renderizado de Microsoft Edge, preinstalado en Windows 11) — a diferencia de Electron, que no comparte nada entre apps. Es la cifra que refleja el coste real y exclusivo de esta app, ni inflada ni recortada a conveniencia.*
+
+Comparativa original (medición puntual con el Administrador de Tareas, previa al benchmark reproducible de arriba) con los mismos 2 archivos `.md` abiertos a la vez:
 
 ![Comparativa de memoria: Visual Studio Code 885,8 MB, Notepad++ 21,5 MB, dbv-md-reader 5,9 MB](docs/assets/screenshots/comparacioneficiencia.png)
 
@@ -148,7 +160,8 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Instancia única:** abrir varios `.md` desde el Explorador de Windows no multiplica procesos — todas las ventanas viven bajo un único proceso (visible en el Administrador de Tareas), cada una con su propio documento, zoom y búsqueda.
 - **Archivos Recientes:** Panel con los últimos documentos abiertos explícitamente, para no tener que volver a buscarlos.
 - **Auto-Reload:** La vista se recarga sola (conservando el scroll) cuando el archivo abierto se edita y guarda desde otra aplicación.
-- **Renderizado Híbrido:** Soporta Markdown estándar, HTML seguro incrustado, imágenes locales y diagramas Mermaid. Botón derecho sobre un diagrama Mermaid → "Abrir en mermaid.live" para inspeccionarlo con zoom libre.
+- **Renderizado Híbrido:** Soporta Markdown estándar, GitHub Flavored Markdown (tablas, ~~tachado~~, listas de tareas `- [ ]`, notas al pie `[^1]`), HTML seguro incrustado, imágenes locales y diagramas Mermaid. Botón derecho sobre un diagrama Mermaid → "Abrir en mermaid.live" para inspeccionarlo con zoom libre.
+- **Always on Top:** botón en la barra superior para fijar la ventana por encima de las demás mientras trabajas — pensado para mantener la documentación visible junto a un editor o IDE.
 - **Resaltado de sintaxis con color real:** ~24 lenguajes soportados (C/C++, Python, Rust, Bash, JSON, YAML, TypeScript, Go, Java, C#, SQL, TOML, PowerShell...), con números de línea y un botón para alternar el ajuste de línea en bloques con líneas muy largas. Los colores se adaptan a cada tema (Claro, Oscuro, Sepia) en vez de usar siempre una paleta oscura fija.
 - **Ecuaciones matemáticas:** Sintaxis LaTeX inline (`$...$`), en bloque (`$$...$$` o ` ```math `) renderizada con KaTeX — fracciones, raíces, sumatorios, subíndices/superíndices y símbolos.
 - **Documentos remotos:** Abre y navega enlaces a `.md` alojados en una URL (`http(s)://`), además de los locales.
@@ -279,6 +292,35 @@ dbv-md-reader/
 ## 📋 Changelog
 
 Consulta [dbv-specs-ops/CHANGELOG.md](./dbv-specs-ops/CHANGELOG.md) para ver el historial de cambios.
+
+---
+
+## 🔷 Curiosidad: candidato natural a Microsoft PowerToys
+
+> Dato anecdótico, no una afirmación de afiliación: **DBV Markdown Reader no forma parte de Microsoft PowerToys ni está respaldado por Microsoft.**
+
+El issue [PowerToys #45267](https://github.com/microsoft/PowerToys/issues/45267) pide un "Markdown Reader" ligero, de solo lectura, con TOC, búsqueda y soporte de Mermaid — como alternativa a abrir un IDE completo solo para leer documentación. Sin buscarlo a propósito, dbv-md-reader ya cumple la mayoría de esos requisitos:
+
+| Requisito de PowerToys #45267 | Estado en dbv-md-reader |
+| --- | --- |
+| Visor persistente y de solo lectura | ✅ |
+| Tabla de Contenidos clicable | ✅ |
+| Sección activa resaltada al hacer scroll | ✅ |
+| Zoom | ✅ |
+| Búsqueda `Ctrl+F` | ✅ |
+| GitHub Flavored Markdown (tablas, tachado, task lists, notas al pie, autolinks, HTML) | ✅ |
+| Diagramas Mermaid | ✅ |
+| Múltiples ventanas independientes | ✅ |
+| Integración con el Explorador de Windows (asociación `.md`, menú contextual) | ✅ |
+| WebView2 | ✅ |
+| Arquitectura ligera (ver [benchmark](#-rendimiento--medido-no-solo-afirmado)) | ✅ |
+| Always on Top | ✅ |
+| Snap Layouts de Windows | ✅ |
+| PowerToys Run | ❌ no implementado |
+| Mica (backdrop translúcido de Windows 11) | ❌ evaluado y aparcado por ahora |
+| WinUI 3 / Markdig | No usado — arquitectura propia (Rust + Tauri v2 + `markdown-it`), no es una limitación funcional |
+
+Las diferencias de arquitectura (Tauri en vez de WinUI 3, `markdown-it` en vez de Markdig) no son carencias — son otra forma válida de resolver el mismo problema, ya con una implementación real y funcionando.
 
 ---
 

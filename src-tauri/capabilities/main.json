@@ -5,6 +5,7 @@
   "windows": ["main", "doc-*"],
   "permissions": [
     "core:default",
+    "core:window:allow-set-always-on-top",
     "dialog:allow-open",
     "shell:allow-open",
     "updater:default",

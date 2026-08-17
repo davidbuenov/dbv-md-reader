@@ -192,6 +192,14 @@ body {
   opacity: 0.35;
   cursor: default;
 }
+.btn-icon.active {
+  background-color: var(--accent);
+  color: #fff;
+}
+.btn-icon.active:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  color: #fff;
+}
 .btn-icon svg { pointer-events: none; }
 
 .btn-icon-sm {
@@ -385,6 +393,8 @@ body {
 
 #content ul, #content ol { margin-bottom: 16px; padding-left: 28px; }
 #content ul { list-style: disc; }
+#content ul ul { list-style: circle; }
+#content ul ul ul { list-style: square; }
 #content ol { list-style: decimal; }
 #content li { margin-bottom: 4px; }
 

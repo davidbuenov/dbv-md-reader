@@ -12,7 +12,7 @@
 - **Author / Company:** David Bueno Vallejo · https://github.com/davidbuenov
 - **License:** MIT
 - **Languages:** Rust, HTML, CSS, JavaScript
-- **Technologies / Stack:** Rust, Tauri v2, Ammonia (Rust Crate), HTML5, Tailwind CSS, JavaScript (Vanilla), markdown-it, mermaid.js, Prism.js
+- **Technologies / Stack:** Rust, Tauri v2, HTML5, Tailwind CSS, JavaScript (Vanilla), markdown-it, DOMPurify, mermaid.js, Prism.js, KaTeX
 - **Agent Readiness (Web):** No
 - **Framework Version:** 2.4.0
 

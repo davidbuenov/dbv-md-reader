@@ -9,7 +9,7 @@
 ## 🎯 1. Contexto y Objetivos
 
 - **Problema:** Los visores actuales de Markdown para Windows suelen estar basados en Electron (pesados, alto consumo de RAM > 200 MB, empaquetan Chromium completo) o requieren abrir un IDE (como VS Code) o navegadores web con extensiones. Falta una utilidad nativa, rápida y ligera dedicada exclusivamente a la **lectura de archivos `.md`** locales y remotos.
-- **Objetivo (Éxito):** Crear una aplicación nativa para Windows (**dbv-md-reader**) enfocada en la lectura fluida de archivos Markdown, con consumo de RAM menor a 64 MB, instalador inferior a 8 MB, renderizado instantáneo (< 200 ms), auto-recarga en vivo y sanitización estricta de HTML mediante Rust (`ammonia`), lista para sustituir al Bloc de Notas de Windows como visor predeterminado para la extensión `.md`.
+- **Objetivo (Éxito):** Crear una aplicación nativa para Windows (**dbv-md-reader**) enfocada en la lectura fluida de archivos Markdown, con consumo de RAM menor a 64 MB, instalador inferior a 8 MB, renderizado instantáneo (< 200 ms), auto-recarga en vivo y sanitización estricta de HTML mediante DOMPurify (JS, ver RF-03), lista para sustituir al Bloc de Notas de Windows como visor predeterminado para la extensión `.md`.
 
 ---
 
@@ -34,7 +34,8 @@
   - **Markdown Estándar:** Soporte para títulos (`#`..`######`), listas, tablas, enlaces, imágenes y bloques de código con resaltado de sintaxis (Prism.js). ✅ Implementado (`markdown-it` + Prism.js).  
     **Cobertura de lenguajes (ampliado 2026-08-16):** el build de Prism.js vendorizado originalmente solo traía las gramáticas `markup`/`css`/`clike`/`javascript` (build "core" por defecto) — cualquier otro lenguaje (C/C++, Python, Rust, Bash, JSON, YAML, TypeScript, Go, Java, C#, SQL, TOML, Diff, Markdown, PowerShell, Docker, INI...) se mostraba sin colorear. Añadidos ~20 componentes más vendorizados manualmente en `src/vendor/` (mismo patrón sin bundler que el resto de librerías), cargados como `<script>` adicionales tras `prism.min.js` en `index.html`.
   - **HTML Integrado:** Las etiquetas HTML válidas dentro del documento se renderizan respetando el diseño web estándar. ✅ Implementado (`html: true` en `markdown-it`) — **sin sanitizar**, ver riesgo en RF-03.
-  - **Diagramas Mermaid:** Los bloques de código identificados con ` ```mermaid ` son procesados e inyectados como gráficos vectoriales (SVG). ✅ Implementado.
+  - **Diagramas Mermaid:** Los bloques de código identificados con ` ```mermaid ` son procesados e inyectados como gráficos vectoriales (SVG). ✅ Implementado.  
+  - **Cobertura GFM (GitHub Flavored Markdown, ampliado 2026-08-17):** `markdown-it` cubre CommonMark + tablas, ~~tachado~~, autolinks y HTML embebido (extensiones GFM incluidas de serie, sin plugins). **Listas de tareas** `- [ ]`/`- [x]` ✅ vía `markdown-it-task-lists` (checkboxes con `disabled=""`, **no interactivos** — coherente con la app de solo lectura, ver Fuera de Alcance). **Notas al pie** `[^1]` ✅ vía `markdown-it-footnote` (referencia numerada + sección de notas al final + retroenlace). Ambos plugins vendorizados en `src/vendor/`, sin CDN. Verificado 2026-08-17 con `testfiles/GFM_test.md` (fichero de pruebas de 57 secciones creado por el usuario).
 - [x] **RF-03: Sanitización de HTML y Seguridad Estricta:**  
   Cualquier etiqueta o atributo HTML peligroso que intente ejecutar scripts (`<script>`, `onclick`, `onload`, `javascript:`, etc.) se elimina antes de insertarse en el DOM del WebView2. Implementado con **DOMPurify** (ver ADR-009 en `memory.md`) sobre el HTML ya renderizado por `markdown-it`, en vez de `ammonia` en Rust sobre el Markdown crudo (que corrompería bloques de código con `<`/`&`). ✅ Verificado 2026-08-09: `<script>` y `onerror` no se ejecutan; un bloque de código con `if (a < b)` se muestra intacto.
 - [x] **RF-04: Experiencia de Lectura Despejada y Navegación:**  
@@ -100,6 +101,12 @@
   - Un `$...$`/`$$...$$` extraído del Markdown crudo antes del parseo (preprocesado, respetando bloques y spans de código) y sustituido por LaTeX renderizado tras el parseo (postprocesado, junto a los diagramas Mermaid) — necesario porque, a diferencia de un bloque ` ```mermaid `, la sintaxis `$...$` es texto normal dentro de un párrafo y las reglas `emphasis`/`typographer` de `markdown-it` podrían corromperla si se dejara pasar sin proteger (mismo tipo de problema de capa que RF-03, ver ADR-009).  
   - Un LaTeX mal formado en el documento del usuario no rompe el resto del render — se muestra el error en rojo in-place (`throwOnError: false`), coherente con la filosofía de solo lectura tolerante a documentos ajenos.  
   - Fuera de alcance: sintaxis alternativa `\(...\)`/`\[...\]` (tampoco la soportan GitHub/Pandoc por defecto).
+- [x] **RF-19: Always on Top (ventana siempre visible):**  
+  - Botón icono (chincheta) en la barra superior, junto a "Imprimir". Un clic activa, otro desactiva — sin menú ni opciones. El icono se resalta y el tooltip cambia (`toolbar.alwaysOnTop` / `toolbar.alwaysOnTopActive` en `src/i18n.js`) para reflejar el estado actual.  
+  - Implementado con la API multiplataforma de Tauri (`getCurrentWindow().setAlwaysOnTop()`), sin comando Rust nuevo — solo requirió añadir el permiso `core:window:allow-set-always-on-top` en `src-tauri/capabilities/main.json` (`core:default` solo trae la lectura `allow-is-always-on-top`, no el mutador).  
+  - **Por ventana, sin persistencia:** cada ventana (`main`, `doc-*`) es independiente en esto igual que ya lo es en zoom/TOC/búsqueda (RF-14) — arranca siempre apagado en cada apertura nueva, no se guarda en `localStorage` (las etiquetas `doc-0`/`doc-1`... no son estables entre relanzamientos, y es una decisión de sesión, no una preferencia duradera).  
+  - Sin atajo de teclado (solo el botón), para no colisionar con los atajos ya existentes ni con el módulo homónimo de PowerToys (`Win+Ctrl+T`) si el usuario lo tiene instalado.  
+  - ✅ Verificado 2026-08-17 en Windows: `WS_EX_TOPMOST` se activa/desactiva correctamente con cada clic (comprobado vía Win32, no solo visualmente), el botón/tooltip reflejan el estado, y una segunda ventana (`doc-*`) abierta con la primera ya fijada arranca sin heredar ese estado. **Multiplataforma por diseño** (la API de Tauri ya abstrae Windows/macOS/Linux, sin código condicional), pero macOS y Linux —especialmente Wayland, donde algunos compositores restringen que una app se autofije "siempre encima"— no se han podido probar en esta sesión (solo hay acceso a Windows); riesgo aceptado, ver `task.md`.
 
 ---
 
@@ -140,7 +147,7 @@
 ## ⚠️ 7. Riesgos y Mitigación
 
 - **Riesgo:** Inyección de código malicioso XSS mediante HTML embebido en archivos Markdown no confiables (locales o remotos).  
-  - **Mitigación:** Sanitización estricta en el backend de Rust con `ammonia` previa a cualquier renderizado en el WebView.  
+  - **Mitigación:** Sanitización estricta con DOMPurify (JS) sobre el HTML ya renderizado por `markdown-it`, antes de insertarlo en el DOM del WebView (ver RF-03 y ADR-009 en `memory.md`).  
 - **Riesgo:** Bloqueo de WebView2 al intentar cargar archivos locales mediante `file://`.  
   - **Mitigación:** Uso del protocolo `asset://` de Tauri para la resolución de imágenes y documentos `.md` locales relativos.  
 
