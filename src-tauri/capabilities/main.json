@@ -9,6 +9,7 @@
     "dialog:allow-open",
     "shell:allow-open",
     "updater:default",
-    "process:allow-restart"
+    "process:allow-restart",
+    "core:webview:allow-print"
   ]
 }
