@@ -1,5 +1,7 @@
 # DBV Markdown Reader
 
+**🇪🇸 Español · [🇬🇧 English](./README.en.md)**
+
 [![Release](https://img.shields.io/github/v/release/davidbuenov/dbv-md-reader?display_name=tag&sort=semver)](https://github.com/davidbuenov/dbv-md-reader/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-disponible-0078D4?logo=microsoft&logoColor=white)](https://apps.microsoft.com/detail/9n7bmdzgcp0s)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
@@ -17,9 +19,24 @@
 
 **[🌐 Ver la web del proyecto](https://davidbuenov.github.io/dbv-md-reader/)**
 
-<a href="https://www.producthunt.com/products/dbv-markdown-reader?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-dbv-markdown-reader" target="_blank" rel="noopener noreferrer"><img alt="DBV Markdown Reader - Ultra-fast, native Markdown reader for Windows, Linux &amp; Mac | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1223973&amp;theme=light&amp;t=1786861415426"></a>
-
 ![Demo animada de dbv-md-reader: resaltado de sintaxis con color real, cambio entre temas Claro/Oscuro/Sepia y navegación por la Tabla de Contenidos](docs/assets/screenshots/demo_v_0_8.gif)
+
+---
+
+## 📑 Índice
+
+- [Descárgalo e instálalo](#-descárgalo-e-instálalo)
+- [Linux](#-linux)
+- [macOS](#-macos)
+- [Sobre el proyecto](#sobre-el-proyecto)
+- [Características Principales](#características-principales)
+- [Para desarrolladores](#-para-desarrolladores)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Changelog](#changelog)
+- [Contribuir](#-contribuir)
+- [Curiosidad: candidato a PowerToys](#-curiosidad-candidato-natural-a-microsoft-powertoys)
+- [Licencia](#licencia)
+- [Autor y Créditos](#autor-y-créditos)
 
 ---
 
@@ -95,23 +112,6 @@ npm run tauri build
 El `.app` resultante queda en `src-tauri/target/release/bundle/macos/`, tampoco firmado — mismo aviso de Gatekeeper y mismo remedio que arriba (`xattr -cr "src-tauri/target/release/bundle/macos/DBV Markdown Reader.app"`).
 
 Requiere tener instalados Xcode Command Line Tools (`xcode-select --install`), [Rust](https://rustup.rs/) y Node.js 18+ — ver la sección [Para desarrolladores](#-para-desarrolladores) más abajo para el detalle común a las tres plataformas.
-
----
-
-## 📑 Índice
-
-- [Descárgalo e instálalo](#-descárgalo-e-instálalo)
-- [Linux](#-linux)
-- [macOS](#-macos)
-- [Sobre el proyecto](#sobre-el-proyecto)
-- [Características Principales](#características-principales)
-- [Para desarrolladores](#-para-desarrolladores)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Changelog](#changelog)
-- [Contribuir](#-contribuir)
-- [Curiosidad: candidato a PowerToys](#-curiosidad-candidato-natural-a-microsoft-powertoys)
-- [Licencia](#licencia)
-- [Autor y Créditos](#autor-y-créditos)
 
 ---
 
