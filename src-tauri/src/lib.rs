@@ -1,5 +1,5 @@
 // =============================================================================
-// dbv-md-reader — Lector nativo de Markdown (.md) de solo lectura para Windows
+// dbv-md-reader — Lector y editor nativo de Markdown (.md) para Windows, Linux y macOS
 // Copyright (c) 2026 David Bueno Vallejo
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
@@ -273,6 +273,17 @@ pub mod commands {
             dir_path,
             file_name,
         })
+    }
+
+    /// Writes `content` to a local Markdown file (RF-20). Rejects remote documents (RF-08A) —
+    /// there's no local path to write to, and silently trying to write over a URL would be a
+    /// bug, not a feature (see the Adversarial Architect Review in memory.md ADR-027).
+    #[tauri::command]
+    pub fn write_file(path: String, content: String) -> Result<(), String> {
+        if is_remote(&path) {
+            return Err(format!("No se puede guardar un documento remoto: {}", path));
+        }
+        fs::write(&path, content).map_err(|e| format!("Error al guardar '{}': {}", path, e))
     }
 
     /// Opens a native OS file picker dialog and returns the selected path
@@ -586,6 +597,7 @@ pub fn run() {
             commands::get_app_version,
             commands::is_packaged_app,
             commands::read_file,
+            commands::write_file,
             commands::open_file_dialog,
             commands::resolve_relative_path,
             commands::watch_file,
@@ -765,6 +777,26 @@ mod tests {
     fn canonical_path_str_falls_back_to_input_for_missing_file() {
         let missing = "C:\\definitely\\not\\a\\real\\path\\gone.md";
         assert_eq!(canonical_path_str(missing), missing);
+    }
+
+    // ── write_file (RF-20) ─────────────────────────────────────────────────
+
+    #[test]
+    fn write_file_rejects_remote_path() {
+        let result = commands::write_file("https://example.com/doc.md".to_string(), "# hi".to_string());
+        assert!(result.is_err(), "writing to a remote URL must be rejected, not attempted");
+    }
+
+    #[test]
+    fn write_file_writes_local_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("doc.md");
+        let path_str = path.to_string_lossy().to_string();
+
+        let result = commands::write_file(path_str, "# hello".to_string());
+
+        assert!(result.is_ok(), "{:?}", result);
+        assert_eq!(fs::read_to_string(&path).unwrap(), "# hello");
     }
 
     // ── read_file remote (RF-08A) — requires network, run with `cargo test -- --ignored` ──

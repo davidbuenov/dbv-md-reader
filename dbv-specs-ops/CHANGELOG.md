@@ -5,6 +5,31 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.11.0] - 2026-08-18
+
+### Añadido
+- **RF-20 — Modo Edición (Ctrl+E)**: panel dividido con el Markdown en crudo (`<textarea>` plano, sin librería de editor de código) a la izquierda y la vista renderizada a la derecha, reutilizando el mismo pipeline de `renderMarkdown()` (RF-02/RF-03) con debounce (~400 ms). Números de línea sincronizados con el scroll. Guardado con `Ctrl+S`/botón "Guardar" mediante un nuevo comando Rust `write_file`. **Vista Dividida en Vivo / Modo Espejo**: mientras no haya cambios sin guardar, la auto-recarga por cambios externos (RF-06) refresca también el panel de código, no solo la preview — permite usar la app como visor en vivo de lo que se edita en otra herramienta.
+- **Paneles redimensionables por arrastre**: divisor entre el panel de código y la preview, y otro para la Tabla de Contenidos — tamaño persistido entre sesiones.
+- **Sincronización de scroll editor↔preview↔TOC**: al desplazarte en cualquiera de los tres, los otros dos siguen la misma posición del documento (interpolación por encabezados, no un simple porcentaje).
+- **RF-21 — Gestión de Conflictos entre Edición Local y Cambios Externos**: sin cambios sin guardar, recarga silenciosa (comportamiento ya existente de RF-06); con cambios sin guardar, un modal bloqueante la primera vez ("Conservar mis cambios" / "Recargar desde disco") y, tras esa elección, una franja persistente con la opción de recargar siempre disponible en vez de repetir el modal. El propio guardado no dispara ni el modal ni la franja contra su propio archivo (ventana de supresión de ~800 ms).
+- **Indicador "Solo lectura" para documentos remotos**: los documentos abiertos por URL (RF-08A) no admiten guardado — el Modo Edición se deshabilita y una etiqueta junto al nombre del documento lo indica explícitamente, en el idioma activo (ES/EN).
+- **RF-22 — Ayuda de sintaxis Markdown**: botón "?" que abre una chuleta de referencia completa (Markdown + GFM) en el idioma activo de la interfaz, con el mismo pipeline de render que el documento principal (enlaces, Mermaid y KaTeX incluidos).
+- Inspiración de diseño acreditada a [READU.md](https://github.com/breezy89757/READU.md) en `README.md` — implementación propia y distinta, ver ADR-027 en `memory.md`.
+- **Comparativa de rendimiento v0.10.0 → v0.11.0**: benchmark reproducible ejecutado antes/después de añadir el Modo Edición — sin coste medible (tamaño +0,06 %, RAM y arranque dentro del ruido de medición). Detalle en `BENCHMARK_RESULTS.md`, ilustrado en `README.md`/`README.en.md` y la landing page.
+
+### Cambiado
+- El botón del Modo Edición se movió junto al de Tabla de Contenidos en la barra superior, agrupando visualmente los dos paneles abribles/cerrables de la app.
+- El proyecto pasa de "lector de solo lectura" a "lector y editor" — actualizada la descripción en `README.md`/`README.en.md`, cabeceras de fichero, panel "Acerca de" y fichas de tienda.
+
+### Corregido
+- **Enlaces de ancla internos rotos (`[Texto](#seccion)`)**: los encabezados nunca recibían un `id` con el slug real (estilo GitHub: minúsculas, sin puntuación, espacios→guiones) — se les asignaba uno sintético (`h-0`, `h-1`...) sin relación con el texto. Cualquier documento con una tabla de contenidos escrita a mano (patrón muy común en READMEs, incluida la propia chuleta de RF-22) tenía esos enlaces rotos. Afectaba también a los enlaces de ancla entre documentos distintos (RF-08A).
+- **Error de Mermaid con icono enorme y sin detalle**: un diagrama con error de sintaxis mostraba el SVG de error por defecto de Mermaid.js (icono de bomba grande, solo "Syntax error in text"). Ahora se muestra un aviso compacto con el mensaje real del parser (línea exacta y token esperado incluidos).
+- **No había forma visible de guardar en el Modo Edición**: el guardado solo existía como atajo de teclado (`Ctrl+S`), sin ningún botón. Añadido un botón "Guardar" junto al de Modo Edición.
+- **La Ayuda de sintaxis Markdown (RF-22) usaba un renderizador distinto y más pobre**: sin ids de encabezado (enlaces internos rotos), sin Mermaid ni KaTeX. Ahora reutiliza exactamente el mismo pipeline de render que el documento principal.
+- **Navegación por clic (TOC, enlaces, búsqueda) desalineada una línea en Modo Edición**: `scrollIntoView()` desplazaba de más un contenedor ambiguo; sustituido por un cálculo explícito del contenedor scrollable real.
+
+---
+
 ## [0.10.0] - 2026-08-18
 
 ### Añadido

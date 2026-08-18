@@ -15,7 +15,7 @@
 [![Last Update](https://img.shields.io/github/last-commit/davidbuenov/dbv-md-reader?label=last%20update)](https://github.com/davidbuenov/dbv-md-reader/commits/master)
 [![Framework](https://img.shields.io/badge/framework-dbv--specs--ops-111827?logo=github&logoColor=white)](https://github.com/davidbuenov/dbv-specs-ops)
 
-> Lector nativo de Markdown (`.md`) de solo lectura ultra-ligero, seguro y veloz para Windows basado en Rust y Tauri v2.
+> Lector y editor nativo de Markdown (`.md`) ultra-ligero, seguro y veloz para Windows, Linux y macOS basado en Rust y Tauri v2.
 
 **[🌐 Ver la web del proyecto](https://davidbuenov.github.io/dbv-md-reader/)**
 
@@ -117,7 +117,7 @@ Requiere tener instalados Xcode Command Line Tools (`xcode-select --install`), [
 
 ## 📌 Sobre el proyecto
 
-**DBV Markdown Reader** es una aplicación nativa diseñada exclusivamente para la **lectura de archivos Markdown (`.md`)** — con Release oficial para Windows y Linux, y compilación local para macOS. Ofrece una apertura instantánea (< 200 ms), un ejecutable ligero (< 20 MB) y un consumo de memoria RAM inferior a 64 MB.
+**DBV Markdown Reader** es una aplicación nativa para **leer y editar archivos Markdown (`.md`)** — con Release oficial para Windows y Linux, y compilación local para macOS. Ofrece una apertura instantánea (< 200 ms), un ejecutable ligero (< 20 MB) y un consumo de memoria RAM inferior a 64 MB, tanto en modo lectura como en el Modo Edición (ver [comparativa de coste real](#-rendimiento--medido-no-solo-afirmado) más abajo).
 
 Sustituye la pesadez de visores basados en Electron o IDEs pesados por un ejecutable nativo liviano con protección anti-XSS mediante **DOMPurify** sobre el HTML ya renderizado.
 
@@ -133,6 +133,21 @@ Benchmark reproducible (7 repeticiones por medición, se descarta la mejor y la 
 | CPU en reposo | 0 % |
 
 *"Memoria privada" excluye las páginas de código que Windows comparte físicamente entre cualquier app que use WebView2 (el motor de renderizado de Microsoft Edge, preinstalado en Windows 11) — a diferencia de Electron, que no comparte nada entre apps. Es la cifra que refleja el coste real y exclusivo de esta app, ni inflada ni recortada a conveniencia.*
+
+#### ¿Cuánto cuesta el Modo Edición? — mismo benchmark, antes y después
+
+La duda razonable con cualquier editor integrado es si va a engordar la app. Se ejecutó el mismo benchmark reproducible contra el `.exe` de la versión justo anterior a añadir el Modo Edición (`v0.10.0`, de solo lectura) y contra esta versión (`v0.11.0`, con panel dividido, números de línea, paneles redimensionables, sincronización de scroll y gestión de conflictos):
+
+| Medición | v0.10.0 (solo lectura) | v0.11.0 (+ Modo Edición) | Diferencia |
+| --- | --- | --- | --- |
+| Tamaño del ejecutable | 16,35 MB | 16,36 MB | +0,01 MB (+0,06 %) |
+| Arranque en frío | 36 ms | 32 ms | −4 ms |
+| Arranque en caliente | 31 ms | 26 ms | −5 ms |
+| RAM privada del proceso propio (doc. pequeño) | 7,5 MB | 7,2 MB | −0,3 MB |
+| RAM privada del proceso propio (doc. grande) | 7,7 MB | 7,9 MB | +0,2 MB |
+| CPU en reposo | 0 % | 0 % | sin cambio |
+
+Las diferencias están dentro del ruido normal de medición entre ejecuciones (ninguna supera unas décimas de MB o unos pocos ms) — no hay coste medible. La razón es de diseño, no casualidad: el editor reutiliza el mismo `<textarea>` plano y el mismo motor de renderizado (`markdown-it` + DOMPurify + Prism/Mermaid/KaTeX) que ya usaba el modo lectura, en vez de incorporar una librería de editor de código tipo CodeMirror o Monaco — la misma decisión que ya resuelve así [READU.md](https://github.com/breezy89757/READU.md), la app que inspiró este enfoque (ver créditos más abajo).
 
 Comparativa original (medición puntual con el Administrador de Tareas, previa al benchmark reproducible de arriba) con los mismos 2 archivos `.md` abiertos a la vez:
 
@@ -157,6 +172,7 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 
 ## ✨ Características Principales
 
+- **Modo Edición:** panel dividido con el Markdown en crudo a la izquierda (con números de línea) y la vista renderizada a la derecha, sincronizados por línea al hacer scroll en cualquiera de los dos — sin librería de editor de código, así que no penaliza el tamaño ni la RAM. Bordes arrastrables para redimensionar. Gestión de conflictos si el archivo cambia desde fuera mientras editas (igual que el Bloc de notas de Windows: silencioso si no tienes cambios propios, un aviso solo la primera vez si sí los tienes). Incluye una chuleta de sintaxis Markdown integrada (botón "?").
 - **Apertura CLI / Doble Clic:** Abre directamente cualquier archivo `.md` desde la línea de comandos o asociándolo en *"Abrir con..."* (ej. `dbv-md-reader.exe C:\notas\readme.md`).
 - **Instancia única:** abrir varios `.md` desde el Explorador de Windows no multiplica procesos — todas las ventanas viven bajo un único proceso (visible en el Administrador de Tareas), cada una con su propio documento, zoom y búsqueda.
 - **Archivos Recientes:** Panel con los últimos documentos abiertos explícitamente, para no tener que volver a buscarlos.
@@ -356,6 +372,10 @@ Gracias a quienes han colaborado probando la aplicación, encontrando errores y 
 - José M. Alarcón Aguín
 - Victor Estival
 - Julio Lorca
+
+### 💡 Inspiración
+
+El modo de edición ligera (v0.11.0, RF-20/RF-21) se inspira en el enfoque minimalista del modo edición de [**READU.md**](https://github.com/breezy89757/READU.md) (WinUI 3, código abierto) — un `<textarea>` plano reutilizando el pipeline de renderizado ya existente en vez de un componente de editor de código completo. La implementación de `dbv-md-reader` es propia y completamente distinta (stack Rust/Tauri/JS, gestión de conflictos con archivo externo), pero el crédito de la idea original corresponde a su autor.
 
 ### 🤖 Construido con IA
 

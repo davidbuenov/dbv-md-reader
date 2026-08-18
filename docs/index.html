@@ -107,6 +107,17 @@
           <img src="assets/screenshots/comparacioneficiencia.png" alt="Comparativa de memoria en el Administrador de Tareas: Visual Studio Code 885,8 MB, Notepad++ 21,5 MB, dbv-md-reader 5,9 MB, con los mismos 2 archivos abiertos" />
           <p class="comparison-caption">Los mismos 2 archivos <code>.md</code> abiertos a la vez — memoria según el Administrador de Tareas de Windows. Ni Notepad++, la referencia histórica de ligereza, se acerca.</p>
         </div>
+
+        <p style="margin-top: 2.5rem;">
+          <strong>¿Y el Modo Edición añadido en v0.11.0?</strong> Mismo benchmark reproducible, antes y después de incorporarlo: sin librería de editor de código (reutiliza el mismo renderizador del modo lectura), el coste medido es prácticamente cero.
+        </p>
+        <div class="stats-inner" style="margin-top: 1rem;">
+          <div class="stat"><span class="stat-num">+0,01&nbsp;MB</span><span class="stat-label">Tamaño del instalador</span></div>
+          <div class="stat"><span class="stat-num">−0,3&nbsp;MB</span><span class="stat-label">RAM privada (proceso propio)</span></div>
+          <div class="stat"><span class="stat-num">±5&nbsp;ms</span><span class="stat-label">Arranque (ruido de medición)</span></div>
+          <div class="stat"><span class="stat-num">0&nbsp;%</span><span class="stat-label">CPU en reposo, sin cambio</span></div>
+        </div>
+        <p class="comparison-caption">Detalle completo y metodología en el <a href="https://github.com/davidbuenov/dbv-md-reader/blob/master/dbv-specs-ops/BENCHMARK_RESULTS.md" target="_blank" rel="noopener">benchmark del repositorio</a>.</p>
       </div>
     </section>
 
@@ -115,6 +126,12 @@
       <div class="features-inner">
         <h2>Todo lo que necesitas para leer Markdown, nada de lo que no</h2>
         <div class="feature-grid">
+
+          <article class="feature-card">
+            <div class="feature-icon">✏️</div>
+            <h3>Modo Edición <span style="font-weight:400;">(nuevo en v0.11.0)</span></h3>
+            <p>Panel dividido código/preview sincronizado por línea, números de línea, paneles redimensionables y gestión de conflictos — sin coste medible frente al modo lectura.</p>
+          </article>
 
           <article class="feature-card">
             <div class="feature-icon">🗂️</div>

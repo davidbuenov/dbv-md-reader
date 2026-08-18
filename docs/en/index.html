@@ -107,6 +107,17 @@
           <img src="../assets/screenshots/comparacioneficiencia.png" alt="Memory comparison in Windows Task Manager: Visual Studio Code 885.8 MB, Notepad++ 21.5 MB, dbv-md-reader 5.9 MB, with the same 2 files open" />
           <p class="comparison-caption">The same 2 <code>.md</code> files open at once — memory usage according to Windows Task Manager. Not even Notepad++, the historical reference for lightness, comes close.</p>
         </div>
+
+        <p style="margin-top: 2.5rem;">
+          <strong>What about the Edit Mode added in v0.11.0?</strong> Same reproducible benchmark, before and after adding it: no code-editor library (it reuses the same renderer as reading mode), the measured cost is effectively zero.
+        </p>
+        <div class="stats-inner" style="margin-top: 1rem;">
+          <div class="stat"><span class="stat-num">+0.01&nbsp;MB</span><span class="stat-label">Installer size</span></div>
+          <div class="stat"><span class="stat-num">−0.3&nbsp;MB</span><span class="stat-label">Private RAM (own process)</span></div>
+          <div class="stat"><span class="stat-num">±5&nbsp;ms</span><span class="stat-label">Startup (measurement noise)</span></div>
+          <div class="stat"><span class="stat-num">0%</span><span class="stat-label">CPU at idle, unchanged</span></div>
+        </div>
+        <p class="comparison-caption">Full detail and methodology in the <a href="https://github.com/davidbuenov/dbv-md-reader/blob/master/dbv-specs-ops/BENCHMARK_RESULTS.md" target="_blank" rel="noopener">repository benchmark</a>.</p>
       </div>
     </section>
 
@@ -115,6 +126,12 @@
       <div class="features-inner">
         <h2>Everything you need to read Markdown, nothing you don't</h2>
         <div class="feature-grid">
+
+          <article class="feature-card">
+            <div class="feature-icon">✏️</div>
+            <h3>Edit Mode <span style="font-weight:400;">(new in v0.11.0)</span></h3>
+            <p>Split code/preview pane synced by line, line numbers, resizable panels, and conflict handling — with no measurable cost over reading mode.</p>
+          </article>
 
           <article class="feature-card">
             <div class="feature-icon">🗂️</div>

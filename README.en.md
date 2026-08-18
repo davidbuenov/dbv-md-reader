@@ -15,7 +15,7 @@
 [![Last Update](https://img.shields.io/github/last-commit/davidbuenov/dbv-md-reader?label=last%20update)](https://github.com/davidbuenov/dbv-md-reader/commits/master)
 [![Framework](https://img.shields.io/badge/framework-dbv--specs--ops-111827?logo=github&logoColor=white)](https://github.com/davidbuenov/dbv-specs-ops)
 
-> Native, read-only Markdown (`.md`) reader — ultra-lightweight, secure and fast for Windows, built with Rust and Tauri v2.
+> Native Markdown (`.md`) reader and editor — ultra-lightweight, secure and fast for Windows, Linux and macOS, built with Rust and Tauri v2.
 
 **[🌐 View the project website](https://davidbuenov.github.io/dbv-md-reader/en/)**
 
@@ -117,7 +117,7 @@ Requires Xcode Command Line Tools (`xcode-select --install`), [Rust](https://rus
 
 ## 📌 About the project
 
-**DBV Markdown Reader** is a native app built exclusively for **reading Markdown (`.md`) files** — with official Releases for Windows and Linux, and a local build for macOS. It offers instant launch (< 200 ms), a lightweight executable (< 20 MB), and RAM usage under 64 MB.
+**DBV Markdown Reader** is a native app for **reading and editing Markdown (`.md`) files** — with official Releases for Windows and Linux, and a local build for macOS. It offers instant launch (< 200 ms), a lightweight executable (< 20 MB), and RAM usage under 64 MB, in both reading and Edit Mode (see [the real cost breakdown](#-performance--measured-not-just-claimed) below).
 
 It replaces the weight of Electron-based viewers or heavy IDEs with a lightweight native executable that sanitizes rendered HTML against XSS attacks via **DOMPurify**.
 
@@ -133,6 +133,21 @@ Reproducible benchmark (7 runs per measurement, best and worst discarded, the re
 | CPU at idle | 0% |
 
 *"Private memory" excludes code pages that Windows physically shares between any app using WebView2 (Microsoft Edge's rendering engine, preinstalled on Windows 11) — unlike Electron, which shares nothing between apps. This is the figure that reflects this app's real, exclusive cost — neither inflated nor trimmed for convenience.*
+
+#### How much does Edit Mode cost? — same benchmark, before and after
+
+A fair question for any built-in editor is whether it bloats the app. The same reproducible benchmark was run against the `.exe` from the version right before Edit Mode was added (`v0.10.0`, read-only) and against this version (`v0.11.0`, with a split pane, line numbers, resizable panels, scroll sync, and conflict handling):
+
+| Measurement | v0.10.0 (read-only) | v0.11.0 (+ Edit Mode) | Difference |
+| --- | --- | --- | --- |
+| Executable size | 16.35 MB | 16.36 MB | +0.01 MB (+0.06%) |
+| Cold startup | 36 ms | 32 ms | −4 ms |
+| Warm startup | 31 ms | 26 ms | −5 ms |
+| Own process private RAM (small doc) | 7.5 MB | 7.2 MB | −0.3 MB |
+| Own process private RAM (large doc) | 7.7 MB | 7.9 MB | +0.2 MB |
+| CPU at idle | 0% | 0% | no change |
+
+The differences fall within normal run-to-run measurement noise (none exceed a few tenths of a MB or a few ms) — there is no measurable cost. That's by design, not luck: the editor reuses the same plain `<textarea>` and the same rendering engine (`markdown-it` + DOMPurify + Prism/Mermaid/KaTeX) the reading mode already used, instead of pulling in a code-editor library like CodeMirror or Monaco — the same approach [READU.md](https://github.com/breezy89757/READU.md) already takes, the app that inspired it (see credits below).
 
 Original comparison (a one-off measurement with Task Manager, prior to the reproducible benchmark above) with the same 2 `.md` files open at once:
 
@@ -157,6 +172,7 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 
 ## ✨ Key Features
 
+- **Edit Mode:** split pane with raw Markdown on the left (with line numbers) and the rendered view on the right, scroll-synced by line in either direction — no code-editor library, so it costs nothing in size or RAM. Draggable resize handles. Conflict handling if the file changes externally while you're editing (same model as Windows Notepad: silent if you have no unsaved changes, a one-time prompt if you do). Includes a built-in Markdown syntax cheat sheet ("?" button).
 - **CLI / double-click opening:** Open any `.md` file directly from the command line or by associating it via *"Open with..."* (e.g. `dbv-md-reader.exe C:\notes\readme.md`).
 - **Single instance:** opening several `.md` files from Windows Explorer doesn't spawn multiple processes — every window lives under a single process (visible in Task Manager), each with its own document, zoom and search.
 - **Recent Files:** panel with the last documents you explicitly opened, so you don't have to hunt for them again.

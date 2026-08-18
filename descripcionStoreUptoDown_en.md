@@ -24,7 +24,7 @@ Lightweight, local Markdown reader for Windows, Mac and Linux. No ads
 ## Full body text description
 *(min. 50 words)*
 
-DBV Markdown Reader is a native, read-only Markdown (.md) file reader: lightweight, fast, and 100% local — no accounts, no ads, no telemetry. Open any .md document instantly (under 200 ms), with no code editor or heavyweight IDE required. It uses just a few megabytes of memory — literally hundreds of times less than Electron-based alternatives.
+DBV Markdown Reader is a native Markdown (.md) file reader and editor: lightweight, fast, and 100% local — no accounts, no ads, no telemetry. Open any .md document instantly (under 200 ms), with no code editor or heavyweight IDE required. It uses just a few megabytes of memory — literally hundreds of times less than Electron-based alternatives.
 
 **Available for Windows, macOS, and Linux:**
 • **Windows 10/11:** Microsoft Store (recommended, with auto-update) or the `.exe` installer from GitHub Releases.

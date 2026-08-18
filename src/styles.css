@@ -153,6 +153,21 @@ body {
   flex-shrink: 0;
 }
 
+/* Documento remoto sin guardado posible (RF-08A/RF-20) */
+#doc-readonly-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ─── Barra de progreso de lectura (borde inferior de la cabecera) ─────────── */
 #reading-progress {
   position: absolute;
@@ -300,6 +315,103 @@ body {
   border-radius: 4px;
 }
 
+/* ─── Modo Edición (RF-20): panel dividido código fuente + vista previa ─────── */
+#reader-container.edit-mode {
+  overflow: hidden; /* el código y la preview escrolean cada uno por su lado */
+  align-items: stretch;
+  gap: 16px;
+}
+#reader-container.edit-mode #content {
+  max-width: none;
+  /* --editor-split (fracción 0-100%, fijada por applyEditorSplit() en app.js)
+     vive en esta misma regla con ámbito .edit-mode — así no hace falta
+     limpiar ningún estilo inline al salir del Modo Edición: en modo lectura
+     esta regla no aplica y el valor de la variable, aunque quede fijado en
+     el elemento, no tiene ningún efecto. */
+  flex: 0 0 var(--editor-split, 50%);
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+/* ─── Divisores arrastrables (panel de edición y TOC) ────────────────────────
+   Franja fina con un "hit-area" invisible más ancho (::before) para que el
+   arrastre no exija precisión de 6px exactos. */
+.resizer {
+  flex-shrink: 0;
+  width: 6px;
+  position: relative;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.15s;
+}
+.resizer::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -4px; right: -4px;
+}
+.resizer:hover, .resizer.resizing { background-color: var(--accent); }
+
+#editor-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--code-bg);
+}
+#editor-pane:focus-within { border-color: var(--accent); }
+
+#editor-line-numbers {
+  flex-shrink: 0;
+  min-width: 34px;
+  padding: 16px 10px 16px 0;
+  text-align: right;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+  user-select: none;
+  overflow: hidden; /* el scroll lo sincroniza JS con el textarea, no es interactivo */
+  border-right: 1px solid var(--border);
+}
+
+#editor-textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  border: none;
+  background-color: var(--code-bg);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 16px;
+  outline: none;
+  white-space: pre;
+  overflow: auto;
+}
+
+/* ─── Gestión de conflictos con cambios externos (RF-21) ────────────────────── */
+#conflict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+#conflict-banner .btn-link { margin-top: 0; }
+
+#conflict-modal { z-index: 300; }
+#conflict-card { padding: 28px 32px; max-width: 380px; text-align: center; }
+#conflict-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+#conflict-card p { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+.conflict-actions { display: flex; gap: 10px; justify-content: center; }
+
 /* ─── Estado vacío ────────────────────────────────────────────────────────── */
 #empty-state {
   display: flex;
@@ -362,43 +474,44 @@ body {
   color: var(--text-muted);
 }
 
-/* ─── Contenido Markdown ──────────────────────────────────────────────────── */
-#content {
-  width: 100%;
-  max-width: 1100px;
-  color: var(--text-primary);
-  line-height: 1.75;
-}
+/* ─── Contenido Markdown ─────────────────────────────────────────────────────
+   .markdown-body: estilos de prosa compartidos por CUALQUIER contenido
+   renderizado con renderMarkdown() — el documento principal (#content) y el
+   modal de Ayuda de sintaxis (#help-content, RF-22) son el mismo pipeline de
+   render (parseo + sanitizado + Prism/Mermaid/KaTeX), así que comparten la
+   misma hoja de estilos en vez de mantener dos copias que puedan divergir. */
+#content { width: 100%; max-width: 1100px; }
+.markdown-body { color: var(--text-primary); line-height: 1.75; }
 
 /* Elementos de prosa: ancho de lectura cómodo (~800px, como GitHub), centrados
    dentro del contenedor más ancho. Los bloques "anchos" (código, tablas, Mermaid)
-   no llevan este límite y aprovechan hasta los 1100px de #content. */
-#content h1, #content h2, #content h3, #content h4, #content h5, #content h6,
-#content p, #content ul, #content ol, #content blockquote {
+   no llevan este límite. */
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6,
+.markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body blockquote {
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
 }
 
-#content h1 { font-size: 2rem; font-weight: 700; margin-bottom: 16px; margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-#content h2 { font-size: 1.5rem; font-weight: 700; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-#content h3 { font-size: 1.25rem; font-weight: 600; margin-top: 24px; margin-bottom: 10px; }
-#content h4 { font-size: 1.05rem; font-weight: 600; margin-top: 20px; margin-bottom: 8px; }
-#content h5, #content h6 { font-size: 0.95rem; font-weight: 600; margin-top: 16px; margin-bottom: 8px; }
+.markdown-body h1 { font-size: 2rem; font-weight: 700; margin-bottom: 16px; margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.markdown-body h2 { font-size: 1.5rem; font-weight: 700; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.markdown-body h3 { font-size: 1.25rem; font-weight: 600; margin-top: 24px; margin-bottom: 10px; }
+.markdown-body h4 { font-size: 1.05rem; font-weight: 600; margin-top: 20px; margin-bottom: 8px; }
+.markdown-body h5, .markdown-body h6 { font-size: 0.95rem; font-weight: 600; margin-top: 16px; margin-bottom: 8px; }
 
-#content p { margin-bottom: 16px; }
+.markdown-body p { margin-bottom: 16px; }
 
-#content a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
-#content a:hover { color: var(--accent-hover); }
+.markdown-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.markdown-body a:hover { color: var(--accent-hover); }
 
-#content ul, #content ol { margin-bottom: 16px; padding-left: 28px; }
-#content ul { list-style: disc; }
-#content ul ul { list-style: circle; }
-#content ul ul ul { list-style: square; }
-#content ol { list-style: decimal; }
-#content li { margin-bottom: 4px; }
+.markdown-body ul, .markdown-body ol { margin-bottom: 16px; padding-left: 28px; }
+.markdown-body ul { list-style: disc; }
+.markdown-body ul ul { list-style: circle; }
+.markdown-body ul ul ul { list-style: square; }
+.markdown-body ol { list-style: decimal; }
+.markdown-body li { margin-bottom: 4px; }
 
-#content blockquote {
+.markdown-body blockquote {
   margin-bottom: 16px;
   margin-top: 16px;
   padding: 12px 16px;
@@ -408,16 +521,16 @@ body {
   color: var(--text-secondary);
 }
 
-#content table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-#content th, #content td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
-#content th { background-color: var(--bg-secondary); font-weight: 600; }
+.markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.markdown-body th, .markdown-body td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
+.markdown-body th { background-color: var(--bg-secondary); font-weight: 600; }
 
-#content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
-#content img { max-width: 100%; border-radius: 8px; margin: 16px 0; display: block; }
+.markdown-body img { max-width: 100%; border-radius: 8px; margin: 16px 0; display: block; }
 
 /* ─── Código ──────────────────────────────────────────────────────────────── */
-#content code {
+.markdown-body code {
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   font-size: 0.85em;
   padding: 2px 6px;
@@ -426,7 +539,7 @@ body {
   border-radius: 4px;
 }
 
-#content pre {
+.markdown-body pre {
   position: relative;
   margin-bottom: 20px;
   padding: 16px;
@@ -435,7 +548,7 @@ body {
   border-radius: 8px;
   overflow-x: auto;
 }
-#content pre code {
+.markdown-body pre code {
   padding: 0;
   background: transparent;
   border: none;
@@ -443,7 +556,7 @@ body {
 }
 
 /* Ajuste de línea opcional (botón de wrap) — sustituye el scroll horizontal */
-#content pre.wrapped {
+.markdown-body pre.wrapped {
   overflow-x: hidden;
   white-space: pre-wrap;
   word-break: break-word;
@@ -451,9 +564,9 @@ body {
 
 /* Números de línea (plugin oficial de Prism) alineados con el resto del tema.
    3.8em replica el padding-left por defecto de prism-line-numbers.min.css —
-   #content pre (id) ya lo pisa con su padding:16px, así que hay que
-   reafirmarlo aquí; revisar este valor si se actualiza el plugin. */
-#content pre.line-numbers { padding-left: 3.8em; }
+   pre (padding:16px) ya lo pisa, así que hay que reafirmarlo aquí; revisar
+   este valor si se actualiza el plugin. */
+.markdown-body pre.line-numbers { padding-left: 3.8em; }
 .line-numbers .line-numbers-rows { border-right-color: var(--border); }
 .line-numbers-rows > span:before { color: var(--text-muted); }
 
@@ -507,7 +620,7 @@ body {
   opacity: 0;
   transition: opacity 0.15s;
 }
-#content pre:hover .code-actions { opacity: 1; }
+.markdown-body pre:hover .code-actions { opacity: 1; }
 
 .code-action-btn {
   padding: 3px 10px;
@@ -532,6 +645,32 @@ body {
   border: 1px solid var(--border);
   margin-bottom: 20px;
   overflow-x: auto;
+}
+
+/* ─── Error de sintaxis en un diagrama Mermaid (compacto, con el mensaje real
+   del parser en vez del SVG enorme por defecto de Mermaid) ──────────────────── */
+.mermaid-error {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-left: 4px solid #ef4444;
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+.mermaid-error strong {
+  display: block;
+  color: #ef4444;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.mermaid-error pre {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  background: transparent;
 }
 
 /* ─── TOC Sidebar ─────────────────────────────────────────────────────────── */
@@ -731,31 +870,35 @@ mark.search-highlight.search-active {
   outline: 2px solid var(--accent);
 }
 
-/* ─── Modal "Acerca de" ────────────────────────────────────────────────────── */
-#about-modal {
+/* ─── Modales genéricos (Acerca de, Conflicto de edición, Ayuda) ─────────────
+   .modal-overlay/.modal-backdrop/.modal-card: la misma "cáscara" (fondo oscuro
+   de fondo + tarjeta centrada) que comparten los 3 modales de la app — cada
+   uno solo aporta su z-index (order de apilado) y el tamaño propio de su
+   tarjeta, en vez de repetir las mismas 15 líneas 3 veces. */
+.modal-overlay {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
 }
-#about-backdrop {
+.modal-backdrop {
   position: absolute;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
 }
-#about-card {
+.modal-card {
   position: relative;
   z-index: 1;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 12px 32px var(--shadow);
-  padding: 32px 36px;
-  max-width: 320px;
-  text-align: center;
 }
+
+/* ─── Modal "Acerca de" ────────────────────────────────────────────────────── */
+#about-modal { z-index: 200; }
+#about-card { padding: 32px 36px; max-width: 320px; text-align: center; }
 #about-close {
   position: absolute;
   top: 10px;
@@ -795,6 +938,14 @@ mark.search-highlight.search-active {
 .about-update-status.is-available { color: var(--accent); font-weight: 600; }
 .about-author { font-size: 11px; color: var(--text-muted); }
 
+/* ─── Ayuda de sintaxis Markdown ──────────────────────────────────────────── */
+#help-modal { z-index: 250; }
+#help-card { width: min(760px, 90vw); max-height: 85vh; overflow-y: auto; padding: 32px 36px; }
+#help-close { position: absolute; top: 12px; right: 12px; }
+
+/* Tipografía de prosa: la aporta la clase compartida .markdown-body (ver
+   "Contenido Markdown" más arriba) — #help-content la lleva en el HTML. */
+
 /* ─── Panel de error (debug) ──────────────────────────────────────────────── */
 #error-panel {
   position: fixed;
@@ -824,7 +975,8 @@ body.drag-over #reader-container {
 }
 
 @media print {
-  #app-header, #toc-sidebar, #search-modal, #recent-panel, #about-modal, #url-panel, .code-actions, #error-panel {
+  #app-header, #toc-sidebar, #search-modal, #recent-panel, #about-modal, #url-panel, .code-actions, #error-panel,
+  #editor-pane, #conflict-banner, #conflict-modal, #help-modal {
     display: none !important;
   }
   body, #app-body, #reader-container {

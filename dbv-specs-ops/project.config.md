@@ -40,7 +40,7 @@ All source files must include a header comment in the appropriate syntax for the
 **Example (Rust):**
 ```rust
 // =============================================================================
-// dbv-md-reader — Lector nativo de Markdown (.md) de solo lectura para Windows
+// dbv-md-reader — Lector y editor nativo de Markdown (.md) para Windows, Linux y macOS
 // Copyright (c) 2026 David Bueno Vallejo
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
@@ -50,7 +50,7 @@ All source files must include a header comment in the appropriate syntax for the
 **Example (JavaScript / CSS):**
 ```javascript
 // =============================================================================
-// dbv-md-reader — Lector nativo de Markdown (.md) de solo lectura para Windows
+// dbv-md-reader — Lector y editor nativo de Markdown (.md) para Windows, Linux y macOS
 // Copyright (c) 2026 David Bueno Vallejo
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
