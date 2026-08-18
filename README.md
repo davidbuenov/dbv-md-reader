@@ -108,6 +108,7 @@ Requiere tener instalados Xcode Command Line Tools (`xcode-select --install`), [
 - [Para desarrolladores](#-para-desarrolladores)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Changelog](#changelog)
+- [Contribuir](#-contribuir)
 - [Curiosidad: candidato a PowerToys](#-curiosidad-candidato-natural-a-microsoft-powertoys)
 - [Licencia](#licencia)
 - [Autor y Créditos](#autor-y-créditos)
@@ -292,6 +293,12 @@ dbv-md-reader/
 ## 📋 Changelog
 
 Consulta [dbv-specs-ops/CHANGELOG.md](./dbv-specs-ops/CHANGELOG.md) para ver el historial de cambios.
+
+---
+
+## 🤝 Contribuir
+
+¿Quieres proponer un cambio o corregir un bug? Se acepta vía fork + Pull Request contra `master` (rama protegida). Guía completa, requisitos de entorno y checklist antes de abrir el PR en [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ---
 
