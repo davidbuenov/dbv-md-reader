@@ -54,6 +54,9 @@
       <button id="btn-print" class="btn-icon" data-i18n-title="toolbar.print">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
       </button>
+      <button id="btn-always-on-top" class="btn-icon" data-i18n-title="toolbar.alwaysOnTop">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 17v5M8.5 12.5L5 14l7-7 7 7-3.5-1.5M8.5 12.5L7 6l5-2 5 2-1.5 6.5M8.5 12.5h7"/></svg>
+      </button>
       <div class="toolbar-divider"></div>
       <div id="theme-switcher">
         <button id="theme-light" class="theme-btn" data-i18n-title="theme.light">☀️ Light</button>
@@ -158,6 +161,8 @@
 
   <!-- ─── Scripts ───────────────────────────────────────────────────────── -->
   <script src="vendor/markdown-it.min.js"></script>
+  <script src="vendor/markdown-it-task-lists.min.js"></script>
+  <script src="vendor/markdown-it-footnote.min.js"></script>
   <script src="vendor/dompurify.min.js"></script>
   <script src="vendor/prism.min.js"></script>
   <!-- defer: solo se usan de forma asíncrona dentro de renderMarkdown() (tras un

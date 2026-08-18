@@ -5,6 +5,18 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.9.0] - 2026-08-17
+
+### Añadido
+- **RF-02 ampliado — soporte GFM de task lists y footnotes**: `- [ ]`/`- [x]` se renderizan como checkboxes reales (no interactivos, `disabled`, coherente con la app de solo lectura) vía `markdown-it-task-lists`; `[^1]` se renderiza como nota al pie numerada con referencia y retroenlace vía `markdown-it-footnote`. Ambos plugins vendorizados en `src/vendor/` siguiendo el mismo patrón sin CDN/sin bundler que el resto de librerías (ver `memory.md`).
+- **RF-19 — Always on Top**: botón nuevo en la barra superior para fijar la ventana por encima de las demás (toggle simple, sin persistencia, por ventana). Multiplataforma por diseño vía la API de Tauri, sin código condicional por sistema operativo.
+- **Benchmark reproducible**: `scripts/benchmark.ps1` mide arranque, RAM (Working Set y memoria privada, proceso propio y árbol completo incl. WebView2) y CPU con metodología repetible (7 repeticiones, descarta mejor/peor). Resultados y datos del equipo de referencia en `dbv-specs-ops/BENCHMARK_RESULTS.md`.
+
+### Corregido
+- **Listas anidadas con la misma viñeta en todos los niveles**: `#content ul { list-style: disc; }` forzaba el mismo símbolo en cualquier profundidad, pisando la diferenciación nativa del navegador (disc → circle → square). Añadidas reglas para 2º/3º nivel en `styles.css`.
+
+---
+
 ## [0.8.0] - 2026-08-16
 
 ### Añadido

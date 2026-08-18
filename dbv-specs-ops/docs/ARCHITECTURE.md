@@ -1,14 +1,14 @@
 # 🏛️ Arquitectura Técnica: dbv-md-reader
 
 > **Proyecto:** dbv-md-reader (Lector de Markdown de Solo Lectura — Windows y Linux con Release oficial, macOS por auto-compilación)  
-> **Stack Principal:** Rust + Tauri v2 + WebView nativo del sistema (WebView2 en Windows, WebKitGTK en Linux, WKWebView en macOS) + HTML5 / Tailwind CSS / JS (markdown-it, mermaid.js, Prism.js, KaTeX)  
+> **Stack Principal:** Rust + Tauri v2 + WebView nativo del sistema (WebView2 en Windows, WebKitGTK en Linux, WKWebView en macOS) + HTML5 / Tailwind CSS / JS (markdown-it, DOMPurify, mermaid.js, Prism.js, KaTeX)  
 > **Fase:** `/plan` (Arquitectura)  
 
 ---
 
 ## 1. Visión General de la Arquitectura
 
-`dbv-md-reader` utiliza una arquitectura híbrida de alto rendimiento con auto-recarga en vivo y sanitización server-side en Rust:
+`dbv-md-reader` utiliza una arquitectura híbrida de alto rendimiento con auto-recarga en vivo. El backend Rust se limita a E/S (lectura/descarga de ficheros, watcher, protocolo de assets); el parseo de Markdown y la sanitización de HTML ocurren en el frontend, en el WebView (`markdown-it` + `DOMPurify` post-render — ver ADR-009 en `memory.md`):
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -21,17 +21,18 @@
 |                                 CORE (RUST)                                       |
 |  1. Captura de argumentos CLI / Ruta del archivo .md                              |
 |  2. File Watcher (`notify` crate): Recarga automática si el archivo cambia en disco|
-|  3. Fetcher de URLs remotos (`reqwest`/`ureq`): Descarga de .md remotos          |
+|  3. Fetcher de URLs remotos (`ureq`): Descarga de .md remotos                     |
 |  4. Protocol Handler (`asset://`): Transformación de rutas de imágenes locales    |
-|  5. Sanitización de HTML embebido usando Ammonia crate (Seguridad XSS)            |
-|  6. Interceptor de Enlaces: Distingue enlaces .md (App) vs URLs Web (Navegador OS)|
+|  5. Interceptor de Enlaces: Distingue enlaces .md (App) vs URLs Web (Navegador OS)|
 +----------------------------------------+------------------------------------------+
-                                         | Tauri IPC Bridge
+                                         | Tauri IPC Bridge (Markdown crudo, sin sanitizar)
                                          v
 +-----------------------------------------------------------------------------------+
 |                           FRONTEND (WebView2 - Edge Engine)                       |
 |  HTML5 + Tailwind CSS + Vanilla JS                                                |
-|  - Parseador: markdown-it (CommonMark)                                            |
+|  - Parseador: markdown-it (CommonMark + extensiones GFM: tablas, ~~strikethrough~~,|
+|    autolinks, HTML embebido, task lists, footnotes — ver `SPECIFICATIONS.md`)     |
+|  - Sanitizador: DOMPurify sobre el HTML ya renderizado (Seguridad XSS, RF-03)     |
 |  - Resaltador: Prism.js (+ Botón Copy)                                            |
 |  - Diagramas: mermaid.js (SVG vectorial)                                          |
 |  - Matemáticas: KaTeX (LaTeX inline/bloque, pre/postprocesado alrededor del render)|
@@ -95,7 +96,7 @@
 ## 4. Decisiones de Seguridad y Rendimiento (ADRs)
 
 - **ADR-001:** Adopción de Tauri v2 sobre Electron (ejecutable < 8 MB, RAM < 64 MB).
-- **ADR-002:** Sanitización server-side en Rust usando `ammonia` previa al renderizado para asegurar tolerancia cero a vulnerabilidades XSS.
+- **ADR-002 (SUPERSEDIDA por ADR-009):** Diseño original — sanitización server-side en Rust usando `ammonia` previa al renderizado. Nunca se implementó (`ammonia` no llegó a añadirse a `Cargo.toml`); sustituida por DOMPurify en el frontend (ver ADR-009).
 - **ADR-003:** Enrutamiento de enlaces: Archivos `.md` dentro de la app, URLs web externas al navegador predeterminado del S.O.
 - **ADR-004:** Uso del crate `notify` en Rust para actualización automática en vivo sin recargas completas de ventana.
 - **ADR-005:** Archivos Recientes persistidos en `recent_files.json` (app data dir) sin nuevo crate; solo aperturas explícitas (CLI/diálogo/Drag & Drop) registran entrada.
@@ -132,5 +133,6 @@ El entorno de desarrollo de este proyecto es Windows — cualquier cambio de fro
 | Diálogo de impresión / pie de página | El diálogo nativo (Chromium) puede añadir un pie con la URL/fecha ("Encabezados y pies de página" en "Más opciones") | Sin confirmar — el panel de impresión de macOS y el diálogo GTK de Linux son distintos, puede que ni tengan esa opción | Sesión 2026-08-16, ver `README.md` |
 | Caché de assets del WebView entre reinicios del proceso | Confirmado: `EBWebView/Default/Cache` persiste en disco entre lanzamientos y puede servir `index.html`/`app.js`/`styles.css` obsoletos tras editar el frontend en desarrollo | Sin confirmar si WebKitGTK/WKWebView tienen el mismo comportamiento de caché persistente | ADR-022 en `memory.md` |
 | `::-webkit-scrollbar` (usado en `#reader-container`, `styles.css`) | Sin efecto — WebView2 no es un motor WebKit | Debería aplicarse tal cual (WebKitGTK y WKWebView sí son WebKit) | No verificado en esta sesión |
+| Always on Top (RF-19, `getCurrentWindow().setAlwaysOnTop()`) | Confirmado funcionando (`WS_EX_TOPMOST` verificado vía Win32) | Sin verificar en macOS. En Linux, funciona en X11; en **Wayland** algunos compositores restringen por diseño que una app se autofije "siempre encima" — comportamiento fuera del control de la app, no un bug | ADR-024 en `memory.md` |
 
 **Regla práctica:** ante la duda sobre si algo se comporta igual en los 3 motores, no asumir que sí — registrar la duda (aquí o en `task.md` como riesgo aceptado) y, si el cambio es visible para el usuario, incluirlo en la lista de pruebas para colaboradores del siguiente `/ship`.

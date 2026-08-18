@@ -30,7 +30,7 @@ No internet connection required to function, no personal data collected. Your do
 
 ## What's new in this version
 
-v0.5.0: refreshed installer design, now also available on the Microsoft Store, and the app is now called DBV Markdown Reader.
+v0.8.0: real syntax-highlighting colors for 24+ programming languages (previously only JavaScript/CSS/HTML were colored), with colors that now adapt to each reading theme instead of always using a fixed dark palette. The table of contents highlights the section you're currently reading, an estimated reading time and a scroll progress bar are shown next to the document name, and code blocks now include line numbers with a line-wrap toggle button.
 
 ---
 
@@ -52,6 +52,12 @@ v0.5.0: refreshed installer design, now also available on the Microsoft Store, a
 13. Export to PDF (Ctrl+P)
 14. Proportional document zoom (Ctrl+Wheel)
 15. Interface available in English and Spanish
+16. *(pending: whatever is currently live in Partner Center as #16 — not recorded in this file, reconcile when convenient)*
+17. Syntax highlighting for 24+ languages, colors matched to each theme
+18. Table of contents highlights the section you're reading
+19. Estimated reading time and a scroll progress bar
+20. Code blocks show line numbers, with a line-wrap toggle
+21. Math equations in LaTeX, rendered with KaTeX *(⚠️ the field says max 20 — drop one of the earlier ones before pasting into Partner Center, or try if it accepts 21)*
 
 ---
 
