@@ -78,6 +78,13 @@ fn focus_window(window: &tauri::WebviewWindow) {
     let _ = window.set_focus();
 }
 
+/// Ventana "main" si existe, si no la primera disponible — fallback compartido por el
+/// callback de single-instance y por el manejador de eventos del menú de macOS cuando
+/// no hay ninguna pista mejor (ruta de archivo, ventana enfocada).
+fn main_or_first_window(windows: &HashMap<String, tauri::WebviewWindow>) -> Option<&tauri::WebviewWindow> {
+    windows.get("main").or_else(|| windows.values().next())
+}
+
 /// Extracts the first non-flag argument (the file path) from a CLI argv-like list,
 /// skipping argv[0] (the executable path itself). Shared by `get_cli_argument` (first
 /// launch) and the single-instance callback (RF-14, subsequent launches).
@@ -534,7 +541,7 @@ pub fn run() {
                 Some(path) => open_or_focus_document(&app_handle, path),
                 None => {
                     let windows = app_handle.webview_windows();
-                    if let Some(window) = windows.get("main").or_else(|| windows.values().next()) {
+                    if let Some(window) = main_or_first_window(&windows) {
                         focus_window(window);
                     }
                 }
@@ -544,15 +551,15 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .setup(|app| {
+        .setup(|_app| {
             // macOS espera la barra de menú superior del SO (Cmd+Q, Cmd+H,
             // Editar con Cortar/Copiar/Pegar, etc.) — sin ella la app no se
             // siente nativa. Windows/Linux ya tienen su propia UI para esto
             // dentro de la ventana, así que se deja intacto.
             #[cfg(target_os = "macos")]
             {
-                let menu = macos_menu::build(app.handle())?;
-                app.handle().set_menu(menu)?;
+                let menu = macos_menu::build(_app.handle())?;
+                _app.handle().set_menu(menu)?;
             }
             Ok(())
         })
@@ -565,8 +572,7 @@ pub fn run() {
                 let target = windows
                     .values()
                     .find(|w| w.is_focused().unwrap_or(false))
-                    .or_else(|| windows.get("main"))
-                    .or_else(|| windows.values().next());
+                    .or_else(|| main_or_first_window(&windows));
                 if let Some(window) = target {
                     let _ = window.emit("menu-open-file", ());
                 }

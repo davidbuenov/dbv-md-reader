@@ -5,6 +5,17 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.10.0] - 2026-08-18
+
+### Añadido
+- **macOS: menú nativo de aplicación** (App/File/Edit/View/Window/Help), con "Abrir archivo…" real en File (⌘O) — Tauri no trae menú por defecto en macOS. Contribución de [Victor Estival](https://github.com/vestival), PR [#4](https://github.com/davidbuenov/dbv-md-reader/pull/4).
+- **Atajos de teclado con soporte ⌘ además de Ctrl** (buscar, abrir, imprimir, zoom) — mismos atajos en Windows/Linux/macOS. Contribución de [Victor Estival](https://github.com/vestival), PR [#4](https://github.com/davidbuenov/dbv-md-reader/pull/4).
+
+### Corregido
+- **macOS: imprimir (⌘/Ctrl+P) fallaba en silencio** — WKWebView exige el permiso explícito `core:webview:allow-print` para `window.print()`, a diferencia de WebView2 (Windows), que no lo requiere. Contribución de [Victor Estival](https://github.com/vestival), PR [#4](https://github.com/davidbuenov/dbv-md-reader/pull/4). Ver ADR-026 en `memory.md`.
+
+---
+
 ## [0.9.0] - 2026-08-17
 
 ### Añadido
