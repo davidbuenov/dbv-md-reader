@@ -5,6 +5,18 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.12.0] - 2026-08-19
+
+### Añadido
+- **RF-23 — Barra de formato Markdown en el Modo Edición**: segunda fila de iconos sobre el `<textarea>` (negrita, cursiva, tachado, código inline, H1/H2/H3, lista, lista numerada, tarea, enlace, imagen, cita, bloque de código, tabla, línea horizontal). Con texto seleccionado, envuelve/transforma la selección (y permite alternar: pulsar Negrita dos veces desenvuelve); sin selección, inserta un esqueleto mínimo con el placeholder preseleccionado listo para sobrescribir. Cada acción dispara el mismo evento `input` que una edición tecleada, así que la gestión de conflictos (RF-21) y el resaltado "sucio" no distinguen entre ambos orígenes. Atajos `Ctrl+B`/`Ctrl+I` opcionales cuando el editor tiene el foco.
+- **RF-24 — Tab/Shift+Tab indentan dentro del editor**: antes, Tab movía el foco al siguiente control de la interfaz en vez de anidar listas. Ahora indenta/desindenta la línea actual (o todas las líneas de la selección) en incrementos de 2 espacios, sin salir nunca del `<textarea>`; el resto de la app conserva la navegación por Tab normal.
+- **Menú nativo macOS: "Guardar" y "Alternar Modo Edición"** en File/View (⌘S/⌘E), localizados según el idioma del sistema igual que el resto del menú. Contribución de [Victor Estival](https://github.com/vestival), PR [#7](https://github.com/davidbuenov/dbv-md-reader/pull/7).
+
+### Corregido
+- **Doble clic + Negrita/Cursiva/Enlace rompía el formato**: el doble clic del `<textarea>` para seleccionar una palabra incluye también el espacio siguiente — al envolverla tal cual salía `**palabra **`/`[palabra ](url)`, que CommonMark no reconoce como énfasis/enlace válido. Detectado por el usuario probando la barra de formato recién añadida. Los espacios en los bordes de la selección se recortan antes de aplicar el marcado en vez de envolverlos también.
+
+---
+
 ## [0.11.0] - 2026-08-18
 
 ### Añadido

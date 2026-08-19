@@ -356,12 +356,33 @@ body {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
+  flex-direction: column;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   background-color: var(--code-bg);
 }
 #editor-pane:focus-within { border-color: var(--accent); }
+
+/* ─── Barra de formato Markdown (RF-23) ──────────────────────────────────── */
+#editor-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+}
+#editor-toolbar .btn-icon { width: 26px; height: 26px; font-size: 13px; }
+
+#editor-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
 
 #editor-line-numbers {
   flex-shrink: 0;
