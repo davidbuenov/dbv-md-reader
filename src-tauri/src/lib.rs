@@ -443,7 +443,22 @@ mod macos_menu {
     };
     use tauri::{AppHandle, Runtime};
 
+    /// Los items predefinidos de macOS (Cortar/Copiar/Pegar…) los localiza el
+    /// propio sistema según su idioma — nuestros items propios (Abrir
+    /// archivo, Guardar…) no tienen esa magia gratis, así que replican el
+    /// mismo criterio a mano para no acabar con un menú medio español medio
+    /// inglés según el idioma del Mac. Nota: independiente del selector de
+    /// idioma ES/EN de la propia app (ese vive sólo en el frontend/localStorage,
+    /// no accesible todavía desde Rust en el momento en que se construye el
+    /// menú, al arrancar antes de que cargue la webview).
+    fn is_spanish_system() -> bool {
+        sys_locale::get_locale()
+            .map(|l| l.to_lowercase().starts_with("es"))
+            .unwrap_or(false)
+    }
+
     pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
+        let es = is_spanish_system();
         let pkg_info = handle.package_info();
         let config = handle.config();
         let about_metadata = AboutMetadata {
@@ -473,9 +488,16 @@ mod macos_menu {
         let open_file_item = MenuItem::with_id(
             handle,
             "open_file",
-            "Abrir archivo…",
+            if es { "Abrir archivo…" } else { "Open File…" },
             true,
             Some("CmdOrCtrl+O"),
+        )?;
+        let save_item = MenuItem::with_id(
+            handle,
+            "save",
+            if es { "Guardar" } else { "Save" },
+            true,
+            Some("CmdOrCtrl+S"),
         )?;
         let file_menu = Submenu::with_items(
             handle,
@@ -483,6 +505,8 @@ mod macos_menu {
             true,
             &[
                 &open_file_item,
+                &PredefinedMenuItem::separator(handle)?,
+                &save_item,
                 &PredefinedMenuItem::separator(handle)?,
                 &PredefinedMenuItem::close_window(handle, None)?,
             ],
@@ -503,11 +527,22 @@ mod macos_menu {
             ],
         )?;
 
+        let toggle_edit_mode_item = MenuItem::with_id(
+            handle,
+            "toggle_edit_mode",
+            if es { "Alternar Modo Edición" } else { "Toggle Edit Mode" },
+            true,
+            Some("CmdOrCtrl+E"),
+        )?;
         let view_menu = Submenu::with_items(
             handle,
             "View",
             true,
-            &[&PredefinedMenuItem::fullscreen(handle, None)?],
+            &[
+                &toggle_edit_mode_item,
+                &PredefinedMenuItem::separator(handle)?,
+                &PredefinedMenuItem::fullscreen(handle, None)?,
+            ],
         )?;
 
         let window_menu = Submenu::with_id_and_items(
@@ -578,14 +613,20 @@ pub fn run() {
             // "Abrir archivo…" del menú File (macOS) reusa el flujo que ya tiene
             // el frontend para el botón de la toolbar — sólo hace falta avisar
             // a la ventana enfocada, no reimplementar el diálogo en Rust.
-            if event.id() == "open_file" {
+            let event_name = match event.id().as_ref() {
+                "open_file" => Some("menu-open-file"),
+                "save" => Some("menu-save"),
+                "toggle_edit_mode" => Some("menu-toggle-edit-mode"),
+                _ => None,
+            };
+            if let Some(event_name) = event_name {
                 let windows = app.webview_windows();
                 let target = windows
                     .values()
                     .find(|w| w.is_focused().unwrap_or(false))
                     .or_else(|| main_or_first_window(&windows));
                 if let Some(window) = target {
-                    let _ = window.emit("menu-open-file", ());
+                    let _ = window.emit(event_name, ());
                 }
             }
         })
