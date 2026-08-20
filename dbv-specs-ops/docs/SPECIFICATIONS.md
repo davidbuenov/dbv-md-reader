@@ -2,7 +2,7 @@
 
 > **Fase:** `/spec` (Especificación)  
 > **Estado:** Validado  
-> **Última Revisión:** 2026-08-18  
+> **Última Revisión:** 2026-08-20  
 
 ---
 
@@ -24,6 +24,7 @@
   - *Escenario D (Diagramas Mermaid):* El usuario visualiza documentación técnica con diagramas de flujo o arquitectura incrustados (` ```mermaid `) que se renderizan como SVGs interactivos.
   - *Escenario E (Lectura prolongada y navegación):* El usuario conmuta entre temas (Claro, Oscuro, Sepia), navega con la Tabla de Contenidos (TOC) y busca texto con `Ctrl + F`.
   - *Escenario F (Edición ligera y vista dividida en vivo, añadido 2026-08-18):* El usuario activa el modo edición (`Ctrl + E`) sobre un documento ya abierto y ve el Markdown crudo a la izquierda y la vista renderizada a la derecha, actualizándose mientras escribe. Si en vez de escribir dentro de la app edita el mismo archivo desde otro editor externo (VS Code, Notepad++, Obsidian...), ambos paneles se actualizan solos en tiempo real mientras no tenga cambios propios sin guardar — útil como visor en vivo de código fuente + resultado sin necesidad de tocar el editor integrado.
+  - *Escenario G (Documentación modular en carpetas, añadido 2026-08-20):* El usuario abre un archivo `.md` que forma parte de una carpeta más grande de documentación (un repo con `docs/`, un curso con varias lecciones). En vez de depender solo de enlaces internos (RF-08A) o del panel de Recientes (RF-11) para saltar a otro archivo de la misma carpeta, consulta el árbol de directorios en la pestaña "Archivos" del panel lateral, o pulsa `Ctrl + K` y teclea parte del nombre del archivo que busca. Un clic normal (o Enter en el Quick Open) abre el archivo en la misma ventana; `Ctrl/Cmd + clic` (o `Ctrl/Cmd + Enter`) lo abre en una ventana nueva sin perder el documento actual de vista.
 
 ---
 
@@ -90,6 +91,7 @@
   - Cada ventana mantiene su documento, zoom, TOC, búsqueda y observador de archivos completamente independientes de las demás — no se comparte estado entre ventanas, solo el proceso.  
   - Si la segunda apertura no trae ninguna ruta de archivo (p. ej. relanzar el `.exe` sin argumentos), no se abre una ventana vacía: se enfoca una ya existente.  
   - **Fuera de alcance de este RF** (decisión consciente, ver ADR-015 en `memory.md`): abrir un archivo *desde dentro* de la app (`Ctrl+O`, panel de Recientes, Drag & Drop sobre una ventana ya abierta) sigue sustituyendo el documento de esa misma ventana, sin crear una ventana nueva — solo las aperturas *externas* (Explorador de Windows) consolidan proceso.
+  - **Primera excepción consciente a esta regla (añadida 2026-08-20, ver RF-25/RF-26):** el Explorador de árbol (RF-25) y el Quick Open (RF-26) son las dos primeras entradas *internas* que sí pueden abrir una ventana nueva — pero solo cuando el usuario lo pide explícitamente con `Ctrl/Cmd + clic` o `Ctrl/Cmd + Enter`. Un clic o Enter simple en cualquiera de los dos sigue sustituyendo el documento de la ventana actual, igual que el resto de entradas internas. Reutilizan el mismo `open_document_window`/`open_or_focus_document` ya existente (RF-14) — ninguna lógica de ventanas nueva, solo un nuevo punto de entrada consciente hacia código ya probado.
   - **Foco y deduplicación de ventanas (añadido 2026-08-15):** un bug reportado por un usuario real hacía que la ventana nueva no viniera al frente al reabrir un archivo con la app ya en marcha — el usuario, sin ver ningún cambio visible, repetía el doble clic y acumulaba varias ventanas con el mismo documento. Ahora: (1) toda ventana nueva o reutilizada se trae al frente (`unminimize` + `set_focus`); (2) si el archivo que se pide abrir ya se está mostrando en una ventana viva de este mismo proceso (`OpenDocumentsState`, comparación por ruta canonicalizada), esa ventana se enfoca en vez de abrir un duplicado.
 - [x] **RF-15: Abrir un diagrama Mermaid en mermaid.live:**  
   - Menú contextual (botón derecho) sobre cualquier diagrama Mermaid ya renderizado, con la opción "Abrir en mermaid.live".  
@@ -151,6 +153,24 @@
   - El listener está scoped al propio `editorTextarea` (no a `window`), así que no interfiere con la navegación por Tab normal en el resto de la interfaz (buscador, panel de URL, modales).
   - Fuera de alcance de este RF: indentación "inteligente" que detecte el nivel de anidamiento de una lista y ajuste el marcador automáticamente (p. ej. `-` → `*` en el segundo nivel) — se indenta el texto tal cual, coherente con ser un `<textarea>` plano sin comprender la estructura Markdown.
   - ✅ Verificado 2026-08-19 en Windows: indentar/desindentar una línea suelta y una selección multilínea sobre ítems de lista hermanos, ida y vuelta exacta (Tab seguido de Shift+Tab no deja residuo), y confirmado que el foco nunca sale del editor mientras el resto de la app conserva su navegación por Tab habitual. **No verificado en Linux/macOS** en esta sesión — mismo riesgo aceptado que RF-23.
+- [x] **RF-25: Explorador de árbol de directorios (panel lateral, estilo VS Code), añadido 2026-08-20:**
+  - **Raíz del árbol = carpeta del archivo actualmente abierto.** Al cargar un documento (apertura explícita, navegación por enlaces RF-08A o recarga), el árbol se reconstruye con esa carpeta como raíz — sigue siempre al documento activo, no es una "carpeta de trabajo" fija independiente de él.
+  - **Sin archivo abierto (arranque en frío):** se muestra la carpeta del último archivo local abierto (misma fuente que RF-11, Archivos Recientes). Si esa carpeta ya no existe en disco (movida/borrada), el árbol cae al mismo estado vacío que tendría una instalación nueva — sin error visible, mismo criterio de autocuración que `filter_existing` (RF-11).
+  - **Árbol expandible multinivel:** carpetas con flecha para expandir/colapsar subcarpetas, leídas bajo demanda al expandir (no se lee recursivamente toda la carpeta de golpe). Un archivo remoto (`http(s)://`, RF-08A) no tiene carpeta local que listar — el árbol se oculta para ese documento, igual que ya ocurre con el Modo Edición (RF-20/RF-21) sobre documentos remotos.
+  - **Interacción de clic:** un clic sobre un archivo `.md` lo abre en la ventana actual (sustituye el documento, mismo comportamiento que Recientes/RF-11). `Ctrl + clic` (`Cmd + clic` en macOS) lo abre en una ventana nueva — ver la excepción consciente añadida a RF-14 arriba.
+  - **Archivos que no son `.md`:** se listan visibles (carpetas e imágenes/assets incluidos, para reflejar la estructura real de disco) pero **no son clicables** — no amplían el alcance de la app más allá de archivos Markdown.
+  - **Arrastrar una carpeta sobre la ventana** (ampliación del Drag & Drop de RF-09, que hoy solo acepta un archivo `.md`) fija esa carpeta como raíz del árbol sin necesidad de abrir antes ningún archivo dentro de ella — vía útil para el caso de arranque en frío sin depender de Recientes.
+  - **Filtro de texto** en la cabecera del árbol: un campo de texto oculta en tiempo real (sin llamada a Rust adicional, sobre los nodos ya cargados en memoria) las carpetas/archivos cuyo nombre no contenga el texto tecleado.
+  - **Ubicación:** nueva pestaña "Archivos" dentro del panel lateral derecho ya existente (mismo `#toc-sidebar` redimensionable de RF-04), junto a una pestaña "Índice" que pasa a alojar la Tabla de Contenidos de encabezados ya existente — no se añade un tercer panel en pantalla, ver ADR-029 en `memory.md`.
+  - **Solo navegación de solo lectura:** no permite crear, renombrar, mover ni borrar archivos o carpetas desde el árbol (ver sección 6, Fuera de Alcance).
+  - **"Revelar en el Explorador de archivos" (menú contextual, clic derecho):** abre el gestor de archivos nativo del sistema operativo con el archivo/carpeta seleccionado ya resaltado — vía de escape hacia el sistema operativo para lo que el árbol no cubre a propósito (crear, renombrar, mover, borrar; ver punto anterior). Comando Rust nuevo `reveal_in_file_manager(path)`, sin plugin oficial ni dependencia nueva (`std::process::Command`, mismo criterio que el resto de comandos propios): `explorer /select,<path>` en Windows, `open -R <path>` en macOS. **Linux, alcance reducido:** no existe un comando universal de "seleccionar archivo exacto" entre gestores de archivos (Nautilus, Dolphin...) — se abre la carpeta contenedora con `xdg-open` sin selección, documentado como limitación conocida de la plataforma (mismo criterio que otras diferencias de la tabla en `ARCHITECTURE.md` §5).
+  - **"Abrir en ventana nueva" (menú contextual, añadido 2026-08-20 a petición del usuario tras probar `Ctrl+clic` en real):** segunda opción del mismo menú contextual, solo visible sobre archivos `.md` (no sobre carpetas ni no-`.md`), con el atajo de teclado indicado en la propia etiqueta (`Ctrl+clic`/`Cmd+clic` según plataforma) para quien prefiera el menú al atajo o quiera confirmarlo. Invoca el mismo comando `open_in_new_window` que ya usa el modificador de clic — ver el bug real encontrado y corregido en `memory.md` (ventana en blanco/colgada, causa: reentrancia de `run_on_main_thread` al invocarse ya desde el hilo principal dentro del propio despacho IPC).
+- [x] **RF-26: Selector rápido de archivos (Quick Open, `Ctrl/Cmd + K`), añadido 2026-08-20:**
+  - Cuadro de búsqueda flotante (mismo patrón visual que el buscador `Ctrl+F` de RF-04 y el panel "Abrir desde URL" de RF-08A-UI) que filtra en tiempo real por nombre entre los archivos `.md` ya cargados en el árbol (RF-25) de la carpeta del documento activo — misma fuente de datos, sin comando Rust adicional propio.
+  - `Enter` sobre el resultado resaltado (o clic) abre el archivo en la ventana actual; `Ctrl/Cmd + Enter` lo abre en una ventana nueva — mismo criterio de modificador que el árbol (RF-25), para no introducir una segunda convención de atajo en la misma versión.
+  - Navegación de resultados con flechas arriba/abajo, `Escape` cierra el panel sin abrir nada (mismo patrón que el resto de paneles flotantes, `registerPanel()` — ver ADR-011 en `memory.md`).
+  - **Elección de atajo (`Ctrl/Cmd+K` en vez del `Ctrl+P` habitual de VS Code):** `Ctrl+P` ya está tomado por Imprimir/PDF (RF-10) en esta app — se adopta `Ctrl/Cmd+K`, la convención de "quick switcher" ya establecida en Slack, Discord, GitHub.com y Linear, y libre de colisión con el resto de atajos existentes (`Ctrl+E/F/O/P/S`). Decisión tomada explícitamente con el usuario en sesión de brainstorming (2026-08-20).
+  - Sin resultados si la carpeta del documento activo no tiene ningún otro `.md` — mensaje discreto, no un estado de error.
 
 ---
 
@@ -167,6 +187,7 @@
 - **Diagramas:** **mermaid.js** (generación de SVG vectorial).
 - **Matemáticas:** **KaTeX** (renderizado LaTeX síncrono, vendorizado localmente sin CDN — RF-17).
 - **Edición (RF-20/RF-21, añadido 2026-08-18):** sin librería de editor de código — `<textarea>` plano reutilizando el mismo pipeline de renderizado (`markdown-it` + DOMPurify) que el modo lectura. Nuevo comando Rust `write_file` (escritura directa, mismo patrón sin plugin `fs` oficial que `read_file`).
+- **Explorador de árbol y Quick Open (RF-25/RF-26, planificado 2026-08-20):** sin librería de árbol/componente UI nueva — SVG inline y CSS propio, mismo patrón vanilla que la Tabla de Contenidos (RF-04). Nuevo comando Rust de solo lectura sobre `std::fs::read_dir` (parte de `std`, sin dependencia nueva) para listar el contenido de una carpeta bajo demanda; sin plugin `fs` oficial de Tauri, mismo criterio ya establecido para `read_file`/`write_file`.
 
 ---
 
@@ -189,6 +210,8 @@
 - [ ] Editor de código completo: resaltado de sintaxis en el panel de edición, autocompletado, snippets, control de versiones/histórico de cambios o linter Markdown (ver RF-20).
 - [ ] "Guardar como" / crear un archivo `.md` nuevo desde cero dentro del editor (RF-20 solo sobreescribe el archivo ya abierto).
 - [ ] Base de datos pesada de notas o sincronización en la nube propietaria.
+- [ ] Crear, renombrar, mover o borrar archivos/carpetas desde el Explorador de árbol (RF-25) — navegación de solo lectura únicamente.
+- [ ] Abrir archivos que no son `.md` desde el árbol (imágenes, PDFs, etc.) con la aplicación por defecto del sistema — se listan visibles pero no son clicables (RF-25).
 
 ---
 

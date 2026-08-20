@@ -70,6 +70,8 @@
     - Si el segundo lanzamiento no trae ruta (p. ej. relanzar el `.exe` sin argumentos), no se crea ventana: se enfoca la ventana `main` o, si no existe, cualquier otra abierta.
     - Cada ventana sigue teniendo su propio `WatcherState` (el `Mutex<Option<Watcher>>` es por-webview, no compartido), zoom, TOC y búsqueda — ninguna de esa lógica en `app.js` tuvo que cambiar.
   - **Enlace a mermaid.live (RF-15)**: sin comando Rust — todo ocurre en el frontend. `src/vendor/pako_deflate.min.js` (UMD, build *deflate-only* de `pako`, ~26 KB — no se vendoriza el paquete completo, que también incluye `inflate`, innecesario aquí) expone `window.pako.deflate`. `buildMermaidLiveUrl()` en `app.js` replica el formato de estado de `mermaid-live-editor` (`src/lib/util/serde.ts` del proyecto oficial: `deflate(TextEncoder().encode(JSON.stringify(state)))` → Base64 URL-safe → `https://mermaid.live/edit#pako:<...>`), y se abre con `openExternal()` (mismo helper que ya usa `tauri-plugin-shell` para enlaces externos).
+  - **Explorador de árbol de directorios — comando `list_directory(path)` (RF-25, planificado 2026-08-20)**: nuevo comando de solo lectura sobre `std::fs::read_dir`, sin plugin `fs` oficial de Tauri (mismo criterio que `read_file`/`write_file`) — devuelve un nivel de la carpeta indicada (nombre, si es carpeta o archivo, extensión), leído bajo demanda al expandir cada nodo en el frontend, nunca recursivo de golpe. Sin comando Rust propio para Quick Open (RF-26): filtra en el frontend sobre los nodos que el árbol ya tiene cargados en memoria.
+  - **"Revelar en el Explorador" — comando `reveal_in_file_manager(path)` (RF-25, planificado 2026-08-20)**: `std::process::Command` (sin plugin, sin dependencia nueva) — `explorer /select,<path>` en `cfg(windows)`, `open -R <path>` en `cfg(target_os = "macos")`, `xdg-open <carpeta_padre>` en `cfg(target_os = "linux")` (sin selección exacta del archivo, limitación de plataforma). Los argumentos se pasan directo al proceso (`Command::arg`, sin invocar un shell intermedio) — sin riesgo de inyección, mismo patrón de seguridad que `tauri-plugin-shell` (RF-08C).
 
 ---
 
@@ -82,6 +84,7 @@
   - Modal flotante de búsqueda (`#search-bar`).
   - Selector de temas (Claro, Oscuro, Sepia).
   - Panel desplegable "Recientes" (`#recent-panel`) anclado al botón de la barra superior, y lista corta de recientes dentro del Estado Vacío (`#empty-state`).
+  - **Explorador de árbol y Quick Open (RF-25/RF-26, planificado 2026-08-20):** `#toc-sidebar` pasa a tener dos pestañas — "Índice" (TOC de encabezados ya existente) y "Archivos" (árbol nuevo, `#file-tree`), sin panel adicional en pantalla. Panel flotante `#quick-open` (mismo patrón `registerPanel()` que el buscador `Ctrl+F` y "Abrir desde URL") con campo de texto y lista de resultados filtrados en memoria.
 - **`app.js`**:
   - Renderizado con `markdown-it` + Prism.js + mermaid.js + KaTeX.
   - Interceptor de clics en enlaces:

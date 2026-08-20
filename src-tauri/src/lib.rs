@@ -9,11 +9,17 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::DialogExt;
+
+/// Extensiones tratadas como documento abierto por la app — mismo criterio en el filtro
+/// del diálogo nativo (`open_file_dialog`), el Drag & Drop (RF-09) y el árbol de directorios
+/// (RF-25, campo `is_markdown` de `DirEntryInfo`), para no divergir en qué cuenta como ".md".
+const MARKDOWN_EXTENSIONS: [&str; 3] = ["md", "markdown", "txt"];
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FilePayload {
@@ -28,6 +34,17 @@ pub struct RecentFile {
     pub path: String,
     pub file_name: String,
     pub last_opened: u64,
+}
+
+/// Una entrada de un nivel del árbol de directorios (RF-25) — carpetas e imágenes/assets
+/// se listan igual que los `.md` para reflejar la estructura real de disco, pero solo
+/// `is_markdown` es clicable en el frontend.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DirEntryInfo {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    pub is_markdown: bool,
 }
 
 /// Holds the single active file watcher (RF-06). Replacing it drops/stops the previous one.
@@ -167,6 +184,84 @@ fn filter_existing(list: Vec<RecentFile>) -> Vec<RecentFile> {
         .collect()
 }
 
+/// True si `name` termina en una de `MARKDOWN_EXTENSIONS` (comparación insensible a
+/// mayúsculas), el mismo criterio que ya usa el filtro del diálogo nativo y el Drag & Drop.
+fn has_markdown_extension(name: &str) -> bool {
+    Path::new(name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|ext| MARKDOWN_EXTENSIONS.iter().any(|m| m.eq_ignore_ascii_case(ext)))
+        .unwrap_or(false)
+}
+
+/// Lee un único nivel de `dir` para el árbol de directorios (RF-25): carpetas primero,
+/// después archivos, ambos alfabético insensible a mayúsculas (convención estándar de
+/// explorador de archivos). Una entrada individual que falle al leerse (permiso denegado,
+/// symlink roto) se descarta en silencio en vez de abortar todo el listado — mismo criterio
+/// de autocuración que `filter_existing` (RF-11).
+fn list_directory_entries(dir: &Path) -> Vec<DirEntryInfo> {
+    let Ok(read_dir) = fs::read_dir(dir) else { return Vec::new() };
+    let mut entries: Vec<DirEntryInfo> = read_dir
+        .filter_map(|entry| entry.ok())
+        .filter_map(|entry| {
+            let file_type = entry.file_type().ok()?;
+            let name = path_to_string(Path::new(&entry.file_name()));
+            let is_dir = file_type.is_dir();
+            Some(DirEntryInfo {
+                is_markdown: !is_dir && has_markdown_extension(&name),
+                name,
+                path: path_to_string(&entry.path()),
+                is_dir,
+            })
+        })
+        .collect();
+    entries.sort_by(|a, b| {
+        b.is_dir
+            .cmp(&a.is_dir)
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
+    entries
+}
+
+/// Construye el `(programa, argumentos)` para revelar `path` en el gestor de archivos nativo
+/// del sistema operativo (RF-25, menú contextual), sin llegar a lanzar el proceso — separado
+/// de `reveal_in_file_manager` para poder testearlo sin depender de un binario externo real.
+/// `is_dir` decide la rama: un archivo se selecciona dentro de su carpeta contenedora, una
+/// carpeta se abre directamente.
+#[cfg(windows)]
+fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
+    if is_dir {
+        ("explorer", vec![path.to_string()])
+    } else {
+        ("explorer", vec![format!("/select,{}", path)])
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
+    if is_dir {
+        ("open", vec![path.to_string()])
+    } else {
+        ("open", vec!["-R".to_string(), path.to_string()])
+    }
+}
+
+/// Linux, alcance reducido (ver `SPECIFICATIONS.md` RF-25): no existe un comando universal
+/// de "seleccionar el archivo exacto" entre gestores de archivos (Nautilus/Dolphin/...) — se
+/// abre la carpeta contenedora sin selección, limitación de plataforma documentada.
+#[cfg(target_os = "linux")]
+fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
+    let target = if is_dir {
+        path.to_string()
+    } else {
+        Path::new(path)
+            .parent()
+            .map(path_to_string)
+            .unwrap_or_else(|| path.to_string())
+    };
+    ("xdg-open", vec![target])
+}
+
 pub mod commands {
     use super::*;
 
@@ -291,7 +386,7 @@ pub mod commands {
     pub async fn open_file_dialog(app: tauri::AppHandle) -> Option<String> {
         app.dialog()
             .file()
-            .add_filter("Markdown", &["md", "markdown", "txt"])
+            .add_filter("Markdown", &MARKDOWN_EXTENSIONS)
             .blocking_pick_file()
             .map(|p| p.to_string())
     }
@@ -428,6 +523,64 @@ pub mod commands {
     #[tauri::command]
     pub fn clear_recent_files(app: tauri::AppHandle) -> Result<(), String> {
         save_recent_files(&app, &[])
+    }
+
+    /// Lista un nivel de `path` para el árbol de directorios (RF-25), leído bajo demanda al
+    /// expandir cada nodo en el frontend — nunca recursivo de golpe. Rechaza rutas que no
+    /// sean una carpeta existente en vez de devolver un listado vacío silencioso.
+    #[tauri::command]
+    pub fn list_directory(path: String) -> Result<Vec<DirEntryInfo>, String> {
+        let dir = PathBuf::from(&path);
+        if !dir.is_dir() {
+            return Err(format!("No es una carpeta: {}", path));
+        }
+        Ok(list_directory_entries(&dir))
+    }
+
+    /// "Revelar en el Explorador" (RF-25, menú contextual del árbol) — abre el gestor de
+    /// archivos nativo del sistema con `path` resaltado (archivo) o abierto (carpeta). Sin
+    /// plugin ni dependencia nueva: `std::process::Command` directo, sin invocar un shell
+    /// intermedio (los argumentos van tal cual al proceso, sin riesgo de inyección).
+    #[tauri::command]
+    pub fn reveal_in_file_manager(path: String) -> Result<(), String> {
+        let is_dir = Path::new(&path).is_dir();
+        let (program, args) = reveal_command(&path, is_dir);
+        Command::new(program)
+            .args(&args)
+            .spawn()
+            .map_err(|e| format!("Error abriendo el explorador de archivos: {}", e))?;
+        Ok(())
+    }
+
+    /// Punto de entrada del frontend para "abrir en ventana nueva" desde dentro de la app
+    /// (RF-25 árbol + RF-26 Quick Open, ambos vía Ctrl/Cmd+clic) — la primera excepción
+    /// consciente a que las aperturas internas sustituyan la ventana actual (ver la
+    /// ampliación de RF-14 en `SPECIFICATIONS.md`). Envuelve `open_or_focus_document`, nunca
+    /// `open_document_window` directo, para que un archivo ya abierto en otra ventana se
+    /// enfoque en vez de duplicarse (mismo bug que se corrigió en la Fase 26).
+    /// **Bug real encontrado por el usuario (ventana nueva en blanco/colgada al probar
+    /// Ctrl+clic en el árbol, RF-25) y su causa exacta:** a diferencia del callback de
+    /// instancia única o `RunEvent::Opened` (que llegan en una iteración *nueva* y ya
+    /// asentada del bucle de eventos), este `#[tauri::command]` síncrono se despacha
+    /// *ya sobre el hilo principal*, dentro de la misma pasada que atiende el propio
+    /// mensaje IPC que lo invocó. Llamar a `run_on_main_thread` directamente desde ahí
+    /// detecta "ya estoy en el hilo principal" y ejecuta el cierre de forma reentrante
+    /// e inline — creando la `WebviewWindowBuilder` anidada dentro del propio despacho
+    /// del mensaje que la originó, lo que cuelga `.build()` (necesita bombear mensajes
+    /// para completar la inicialización asíncrona de WebView2, y no puede mientras el
+    /// hilo sigue ocupado procesando el mensaje exterior). Confirmado con trazas: sin
+    /// forzar un hilo distinto, `.build()` nunca retornaba; forzándolo, `run_on_main_thread`
+    /// se invoca desde un hilo genuinamente distinto, forzando un envío real (no inline) que
+    /// se procesa en una vuelta *posterior y ya libre* del bucle principal.
+    /// `tauri::async_runtime::spawn` (no `std::thread::spawn`) logra ese "hilo distinto"
+    /// reutilizando el pool de Tokio que Tauri ya tiene en marcha, sin crear/destruir un
+    /// hilo de sistema operativo por cada `Ctrl+clic`.
+    #[tauri::command]
+    pub fn open_in_new_window(app: tauri::AppHandle, path: String) {
+        tauri::async_runtime::spawn(async move {
+            let app_handle = app.clone();
+            let _ = app.run_on_main_thread(move || open_or_focus_document(&app_handle, path));
+        });
     }
 }
 
@@ -645,7 +798,10 @@ pub fn run() {
             commands::get_recent_files,
             commands::add_recent_file,
             commands::clear_recent_files,
-            commands::register_open_document
+            commands::register_open_document,
+            commands::list_directory,
+            commands::reveal_in_file_manager,
+            commands::open_in_new_window
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -838,6 +994,71 @@ mod tests {
 
         assert!(result.is_ok(), "{:?}", result);
         assert_eq!(fs::read_to_string(&path).unwrap(), "# hello");
+    }
+
+    // ── list_directory_entries (RF-25) ─────────────────────────────────────
+
+    #[test]
+    fn list_directory_entries_sorts_folders_first_then_alphabetical() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_temp_file(tmp.path(), "zebra.md", "# z");
+        write_temp_file(tmp.path(), "apple.png", "");
+        fs::create_dir(tmp.path().join("Beta")).unwrap();
+        fs::create_dir(tmp.path().join("alpha")).unwrap();
+
+        let entries = list_directory_entries(tmp.path());
+
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, vec!["alpha", "Beta", "apple.png", "zebra.md"]);
+    }
+
+    #[test]
+    fn list_directory_entries_flags_markdown_only_on_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_temp_file(tmp.path(), "doc.md", "# hi");
+        write_temp_file(tmp.path(), "notes.TXT", "hi");
+        write_temp_file(tmp.path(), "image.png", "");
+        fs::create_dir(tmp.path().join("docs")).unwrap();
+
+        let entries = list_directory_entries(tmp.path());
+
+        let is_markdown = |name: &str| entries.iter().find(|e| e.name == name).unwrap().is_markdown;
+        assert!(is_markdown("doc.md"));
+        assert!(is_markdown("notes.TXT"), "extension match must be case-insensitive");
+        assert!(!is_markdown("image.png"));
+        assert!(!is_markdown("docs"), "a directory is never is_markdown even if named like one");
+    }
+
+    #[test]
+    fn list_directory_entries_on_missing_dir_returns_empty() {
+        let missing = Path::new("C:\\definitely\\not\\a\\real\\path\\gone");
+        assert_eq!(list_directory_entries(missing).len(), 0);
+    }
+
+    #[test]
+    fn list_directory_rejects_a_file_path() {
+        let tmp = tempfile::tempdir().unwrap();
+        let file = write_temp_file(tmp.path(), "doc.md", "# hi");
+        let result = commands::list_directory(file.to_string_lossy().to_string());
+        assert!(result.is_err(), "a file path is not a directory to list");
+    }
+
+    // ── reveal_command (RF-25) — solo la rama de Windows es testable en este entorno ──
+
+    #[cfg(windows)]
+    #[test]
+    fn reveal_command_selects_file_inside_parent() {
+        let (program, args) = reveal_command("C:\\a\\b.md", false);
+        assert_eq!(program, "explorer");
+        assert_eq!(args, vec!["/select,C:\\a\\b.md".to_string()]);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn reveal_command_opens_directory_directly() {
+        let (program, args) = reveal_command("C:\\a\\b", true);
+        assert_eq!(program, "explorer");
+        assert_eq!(args, vec!["C:\\a\\b".to_string()]);
     }
 
     // ── read_file remote (RF-08A) — requires network, run with `cargo test -- --ignored` ──

@@ -228,10 +228,21 @@
     <!-- Divisor arrastrable de la Tabla de Contenidos -->
     <div id="toc-resizer" class="resizer hidden" data-i18n-title="toc.resizeHandle"></div>
 
-    <!-- TOC Sidebar -->
+    <!-- TOC Sidebar (RF-04) + Explorador de árbol (RF-25), en pestañas dentro del mismo panel -->
     <aside id="toc-sidebar" class="hidden">
-      <h3 class="section-label" data-i18n="toolbar.toc">Tabla de Contenidos</h3>
-      <nav id="toc-list"></nav>
+      <div id="sidebar-tabs">
+        <button id="tab-index" class="sidebar-tab active" data-i18n="sidebar.tabIndex" data-i18n-title="sidebar.tabIndex">Índice</button>
+        <button id="tab-files" class="sidebar-tab" data-i18n="sidebar.tabFiles" data-i18n-title="sidebar.tabFiles">Archivos</button>
+      </div>
+
+      <div id="toc-panel">
+        <nav id="toc-list"></nav>
+      </div>
+
+      <div id="files-panel" class="hidden">
+        <input id="file-tree-filter" class="floating-panel-input" type="text" data-i18n-placeholder="fileTree.filterPlaceholder" placeholder="Filtrar…" autocomplete="off" spellcheck="false" />
+        <div id="file-tree"></div>
+      </div>
     </aside>
 
   </div>
@@ -250,6 +261,21 @@
     <button id="search-prev"  class="btn-icon-sm" data-i18n-title="search.prev">↑</button>
     <button id="search-next"  class="btn-icon-sm" data-i18n-title="search.next">↓</button>
     <button id="search-close" class="btn-icon-sm" data-i18n-title="search.close">✕</button>
+  </div>
+
+  <!-- ─── Selector rápido de archivos (Quick Open, Ctrl/Cmd+K, RF-26) ─────── -->
+  <div id="quick-open-modal" class="modal-overlay hidden">
+    <div id="quick-open-backdrop" class="modal-backdrop"></div>
+    <div id="quick-open-card" class="modal-card">
+      <input id="quick-open-input" class="floating-panel-input" type="text" data-i18n-placeholder="quickOpen.placeholder" placeholder="Ir a archivo…" autocomplete="off" spellcheck="false" />
+      <div id="quick-open-results"></div>
+    </div>
+  </div>
+
+  <!-- ─── Menú contextual sobre un nodo del árbol (RF-25) ─────────────────── -->
+  <div id="tree-context-menu" class="hidden">
+    <button id="tree-open-new-window">🗗 Abrir en ventana nueva</button>
+    <button id="tree-reveal" data-i18n="fileTree.reveal">📂 Revelar en el Explorador</button>
   </div>
 
   <!-- ─── Scripts ───────────────────────────────────────────────────────── -->
@@ -287,5 +313,6 @@
   <script src="vendor/pako_deflate.min.js"></script>
   <script src="i18n.js"></script>
   <script src="app.js"></script>
+  <script src="filetree.js"></script>
 </body>
 </html>

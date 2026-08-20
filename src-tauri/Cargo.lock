@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "dbv-md-reader"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "notify",
  "serde",

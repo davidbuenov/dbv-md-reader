@@ -234,7 +234,11 @@ body {
 }
 
 /* ─── Selector de tema ────────────────────────────────────────────────────── */
-#theme-switcher {
+/* Segmented-control compartido por Temas, Idioma y las pestañas Índice/Archivos
+   (RF-25) — mismo contenedor/botón, cada uno solo aporta su selector propio
+   para el padding/layout que de verdad difiere (ver reglas `#sidebar-tabs`/
+   `.lang-btn`/`.sidebar-tab` más abajo). */
+#theme-switcher, #lang-switcher, #sidebar-tabs {
   display: flex;
   align-items: center;
   background-color: var(--bg-primary);
@@ -244,7 +248,7 @@ body {
   gap: 1px;
 }
 
-.theme-btn {
+.theme-btn, .lang-btn, .sidebar-tab {
   padding: 3px 10px;
   border-radius: 6px;
   font-size: 11px;
@@ -256,41 +260,15 @@ body {
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.theme-btn:hover { color: var(--text-primary); }
-.theme-btn.active {
+.theme-btn:hover, .lang-btn:hover, .sidebar-tab:hover { color: var(--text-primary); }
+.theme-btn.active, .lang-btn.active, .sidebar-tab.active {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
   font-weight: 600;
 }
 
 /* ─── Selector de idioma ──────────────────────────────────────────────────── */
-#lang-switcher {
-  display: flex;
-  align-items: center;
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 2px;
-  gap: 1px;
-}
-
-.lang-btn {
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.lang-btn:hover { color: var(--text-primary); }
-.lang-btn.active {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-  font-weight: 600;
-}
+.lang-btn { padding: 3px 8px; }
 
 /* ─── Layout principal ────────────────────────────────────────────────────── */
 #app-body {
@@ -716,6 +694,50 @@ body {
 #toc-sidebar h3 { margin-bottom: 12px; }
 #toc-list { display: flex; flex-direction: column; gap: 1px; }
 
+/* ─── Pestañas "Índice"/"Archivos" (RF-25) — contenedor/botón compartidos con
+   Temas/Idioma, ver el segmented-control junto a #theme-switcher ── */
+#sidebar-tabs { margin-bottom: 12px; flex-shrink: 0; }
+.sidebar-tab { flex: 1; }
+
+#toc-panel, #files-panel { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+
+/* ─── Explorador de árbol de directorios (RF-25) ──────────────────────────── */
+#file-tree-filter { width: 100%; margin-bottom: 8px; flex-shrink: 0; }
+#file-tree { display: flex; flex-direction: column; }
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 0;
+  border-radius: 5px;
+  font-size: 13px;
+  cursor: default;
+  white-space: nowrap;
+}
+.tree-row.is-dir, .tree-row.is-file { cursor: pointer; }
+.tree-row.is-dir:hover, .tree-row.is-file:hover { background-color: var(--bg-tertiary); }
+.tree-row.is-dimmed { color: var(--text-muted); opacity: 0.6; }
+.tree-row-hidden { display: none; }
+
+.tree-toggle {
+  display: inline-block;
+  width: 12px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.12s;
+}
+.tree-toggle.expanded { transform: rotate(90deg); }
+
+.tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-children { display: flex; flex-direction: column; }
+
 .toc-item-h1 { font-weight: 600; font-size: 13px; color: var(--text-primary); }
 .toc-item-h2 { font-size: 13px; padding-left: 12px; color: var(--text-secondary); }
 .toc-item-h3 { font-size: 12px; padding-left: 24px; color: var(--text-muted); }
@@ -791,7 +813,10 @@ body {
 /* ─── Panel de Archivos Recientes ─────────────────────────────────────────── */
 .recent-wrap { position: relative; }
 
-#mermaid-context-menu {
+/* Menú contextual fijo compartido por Mermaid ("Abrir en mermaid.live") y el
+   árbol de directorios (RF-25, "Revelar en el Explorador"/"Abrir en ventana
+   nueva") — mismo posicionamiento/tarjeta/botón para los dos. */
+#mermaid-context-menu, #tree-context-menu {
   position: fixed;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -800,7 +825,7 @@ body {
   padding: 4px;
   z-index: 200;
 }
-#mermaid-context-menu button {
+#mermaid-context-menu button, #tree-context-menu button {
   display: block;
   width: 100%;
   background: none;
@@ -813,7 +838,43 @@ body {
   cursor: pointer;
   white-space: nowrap;
 }
-#mermaid-context-menu button:hover { background-color: var(--bg-primary); }
+#mermaid-context-menu button:hover, #tree-context-menu button:hover { background-color: var(--bg-primary); }
+
+/* ─── Quick Open (RF-26, Ctrl/Cmd+K) — reutiliza la cáscara .modal-* compartida ── */
+#quick-open-modal { z-index: 200; align-items: flex-start; }
+#quick-open-card {
+  margin-top: 100px;
+  width: 480px;
+  max-width: calc(100vw - 40px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#quick-open-input { width: 100%; }
+#quick-open-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.quick-open-item {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.quick-open-item:hover, .quick-open-item.active { background-color: var(--bg-tertiary); }
+.quick-open-item-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.quick-open-item-path {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 #recent-panel {
   position: absolute;

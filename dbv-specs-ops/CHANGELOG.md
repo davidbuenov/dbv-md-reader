@@ -5,6 +5,17 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.13.0] - 2026-08-20
+
+### Añadido
+- **RF-25 — Explorador de árbol de directorios**: nueva pestaña "Archivos" junto al Índice de encabezados, en el mismo panel lateral. La raíz sigue siempre a la carpeta del documento activo (o la del último archivo de Recientes si se arranca sin ninguno abierto); carpetas expandibles bajo demanda, filtro de texto, y archivos que no son `.md` visibles pero no clicables. Clic simple abre en la misma ventana; `Ctrl/Cmd+clic` lo abre en una ventana nueva. Arrastrar una carpeta (no solo un `.md`) sobre la ventana la fija como raíz. Menú contextual (clic derecho) con "Revelar en el Explorador de archivos" y "Abrir en ventana nueva".
+- **RF-26 — Selector rápido de archivos (Quick Open, `Ctrl/Cmd+K`)**: cuadro de búsqueda flotante que filtra por nombre entre los `.md` ya cargados en el árbol; `Enter` abre en la ventana actual, `Ctrl/Cmd+Enter` en una nueva.
+
+### Corregido
+- **Ventana nueva en blanco/colgada al abrir un archivo con `Ctrl+clic` (RF-25/RF-26)**: un comando de Tauri síncrono se despacha ya sobre el hilo principal en esta versión, así que invocar `run_on_main_thread` directamente desde ahí lo ejecutaba de forma reentrante — la ventana nueva se creaba anidada dentro del propio despacho del mensaje que la originó, y quedaba colgada para siempre. Detectado por el usuario probando la función en real. Corregido forzando el despacho desde un hilo genuinamente distinto (`tauri::async_runtime::spawn`).
+
+---
+
 ## [0.12.0] - 2026-08-19
 
 ### Añadido
