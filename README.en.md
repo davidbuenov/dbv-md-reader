@@ -373,6 +373,7 @@ Thanks to everyone who has helped by testing the app, finding bugs and suggestin
 - José M. Alarcón Aguín
 - Victor Estival
 - Julio Lorca
+- Juan Ignacio Caballero — suggested the idea for the Directory Tree Explorer (RF-25/v0.13.0) in [Issue #5](https://github.com/davidbuenov/dbv-md-reader/issues/5).
 
 ### 🤖 Built with AI
 
