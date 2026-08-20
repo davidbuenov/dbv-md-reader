@@ -584,7 +584,15 @@ body {
 
 .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
-.markdown-body img { max-width: 100%; border-radius: 8px; margin: 16px 0; display: block; }
+.markdown-body img { max-width: 100%; border-radius: 8px; vertical-align: middle; }
+
+/* Solo la imagen "suelta" (única en su párrafo) se centra como bloque; varias
+   imágenes seguidas (p.ej. badges) se quedan inline y fluyen como en GitHub/VS Code. */
+.markdown-body p > img:only-child,
+.markdown-body p > a:only-child > img:only-child {
+  display: block;
+  margin: 16px 0;
+}
 
 /* ─── Código ──────────────────────────────────────────────────────────────── */
 .markdown-body code {
