@@ -5,6 +5,22 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.13.1] - 2026-08-20
+
+### Añadido
+- **Alertas / callouts al estilo GitHub**: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]` se renderizan como recuadros con icono y color por tipo (mismos tonos que GitHub), en los tres temas. Antes se mostraban como una cita normal con el marcador `[!NOTE]` como texto literal — la sintaxis ya estaba documentada en la ayuda integrada, pero nunca se había implementado.
+- **Indicador "Modificado"** junto al nombre del documento en Modo Edición: aparece en cuanto hay cambios sin guardar y desaparece al guardar o salir del modo edición (badge compartido con "Solo lectura", `.header-badge`).
+- **Confirmación al descartar cambios sin guardar**: cerrar la ventana, salir de Modo Edición (`Ctrl+E`) o navegar a otro documento con cambios sin guardar ahora pregunta antes de descartarlos — modal propio coherente con el resto de la interfaz, con las mismas dos opciones en los tres casos.
+- **Tabla de atajos de teclado y ratón**: nueva sección en la ayuda integrada (`src/markdownhelp_{es,en}.md`) y en el `README`, con los atajos existentes documentados por primera vez en un solo sitio.
+
+### Corregido
+- **Cierre de la ventana sin preguntar pese a tener cambios sin guardar (pérdida de datos real)**: tres bugs encadenados. (1) faltaba el permiso `core:window:allow-destroy` — sin él, Tauri no podía completar el cierre tras `onCloseRequested` y la ventana quedaba bloqueada sin poder cerrarse en absoluto. (2) `window.confirm()` en este WebView2 no es síncrono como en un navegador normal, sino que devuelve una promesa — tratarlo como booleano hacía que el guardián de cierre nunca esperase la respuesta real. (3) el propio `window.confirm()` resultó ser irrecuperable: el script de inicialización de `tauri-plugin-dialog` 2.7.2 lo redefine para invocar el comando `plugin:dialog|confirm`, que ya no existe en el lado Rust de esa versión del plugin (se fusionó con `message`, sin actualizar el script de JS) — ningún permiso lo arregla porque el comando no existe. Sustituido por un modal propio.
+- **Enlaces internos rotos hacia encabezados con tilde/ñ**: el navegador serializa el `href` de un enlace `#ancla-con-acentos` con los caracteres no-ASCII percent-encoded (`é` → `%C3%A9`), pero el `id` real del encabezado se queda como texto Unicode literal — la comparación nunca coincidía. Corregido decodificando el fragmento antes de buscar el elemento.
+- **Enlaces internos rotos hacia encabezados con "/" en el título** (p. ej. "Alertas / callouts"): el generador de slugs propio colapsaba guiones consecutivos y recortaba espacios sobrantes tras quitar un emoji — GitHub no hace ninguna de las dos cosas. Corregido para igualar el comportamiento real de GitHub; de paso arregla 6 enlaces del propio `README.md`/`README.en.md` que llevaban rotos desde antes de esta versión por el mismo motivo (emoji al inicio del encabezado).
+- **La ayuda integrada no reflejaba ediciones del fichero mientras la app seguía abierta**: se leía una sola vez por idioma y sesión de ventana. Ahora relee del disco en cada apertura (el parseo/renderizado completo solo se repite si el contenido cambió de verdad, no en cada clic).
+
+---
+
 ## [0.13.0] - 2026-08-20
 
 ### Añadido

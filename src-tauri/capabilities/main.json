@@ -6,7 +6,9 @@
   "permissions": [
     "core:default",
     "core:window:allow-set-always-on-top",
+    "core:window:allow-destroy",
     "dialog:allow-open",
+    "dialog:allow-message",
     "shell:allow-open",
     "updater:default",
     "process:allow-restart",

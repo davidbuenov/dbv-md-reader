@@ -26,7 +26,8 @@
       <div class="toolbar-divider"></div>
       <span id="doc-breadcrumb" title="">Sin documento abierto</span>
       <span id="doc-reading-time" class="hidden"></span>
-      <span id="doc-readonly-badge" class="hidden" data-i18n="doc.readOnly">Solo lectura</span>
+      <span id="doc-readonly-badge" class="header-badge hidden" data-i18n="doc.readOnly">Solo lectura</span>
+      <span id="doc-modified-badge" class="header-badge hidden" data-i18n="doc.modified">Modificado</span>
     </div>
 
     <!-- Right: Acciones + Tema + TOC -->
@@ -139,6 +140,19 @@
       <div class="conflict-actions">
         <button id="conflict-keep" class="btn-secondary" data-i18n="editor.conflictKeep">Conservar mis cambios</button>
         <button id="conflict-reload" class="btn-primary" data-i18n="editor.conflictReload">Recargar desde disco</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Modal de confirmación al descartar cambios sin guardar ─────────── -->
+  <div id="discard-modal" class="modal-overlay hidden">
+    <div class="modal-backdrop"></div>
+    <div id="discard-card" class="modal-card">
+      <h2 data-i18n="editor.confirmDiscardTitle">Cambios sin guardar</h2>
+      <p data-i18n="editor.confirmDiscardBody">Tienes cambios sin guardar en este documento. Si continúas, se perderán.</p>
+      <div class="modal-actions">
+        <button id="discard-cancel" class="btn-secondary" data-i18n="editor.confirmDiscardCancel">Seguir editando</button>
+        <button id="discard-confirm" class="btn-primary" data-i18n="editor.confirmDiscardOk">Descartar cambios</button>
       </div>
     </div>
   </div>

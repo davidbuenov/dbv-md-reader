@@ -30,6 +30,7 @@
 - [20. Alertas / callouts al estilo GitHub](#20-alertas--callouts-al-estilo-github)
 - [21. Menciones y referencias a issues (solo texto)](#21-menciones-y-referencias-a-issues-solo-texto)
 - [22. Buenas prácticas y trucos](#22-buenas-prácticas-y-trucos)
+- [23. Atajos de teclado de la aplicación](#23-atajos-de-teclado-de-la-aplicación)
 
 ---
 
@@ -513,6 +514,36 @@ propietario/repo#123 → referencia cruzada a otro repositorio (solo activa en G
 - Para tablas grandes, herramientas online tipo "Markdown Table Generator" ayudan a alinear columnas — aunque el espaciado visual en el `.md` es solo estético, no afecta al renderizado.
 - Guarda siempre el fichero en codificación **UTF-8** (sin BOM) para evitar problemas con tildes, `ñ` y emojis.
 - Si necesitas mostrar acentos graves literales dentro de un bloque de código (` ``` `), abre el bloque exterior con más acentos graves de los que uses dentro (por ejemplo, 4 backticks para envolver un bloque que ya contiene 3).
+
+---
+
+## 23. Atajos de teclado de la aplicación
+
+Esto ya no es sintaxis Markdown, sino los atajos de teclado de **DBV Markdown Reader** en sí — mismo `Ctrl` en Windows/Linux y `Cmd` en macOS.
+
+| Atajo | Acción |
+| --- | --- |
+| `Ctrl/Cmd + O` | Abrir archivo |
+| `Ctrl/Cmd + F` | Buscar en el documento |
+| `Ctrl/Cmd + K` | Quick Open — saltar a un archivo por nombre |
+| `Ctrl/Cmd + E` | Alternar Modo Edición |
+| `Ctrl/Cmd + S` | Guardar (en Modo Edición) |
+| `Ctrl/Cmd + B` | Negrita (con el cursor en el editor) |
+| `Ctrl/Cmd + I` | Cursiva (con el cursor en el editor) |
+| `Tab` / `Shift + Tab` | Indentar / desindentar la línea o selección (en el editor) |
+| `Ctrl/Cmd + P` | Imprimir / exportar a PDF |
+| `Ctrl/Cmd + +` / `Ctrl/Cmd + -` | Acercar / alejar zoom |
+| `Ctrl/Cmd + 0` | Restablecer zoom |
+| `Alt + ←` / `Alt + →` | Atrás / adelante en el historial de navegación |
+| `Inicio` / `Fin` | Ir al principio / final del documento (fuera de un campo de texto) |
+| `Esc` | Cerrar el panel o modal abierto |
+| `↑` `↓` `Enter` | Navegar y abrir un resultado (con Quick Open o la búsqueda abiertos) |
+
+**Ratón:**
+
+- Doble clic sobre una palabra en el editor la selecciona — lista para aplicarle negrita/cursiva con `Ctrl/Cmd + B` / `Ctrl/Cmd + I`.
+- Clic derecho sobre un diagrama Mermaid → «Abrir en mermaid.live».
+- Clic derecho sobre un archivo o carpeta del árbol → «Abrir en ventana nueva» / «Revelar en el Explorador».
 
 ---
 

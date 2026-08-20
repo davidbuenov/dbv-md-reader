@@ -28,15 +28,16 @@
 - [Descárgalo e instálalo](#-descárgalo-e-instálalo)
 - [Linux](#-linux)
 - [macOS](#-macos)
-- [Sobre el proyecto](#sobre-el-proyecto)
-- [Características Principales](#características-principales)
+- [Sobre el proyecto](#-sobre-el-proyecto)
+- [Características Principales](#-características-principales)
+- [Atajos de teclado](#-atajos-de-teclado)
 - [Para desarrolladores](#-para-desarrolladores)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [Changelog](#changelog)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Changelog](#-changelog)
 - [Contribuir](#-contribuir)
 - [Curiosidad: candidato a PowerToys](#-curiosidad-candidato-natural-a-microsoft-powertoys)
-- [Licencia](#licencia)
-- [Autor y Créditos](#autor-y-créditos)
+- [Licencia](#-licencia)
+- [Autor y Créditos](#-autor-y-créditos)
 
 ---
 
@@ -191,6 +192,29 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Buscar actualizaciones:** Botón en el panel "Acerca de" — nunca se comprueba al arrancar (arranque instantáneo intacto). Si hay una versión nueva, se puede instalar en un clic sin salir de la app.
 
 > 🧪 **¿Quieres ver todo esto en acción sin buscar tus propios archivos?** Abre cualquiera de los ficheros de [`testfiles/`](testfiles/) (`demo-funcionalidades_es.md` / `demo-funcionalidades_en.md`) — un único documento con resaltado de sintaxis en 8 lenguajes, un diagrama Mermaid, ecuaciones KaTeX y una tabla, pensado para probar o mostrar de un vistazo las funcionalidades del lector.
+
+---
+
+## ⌨️ Atajos de teclado
+
+| Atajo | Acción |
+| --- | --- |
+| `Ctrl/Cmd + O` | Abrir archivo |
+| `Ctrl/Cmd + F` | Buscar en el documento |
+| `Ctrl/Cmd + K` | Quick Open — saltar a un archivo por nombre |
+| `Ctrl/Cmd + E` | Alternar Modo Edición |
+| `Ctrl/Cmd + S` | Guardar (en Modo Edición) |
+| `Ctrl/Cmd + B` / `Ctrl/Cmd + I` | Negrita / cursiva (con el cursor en el editor) |
+| `Tab` / `Shift + Tab` | Indentar / desindentar la línea o selección (en el editor) |
+| `Ctrl/Cmd + P` | Imprimir / exportar a PDF |
+| `Ctrl/Cmd + +` / `-` / `0` | Acercar / alejar / restablecer zoom |
+| `Alt + ←` / `Alt + →` | Atrás / adelante en el historial de navegación |
+| `Inicio` / `Fin` | Ir al principio / final del documento (fuera de un campo de texto) |
+| `Esc` | Cerrar el panel o modal abierto |
+
+**Ratón:** doble clic sobre una palabra en el editor la selecciona (lista para `Ctrl/Cmd + B` / `I`); clic derecho sobre un diagrama Mermaid abre "mermaid.live"; clic derecho sobre un archivo/carpeta del árbol ofrece "Abrir en ventana nueva" / "Revelar en el Explorador".
+
+> La lista completa, con la navegación por teclado de Quick Open y la búsqueda, está también en la ayuda integrada de la app (botón «?» en Modo Edición).
 
 ---
 

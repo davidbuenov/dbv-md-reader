@@ -30,13 +30,14 @@
 - [macOS](#-macos)
 - [About the project](#-about-the-project)
 - [Key Features](#-key-features)
+- [Keyboard Shortcuts](#-keyboard-shortcuts)
 - [For developers](#-for-developers)
 - [Project Structure](#-project-structure)
 - [Changelog](#-changelog)
 - [Contributing](#-contributing)
 - [Fun fact: a natural fit for Microsoft PowerToys](#-fun-fact-a-natural-fit-for-microsoft-powertoys)
 - [License](#-license)
-- [Author & Credits](#author--credits)
+- [Author & Credits](#-author--credits)
 
 ---
 
@@ -191,6 +192,29 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 - **Check for updates:** button in the "About" panel — never checked automatically at startup (instant launch stays intact). If a new version is available, it can be installed in one click without leaving the app.
 
 > 🧪 **Want to see all of this in action without hunting for your own files?** Open any of the files in [`testfiles/`](testfiles/) (`demo-funcionalidades_es.md` / `demo-funcionalidades_en.md`) — a single document with syntax highlighting in 8 languages, a Mermaid diagram, KaTeX equations and a table, designed to try or showcase the reader's features at a glance.
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl/Cmd + O` | Open file |
+| `Ctrl/Cmd + F` | Search within the document |
+| `Ctrl/Cmd + K` | Quick Open — jump to a file by name |
+| `Ctrl/Cmd + E` | Toggle Edit Mode |
+| `Ctrl/Cmd + S` | Save (in Edit Mode) |
+| `Ctrl/Cmd + B` / `Ctrl/Cmd + I` | Bold / italic (with the cursor in the editor) |
+| `Tab` / `Shift + Tab` | Indent / outdent the line or selection (in the editor) |
+| `Ctrl/Cmd + P` | Print / export to PDF |
+| `Ctrl/Cmd + +` / `-` / `0` | Zoom in / out / reset |
+| `Alt + ←` / `Alt + →` | Back / forward in navigation history |
+| `Home` / `End` | Jump to the beginning / end of the document (outside a text field) |
+| `Esc` | Close the open panel or modal |
+
+**Mouse:** double-clicking a word in the editor selects it (ready for `Ctrl/Cmd + B` / `I`); right-clicking a Mermaid diagram opens "mermaid.live"; right-clicking a file/folder in the tree offers "Open in new window" / "Reveal in File Explorer".
+
+> The full list, including keyboard navigation for Quick Open and search, also lives in the app's built-in help (the "?" button in Edit Mode).
 
 ---
 

@@ -30,6 +30,7 @@
 - [20. GitHub-style alerts / callouts](#20-github-style-alerts--callouts)
 - [21. Mentions and issue references (text only)](#21-mentions-and-issue-references-text-only)
 - [22. Best practices and tips](#22-best-practices-and-tips)
+- [23. Application keyboard shortcuts](#23-application-keyboard-shortcuts)
 
 ---
 
@@ -518,6 +519,36 @@ owner/repo#123     → cross-repository reference (only active on GitHub)
 - For large tables, online tools like "Markdown Table Generator" help align columns — although visual spacing in the `.md` is purely cosmetic and doesn't affect rendering.
 - Always save the file as **UTF-8** (without BOM) to avoid issues with accented characters and emoji.
 - If you need to show literal backticks inside a code block (` ``` `), wrap the outer block with more backticks than you use inside (e.g. 4 backticks to wrap a block that already contains 3).
+
+---
+
+## 23. Application keyboard shortcuts
+
+This isn't Markdown syntax anymore, but the keyboard shortcuts of **DBV Markdown Reader** itself — same `Ctrl` on Windows/Linux and `Cmd` on macOS.
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl/Cmd + O` | Open file |
+| `Ctrl/Cmd + F` | Search within the document |
+| `Ctrl/Cmd + K` | Quick Open — jump to a file by name |
+| `Ctrl/Cmd + E` | Toggle Edit Mode |
+| `Ctrl/Cmd + S` | Save (in Edit Mode) |
+| `Ctrl/Cmd + B` | Bold (with the cursor in the editor) |
+| `Ctrl/Cmd + I` | Italic (with the cursor in the editor) |
+| `Tab` / `Shift + Tab` | Indent / outdent the line or selection (in the editor) |
+| `Ctrl/Cmd + P` | Print / export to PDF |
+| `Ctrl/Cmd + +` / `Ctrl/Cmd + -` | Zoom in / out |
+| `Ctrl/Cmd + 0` | Reset zoom |
+| `Alt + ←` / `Alt + →` | Back / forward in navigation history |
+| `Home` / `End` | Jump to the beginning / end of the document (outside a text field) |
+| `Esc` | Close the open panel or modal |
+| `↑` `↓` `Enter` | Navigate and open a result (with Quick Open or search open) |
+
+**Mouse:**
+
+- Double-clicking a word in the editor selects it — ready to apply bold/italic with `Ctrl/Cmd + B` / `Ctrl/Cmd + I`.
+- Right-click on a Mermaid diagram → "Open in mermaid.live".
+- Right-click on a file or folder in the tree → "Open in new window" / "Reveal in File Explorer".
 
 ---
 

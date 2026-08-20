@@ -30,6 +30,12 @@
   --code-tag:      #e2777a;
   --code-class:    #f8c555;
   --code-operator: #67cdcc;
+  /* Alertas GFM (> [!NOTE] etc.) — mismos tonos que usa GitHub en tema oscuro */
+  --alert-note:      #58a6ff;
+  --alert-tip:       #3fb950;
+  --alert-important: #a371f7;
+  --alert-warning:   #d29922;
+  --alert-caution:   #f85149;
 }
 
 [data-theme="light"] {
@@ -54,6 +60,12 @@
   --code-tag:      #116329;
   --code-class:    #953800;
   --code-operator: #24292f;
+  /* Alertas GFM (> [!NOTE] etc.) — mismos tonos que usa GitHub en tema claro */
+  --alert-note:      #0969da;
+  --alert-tip:       #1a7f37;
+  --alert-important: #8250df;
+  --alert-warning:   #9a6700;
+  --alert-caution:   #cf222e;
 }
 
 [data-theme="sepia"] {
@@ -78,6 +90,12 @@
   --code-tag:      #7a4419;
   --code-class:    #b3701f;
   --code-operator: #6b5240;
+  /* Alertas GFM (> [!NOTE] etc.) — mismos tonos que usa GitHub en tema claro */
+  --alert-note:      #0969da;
+  --alert-tip:       #1a7f37;
+  --alert-important: #8250df;
+  --alert-warning:   #9a6700;
+  --alert-caution:   #cf222e;
 }
 
 /* ─── Reset / Base ────────────────────────────────────────────────────────── */
@@ -153,20 +171,24 @@ body {
   flex-shrink: 0;
 }
 
-/* Documento remoto sin guardado posible (RF-08A/RF-20) */
-#doc-readonly-badge {
+/* Etiquetas junto al nombre del documento (Solo lectura / Modificado) —
+   mismo formato compartido, cada una solo aporta su color vía --badge-color. */
+.header-badge {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted);
+  color: var(--badge-color, var(--text-muted));
   background-color: var(--bg-tertiary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--badge-color, var(--border));
   border-radius: 5px;
   padding: 2px 6px;
   white-space: nowrap;
   flex-shrink: 0;
 }
+/* Documento remoto sin guardado posible (RF-08A/RF-20): usa el borde/color muted por defecto. */
+/* Modo Edición con cambios sin guardar (RF-20/RF-21): color de alerta "warning" para que se note que hay algo pendiente de guardar. */
+#doc-modified-badge { --badge-color: var(--alert-warning); }
 
 /* ─── Barra de progreso de lectura (borde inferior de la cabecera) ─────────── */
 #reading-progress {
@@ -409,7 +431,17 @@ body {
 #conflict-card { padding: 28px 32px; max-width: 380px; text-align: center; }
 #conflict-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
 #conflict-card p { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
-.conflict-actions { display: flex; gap: 10px; justify-content: center; }
+.conflict-actions, .modal-actions { display: flex; gap: 10px; justify-content: center; }
+
+/* Confirmación al descartar cambios sin guardar — máxima prioridad de las
+   ventanas modales: sustituye al diálogo nativo de window.confirm() (roto en
+   esta versión de tauri-plugin-dialog, ver comentario junto a
+   confirmDiscardUnsavedChanges en app.js) con uno propio, coherente con el
+   resto de la interfaz en vez del feo diálogo del sistema operativo. */
+#discard-modal { z-index: 400; }
+#discard-card { padding: 28px 32px; max-width: 380px; text-align: center; }
+#discard-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 10px; color: var(--alert-warning); }
+#discard-card p { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
 
 /* ─── Estado vacío ────────────────────────────────────────────────────────── */
 #empty-state {
@@ -486,7 +518,7 @@ body {
    dentro del contenedor más ancho. Los bloques "anchos" (código, tablas, Mermaid)
    no llevan este límite. */
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6,
-.markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body blockquote {
+.markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body blockquote, .markdown-body .markdown-alert {
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
@@ -519,6 +551,32 @@ body {
   border-radius: 0 6px 6px 0;
   color: var(--text-secondary);
 }
+
+/* ─── Alertas GFM (> [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION]) ─ */
+.markdown-body .markdown-alert {
+  margin-bottom: 16px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--alert-color, var(--accent));
+  background-color: var(--quote-bg);
+  border-radius: 0 6px 6px 0;
+  color: var(--text-primary);
+}
+.markdown-body .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--alert-color, var(--accent));
+  margin-bottom: 8px;
+}
+.markdown-body .markdown-alert-title svg { flex-shrink: 0; }
+.markdown-body .markdown-alert > :last-child { margin-bottom: 0; }
+.markdown-body .markdown-alert-note      { --alert-color: var(--alert-note); }
+.markdown-body .markdown-alert-tip       { --alert-color: var(--alert-tip); }
+.markdown-body .markdown-alert-important { --alert-color: var(--alert-important); }
+.markdown-body .markdown-alert-warning   { --alert-color: var(--alert-warning); }
+.markdown-body .markdown-alert-caution   { --alert-color: var(--alert-caution); }
 
 .markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
 .markdown-body th, .markdown-body td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
@@ -1058,7 +1116,7 @@ body.drag-over #reader-container {
 
 @media print {
   #app-header, #toc-sidebar, #search-modal, #recent-panel, #about-modal, #url-panel, .code-actions, #error-panel,
-  #editor-pane, #conflict-banner, #conflict-modal, #help-modal {
+  #editor-pane, #conflict-banner, #conflict-modal, #help-modal, #discard-modal {
     display: none !important;
   }
   body, #app-body, #reader-container {
@@ -1072,7 +1130,7 @@ body.drag-over #reader-container {
 
   /* Paginación: evita títulos huérfanos y bloques partidos a mitad de página */
   h1, h2, h3, h4, h5, h6 { page-break-after: avoid; break-after: avoid; }
-  table, pre, .mermaid-container, .katex-display, blockquote, img {
+  table, pre, .mermaid-container, .katex-display, blockquote, .markdown-alert, img {
     page-break-inside: avoid;
     break-inside: avoid;
   }
