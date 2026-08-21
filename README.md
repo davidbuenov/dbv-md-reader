@@ -30,6 +30,7 @@
 - [macOS](#-macos)
 - [Sobre el proyecto](#-sobre-el-proyecto)
 - [Características Principales](#-características-principales)
+- [Plantillas incluidas](#-plantillas-incluidas)
 - [Atajos de teclado](#-atajos-de-teclado)
 - [Para desarrolladores](#-para-desarrolladores)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
@@ -192,6 +193,14 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Buscar actualizaciones:** Botón en el panel "Acerca de" — nunca se comprueba al arrancar (arranque instantáneo intacto). Si hay una versión nueva, se puede instalar en un clic sin salir de la app.
 
 > 🧪 **¿Quieres ver todo esto en acción sin buscar tus propios archivos?** Abre cualquiera de los ficheros de [`testfiles/`](testfiles/) (`demo-funcionalidades_es.md` / `demo-funcionalidades_en.md`) — un único documento con resaltado de sintaxis en 8 lenguajes, un diagrama Mermaid, ecuaciones KaTeX y una tabla, pensado para probar o mostrar de un vistazo las funcionalidades del lector.
+
+---
+
+## 📁 Plantillas incluidas
+
+El repositorio incluye una carpeta [`templates/`](templates/) con **20 plantillas Markdown listas para usar**, en español e inglés, agrupadas por categoría (Académico, Desarrollo de software, Gestión de proyectos, Reuniones y equipos, Personal — desde actas de reunión y seguimiento de TFG hasta un CV o un itinerario de viaje). Cópialas con otro nombre y ábrelas con **DBV Markdown Reader** en Modo Edición.
+
+**[📋 Ver el índice completo de plantillas](templates/README.md)**
 
 ---
 

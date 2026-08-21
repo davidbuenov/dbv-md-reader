@@ -195,6 +195,14 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 
 ---
 
+## 📁 Included Templates
+
+The repository includes a [`templates/`](templates/) folder with **20 ready-to-use Markdown templates**, in Spanish and English, grouped by category (Academic, Software development, Project management, Meetings & teams, Personal — everything from meeting minutes and thesis supervision logs to a CV or a travel itinerary). Copy them under a new name and open them with **DBV Markdown Reader** in Edit Mode.
+
+**[📋 See the full template index](templates/README.md)**
+
+---
+
 ## ⌨️ Keyboard Shortcuts
 
 | Shortcut | Action |
