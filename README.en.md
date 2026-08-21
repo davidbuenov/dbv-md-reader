@@ -4,6 +4,7 @@
 
 [![Release](https://img.shields.io/github/v/release/davidbuenov/dbv-md-reader?display_name=tag&sort=semver)](https://github.com/davidbuenov/dbv-md-reader/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-available-0078D4?logo=microsoft&logoColor=white)](https://apps.microsoft.com/detail/9n7bmdzgcp0s)
+[![Uptodown](https://img.shields.io/badge/Uptodown-macOS-1AAFD0)](https://dbv-markdown-reader.uptodown.com/mac)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Rust](https://img.shields.io/badge/Rust-1.76+-000000?logo=rust&logoColor=white)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)
@@ -26,8 +27,9 @@
 ## 📑 Table of Contents
 
 - [Download & Install](#-download--install)
-- [Linux](#-linux)
-- [macOS](#-macos)
+  - [Windows](#-windows)
+  - [Linux](#-linux)
+  - [macOS](#-macos)
 - [About the project](#-about-the-project)
 - [Key Features](#-key-features)
 - [Keyboard Shortcuts](#-keyboard-shortcuts)
@@ -45,13 +47,15 @@
 
 **You don't need to install Rust, Node.js, or any development tooling.** The **DBV Markdown Reader** installer bundles everything it needs — including Windows' own rendering engine (WebView2) — and associates `.md` files with itself automatically.
 
-### 🏬 Microsoft Store (recommended on Windows 11)
+### 🪟 Windows
+
+#### 🏬 Microsoft Store (recommended on Windows 11)
 
 **[🛒 Get it on Microsoft Store](https://apps.microsoft.com/detail/9n7bmdzgcp0s)**
 
 The preferred route on Windows 11: the package is signed by the Store itself (no SmartScreen warning like the `.exe` gets), installs in one click, and updates itself. If you'd rather not use the Store, or you're on Windows 10, use the `.exe` installer below.
 
-### 1️⃣ Download (`.exe` installer)
+#### 1️⃣ Download (`.exe` installer)
 
 **[⬇️ See all versions (Releases)](https://github.com/davidbuenov/dbv-md-reader/releases)**
 
@@ -59,7 +63,7 @@ Download the installer for the latest version: `dbv-markdown-reader_x.y.z_x64-se
 
 Your browser may warn that the file "isn't commonly downloaded" or "isn't trusted" (Microsoft Edge/Chrome SmartScreen). This is normal for new installers without a commercial code-signing certificate: in Edge, open the downloads panel and click **Show more → Keep** (or **Keep anyway**).
 
-### 2️⃣ Install
+#### 2️⃣ Install
 
 Double-click the downloaded installer. It doesn't require administrator permissions (it installs for your user only) nor an internet connection during setup — the required WebView2 runtime already ships inside. Windows may also show an "Unrecognized publisher" warning when you run it — click **More info → Run anyway**.
 
@@ -72,16 +76,14 @@ You can change this at any time from Windows' **Settings → Apps → Default ap
 
 > If you had a previous version installed with a different (or no) `.md` association screen, and the "Open with" menu still shows a duplicate entry or the old icon, uninstall the previous version first from "Installed apps" in Windows, then install the new one — earlier versions used a different internal identifier that the uninstaller doesn't automatically clean up between versions.
 
-### 3️⃣ Update
+#### 3️⃣ Update
 
 From here on you don't need to come back to this page for every new version. Open the **About** panel (ⓘ icon in the top bar) and click **Check for updates**. The check is always on-demand — it never runs on its own at startup, so it doesn't affect the app's instant launch.
 
 - If you already have the latest version: **"You already have the latest version."**
 - If a new one is available: **"New version X.Y.Z available."** and the button becomes **Update** — one click downloads, installs and restarts the app for you, without leaving **DBV Markdown Reader**, your browser, or the Releases page.
 
----
-
-## 🐧 Linux
+### 🐧 Linux
 
 **[⬇️ Download the `.deb` or the `.AppImage` from Releases](https://github.com/davidbuenov/dbv-md-reader/releases)** — built automatically for every version.
 
@@ -90,9 +92,13 @@ From here on you don't need to come back to this page for every new version. Ope
 
 > **Note:** the Linux channel doesn't have built-in update checking yet (the "Check for updates" button in the "About" panel) — download the new version from Releases whenever you want to update.
 
----
+### 🍎 macOS
 
-## 🍎 macOS
+#### 🟢 Uptodown (recommended on macOS)
+
+**[⬇️ Get it on Uptodown](https://dbv-markdown-reader.uptodown.com/mac)**
+
+Via Uptodown you download the `.dmg` directly from their website, without going through GitHub's Releases page. It's still unsigned and non-notarized by Apple (see the warning below), but it's the simplest way to find the latest version without having to browse GitHub.
 
 **[⬇️ Download the `.dmg` from Releases](https://github.com/davidbuenov/dbv-md-reader/releases)** — generated automatically for every version via CI (see below).
 
@@ -304,7 +310,7 @@ Unlike Windows, the `.deb` and `.AppImage` for Linux are **not built by hand**: 
 Same as Linux, the `.dmg` and `.app` for macOS are **not built by hand**: `.github/workflows/release-macos.yml` builds them automatically on a `macos-latest` runner, without Apple signing or notarization (same reason as the local build — see the [🍎 macOS](#-macos) section).
 
 - Same behavior as `release-linux.yml`: triggers on its own on `git push --tags`, uploads the artifacts as a draft (or joins an already-published Release via `workflow_dispatch` + `draft: false`).
-- The unsigned `.dmg` generated here is also the artifact meant for publishing on [Uptodown](https://uptodown.com/) (unlike Microsoft Store or the Mac App Store, it doesn't require Apple signing) — the upload to Uptodown itself is manual, via their [editors panel](https://support.uptodown.com/hc/es/articles/360053260491).
+- The unsigned `.dmg` generated here is also the artifact published on [Uptodown](https://dbv-markdown-reader.uptodown.com/mac) (unlike Microsoft Store or the Mac App Store, it doesn't require Apple signing) — updating each new version on Uptodown is manual, via their [editors panel](https://support.uptodown.com/hc/es/articles/360053260491).
 
 ---
 

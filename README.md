@@ -4,6 +4,7 @@
 
 [![Release](https://img.shields.io/github/v/release/davidbuenov/dbv-md-reader?display_name=tag&sort=semver)](https://github.com/davidbuenov/dbv-md-reader/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-disponible-0078D4?logo=microsoft&logoColor=white)](https://apps.microsoft.com/detail/9n7bmdzgcp0s)
+[![Uptodown](https://img.shields.io/badge/Uptodown-macOS-1AAFD0)](https://dbv-markdown-reader.uptodown.com/mac)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Rust](https://img.shields.io/badge/Rust-1.76+-000000?logo=rust&logoColor=white)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)
@@ -26,8 +27,9 @@
 ## 📑 Índice
 
 - [Descárgalo e instálalo](#-descárgalo-e-instálalo)
-- [Linux](#-linux)
-- [macOS](#-macos)
+  - [Windows](#-windows)
+  - [Linux](#-linux)
+  - [macOS](#-macos)
 - [Sobre el proyecto](#-sobre-el-proyecto)
 - [Características Principales](#-características-principales)
 - [Plantillas incluidas](#-plantillas-incluidas)
@@ -46,13 +48,15 @@
 
 **No necesitas instalar Rust, Node.js, ni ninguna herramienta de programación.** El instalador de **DBV Markdown Reader** trae todo lo necesario —incluido el motor de renderizado de Windows (WebView2)— y asocia los archivos `.md` contigo automáticamente.
 
-### 🏬 Microsoft Store (recomendado en Windows 11)
+### 🪟 Windows
+
+#### 🏬 Microsoft Store (recomendado en Windows 11)
 
 **[🛒 Consíguelo en Microsoft Store](https://apps.microsoft.com/detail/9n7bmdzgcp0s)**
 
 Es la vía preferente para Windows 11: el paquete lo firma la propia Store (sin el aviso de SmartScreen del `.exe`), se instala con un clic y se actualiza solo. Si prefieres no usar la Store, o vas en Windows 10, usa el instalador `.exe` de abajo.
 
-### 1️⃣ Descarga (instalador `.exe`)
+#### 1️⃣ Descarga (instalador `.exe`)
 
 **[⬇️ Ver todas las versiones (Releases)](https://github.com/davidbuenov/dbv-md-reader/releases)**
 
@@ -60,7 +64,7 @@ Descarga el instalador de la última versión: `dbv-markdown-reader_x.y.z_x64-se
 
 El navegador puede avisar de que el archivo "no se descarga habitualmente" o "no es de confianza" (SmartScreen de Microsoft Edge/Chrome). Es normal en instaladores nuevos y sin firma comercial: en Edge, abre el panel de descargas y pulsa **Mostrar más → Mantener** (o **Conservar de todos modos**).
 
-### 2️⃣ Instala
+#### 2️⃣ Instala
 
 Haz doble clic sobre el instalador descargado. No requiere permisos de administrador (se instala solo para tu usuario) ni conexión a internet durante la instalación —el WebView2 necesario ya viaja incluido—. Windows puede mostrar también un aviso de "Editor no reconocido" al ejecutarlo — pulsa **Más información → Ejecutar de todas formas**.
 
@@ -73,16 +77,14 @@ Puedes cambiar esta configuración cuando quieras desde **Configuración → Apl
 
 > Si ya tenías instalada una versión anterior con la pantalla de asociación de `.md` distinta (o sin ella) y el menú "Abrir con" te sigue mostrando una entrada duplicada o con el icono antiguo, desinstala primero la versión anterior desde "Aplicaciones instaladas" de Windows y luego instala la nueva — versiones previas usaban un identificador interno distinto que el desinstalador no limpia automáticamente entre versiones.
 
-### 3️⃣ Actualiza
+#### 3️⃣ Actualiza
 
 A partir de aquí ya no necesitas volver a esta página para cada versión nueva. Abre el panel **Acerca de** (icono ⓘ de la barra superior) y pulsa **Buscar actualizaciones**. La comprobación es siempre bajo demanda — nunca se ejecuta sola al arrancar, para no afectar al arranque instantáneo.
 
 - Si ya tienes la última versión: **"Ya tienes la última versión."**
 - Si hay una nueva: **"Nueva versión X.Y.Z disponible."** y el botón cambia a **Actualizar** — un clic descarga, instala y reinicia la app por ti, sin salir de **DBV Markdown Reader** ni pasar por el navegador ni por Releases.
 
----
-
-## 🐧 Linux
+### 🐧 Linux
 
 **[⬇️ Descarga el `.deb` o el `.AppImage` desde Releases](https://github.com/davidbuenov/dbv-md-reader/releases)** — se generan automáticamente en cada versión.
 
@@ -91,9 +93,13 @@ A partir de aquí ya no necesitas volver a esta página para cada versión nueva
 
 > **Nota:** el canal de Linux todavía no tiene comprobación de actualizaciones integrada (botón "Buscar actualizaciones" del panel "Acerca de") — descarga la versión nueva desde Releases cuando quieras actualizar.
 
----
+### 🍎 macOS
 
-## 🍎 macOS
+#### 🟢 Uptodown (recomendado en macOS)
+
+**[⬇️ Consíguelo en Uptodown](https://dbv-markdown-reader.uptodown.com/mac)**
+
+Vía Uptodown descargas el `.dmg` directamente desde su web, sin pasar por la página de Releases de GitHub. Sigue sin firma ni notarización de Apple (ver aviso más abajo), pero es la forma más sencilla de encontrar la última versión sin tener que navegar por GitHub.
 
 **[⬇️ Descarga el `.dmg` desde Releases](https://github.com/davidbuenov/dbv-md-reader/releases)** — se genera automáticamente en cada versión vía CI (ver más abajo).
 
@@ -305,7 +311,7 @@ A diferencia de Windows, el `.deb` y el `.AppImage` de Linux **no se compilan a 
 Igual que Linux, el `.dmg` y el `.app` de macOS **no se compilan a mano**: `.github/workflows/release-macos.yml` los construye automáticamente en un runner `macos-latest`, sin firma ni notarización de Apple (mismo motivo que la compilación local — ver sección [🍎 macOS](#-macos)).
 
 - Mismo comportamiento que `release-linux.yml`: se dispara solo en `git push --tags`, sube los artefactos como borrador (o se une a una Release ya publicada con `workflow_dispatch` + `draft: false`).
-- El `.dmg` sin firmar generado aquí es también el artefacto pensado para publicarse en [Uptodown](https://uptodown.com/) (a diferencia de Microsoft Store o la Mac App Store, no exige firma de Apple) — la subida a Uptodown en sí es manual, vía su [panel de editores](https://support.uptodown.com/hc/es/articles/360053260491).
+- El `.dmg` sin firmar generado aquí es también el artefacto publicado en [Uptodown](https://dbv-markdown-reader.uptodown.com/mac) (a diferencia de Microsoft Store o la Mac App Store, no exige firma de Apple) — la actualización de cada nueva versión en Uptodown es manual, vía su [panel de editores](https://support.uptodown.com/hc/es/articles/360053260491).
 
 ---
 
