@@ -31,3 +31,8 @@ desktop.ini
 
 # Símbolos de depuración nativos de Android (pesados, se suben a Google Play Console)
 google-play-assets/*.zip
+
+# Fragmento darwin-* del updater (RF-13 macOS), lo genera en CI
+# scripts/generate-macos-updater-fragment.mjs y lo consume
+# generate-latest-json.mjs; se sube como asset de la Release, nunca se commitea.
+/latest-macos-fragment.json
