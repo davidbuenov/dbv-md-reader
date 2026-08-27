@@ -27,3 +27,8 @@ desktop.ini
 # Manifiesto del updater (RF-13) — se genera con scripts/generate-latest-json.mjs
 # y se sube como asset de la Release de GitHub, nunca se commitea.
 /latest.json
+
+# Fragmento darwin-* del updater (RF-13 macOS), lo genera en CI
+# scripts/generate-macos-updater-fragment.mjs y lo consume
+# generate-latest-json.mjs; se sube como asset de la Release, nunca se commitea.
+/latest-macos-fragment.json
