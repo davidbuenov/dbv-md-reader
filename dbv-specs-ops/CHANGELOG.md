@@ -10,6 +10,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 ### Añadido
 - **Carpeta `templates/` con 20 plantillas Markdown bilingües (ES/EN)**, organizadas por categoría en `templates/README.md`: **Académico** (seguimiento TFG, rúbrica de evaluación TFG, acta de defensa TFG, notas de curso), **Desarrollo de software** (registro de decisiones/ADR, informe de bug, especificación de funcionalidad/RFC, checklist de release), **Gestión de proyectos** (información de proyecto, seguimiento de proyecto, lista de tareas, comparativa de opciones), **Reuniones y equipos** (acta de reunión, notas 1:1, retrospectiva, guía de onboarding) y **Personal** (CV, itinerario de viaje, receta de cocina, revisión semanal). Solo contenido (sin tocar código ni build), pensadas como ejemplos reales de uso de la app y complemento descargable.
 
+### Corregido
+- **Linux: el `.deb` no asociaba los `.md` con la app (RF-01)**: tras instalar el paquete, `DBV Markdown Reader` no aparecía en el menú "Abrir con" ni en la lista de aplicaciones predeterminadas para Markdown. El `.desktop` generado (`/usr/share/applications/DBV Markdown Reader.desktop`) salía **sin línea `MimeType=`**: `bundle.fileAssociations` declaraba `ext` pero no `mimeType`, y en Linux Tauri escribe `MimeType=` únicamente a partir de ese campo — `ext` solo se usa en Windows/macOS. Añadido `"mimeType": "text/markdown"` (el tipo que `shared-mime-info` asigna realmente a `.md`). Verificado en Ubuntu 24.04 / GNOME instalando el `.deb` compilado. Cierra el riesgo aceptado en el Adversarial Review de la Fase 24 ("el `.deb` registra la asociación … pero esto no se ha podido verificar en una máquina Linux real", `memory.md`): el supuesto era incorrecto.
+
 ---
 
 ## [0.13.1] - 2026-08-20
