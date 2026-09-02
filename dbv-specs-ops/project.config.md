@@ -14,7 +14,7 @@
 - **Languages:** Rust, HTML, CSS, JavaScript
 - **Technologies / Stack:** Rust, Tauri v2, HTML5, Tailwind CSS, JavaScript (Vanilla), markdown-it, DOMPurify, mermaid.js, Prism.js, KaTeX
 - **Agent Readiness (Web):** No
-- **Framework Version:** 2.4.0
+- **Framework Version:** 2.8.0
 
 ---
 

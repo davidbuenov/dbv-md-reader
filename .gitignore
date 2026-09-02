@@ -19,7 +19,8 @@ desktop.ini
 .env.local
 .vscode/
 .idea/
-.claude/
+.claude/*
+!.claude/commands/
 
 # Contenido temporal usado para generar capturas de la landing page
 .demo-tmp/
