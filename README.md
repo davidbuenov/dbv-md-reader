@@ -413,6 +413,7 @@ Gracias a quienes han colaborado probando la aplicación, encontrando errores y 
 - Victor Estival
 - Julio Lorca
 - Juan Ignacio Caballero — propuso la idea del Explorador de árbol de directorios (RF-25/v0.13.0) en el [Issue #5](https://github.com/davidbuenov/dbv-md-reader/issues/5).
+- Jacinto Parga — corrigió la asociación de archivos `.md` en Linux en el [PR #9](https://github.com/davidbuenov/dbv-md-reader/pull/9).
 
 ### 💡 Inspiración
 
