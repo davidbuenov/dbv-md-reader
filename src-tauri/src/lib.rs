@@ -9,11 +9,15 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(desktop)]
 use std::process::Command;
+#[cfg(desktop)]
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+#[cfg(desktop)]
+use tauri::{WebviewUrl, WebviewWindowBuilder};
+use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 /// Extensiones tratadas como documento abierto por la app — mismo criterio en el filtro
@@ -63,6 +67,25 @@ pub struct OpenedFileState(pub Mutex<Option<String>>);
 /// entry is simply ignored rather than requiring explicit cleanup on window-close.
 pub struct OpenDocumentsState(pub Mutex<HashMap<String, String>>);
 
+/// Instala el proveedor criptográfico por defecto de rustls antes de que ninguna otra parte
+/// del binario pueda construir un cliente `reqwest`. Hallazgo real de esta sesión (SIGABRT
+/// confirmado con `adb logcat` contra un build Android real): `tauri` (núcleo, no solo
+/// `tauri-plugin-updater` — ver `cargo tree -i reqwest`) depende de `reqwest` con backend
+/// `rustls`, y sin un proveedor instalado *cualquier* intento de construir un cliente reqwest
+/// panickea ("No rustls crypto provider is configured") — al no poder desenrollar a través de
+/// la frontera FFI, aborta el proceso entero antes de mostrar ninguna ventana.
+/// **Por qué `#[ctor::ctor]` y no una llamada al principio de `run()`:** en Android, el hilo
+/// nativo que arranca `tao`/`wry` (`ndk_glue::create`) puede construir ese cliente reqwest
+/// *antes* de que `run()` llegue a ejecutarse — una llamada al principio de `run()` llega
+/// tarde (verificado: seguía crasheando igual). `#[ctor::ctor]` genera un símbolo
+/// `.init_array` en el `.so`, ejecutado por el propio enlazador dinámico al cargar la
+/// librería — antes de que exista ningún hilo de la aplicación con el que competir.
+/// `install_default()` solo falla si ya hay uno instalado (no es un panic), de ahí el `let _ =`.
+#[ctor::ctor]
+fn install_rustls_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 fn is_remote(path: &str) -> bool {
     path.starts_with("http://") || path.starts_with("https://")
 }
@@ -90,6 +113,11 @@ fn canonical_path_str(path: &str) -> String {
 /// if the window is mid-teardown) — shared by every "bring this window to the user" case: an
 /// already-open document being reopened, an already-running app receiving no path, and a
 /// freshly created document window.
+///
+/// Desktop-only: `unminimize()` no existe en `WebviewWindow` de Android, y todos sus llamantes
+/// (instancia única RF-14, `open_document_window`, `RunEvent::Opened` de macOS) son a su vez
+/// desktop-only — ver SPECIFICATIONS.md RF-14 en Android.
+#[cfg(desktop)]
 fn focus_window(window: &tauri::WebviewWindow) {
     let _ = window.unminimize();
     let _ = window.set_focus();
@@ -97,7 +125,9 @@ fn focus_window(window: &tauri::WebviewWindow) {
 
 /// Ventana "main" si existe, si no la primera disponible — fallback compartido por el
 /// callback de single-instance y por el manejador de eventos del menú de macOS cuando
-/// no hay ninguna pista mejor (ruta de archivo, ventana enfocada).
+/// no hay ninguna pista mejor (ruta de archivo, ventana enfocada). Desktop-only por el mismo
+/// motivo que `focus_window`: ningún llamante existe en Android.
+#[cfg(desktop)]
 fn main_or_first_window(windows: &HashMap<String, tauri::WebviewWindow>) -> Option<&tauri::WebviewWindow> {
     windows.get("main").or_else(|| windows.values().next())
 }
@@ -109,6 +139,7 @@ fn first_path_argument<I: IntoIterator<Item = String>>(args: I) -> Option<String
     args.into_iter().skip(1).find(|a| !a.starts_with('-'))
 }
 
+#[cfg(desktop)]
 static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 /// Opens `path` in a brand-new window of the *same* process (RF-14), instead of the OS
@@ -116,6 +147,11 @@ static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(0);
 /// zoom/TOC/search/watcher state, exactly like the original main window — the frontend
 /// doesn't need to know it was opened this way. `window.__DBV_INITIAL_PATH__` stands in
 /// for the CLI argument that a normally-launched process would read via `get_cli_argument`.
+///
+/// Desktop-only: `WebviewWindowBuilder::center()` no existe en el builder de Android, y el
+/// modelo de una sola Activity no tiene equivalente a "ventana adicional del mismo proceso"
+/// — ver SPECIFICATIONS.md RF-14/RF-25 en Android.
+#[cfg(desktop)]
 fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<()> {
     let label = format!("doc-{}", WINDOW_COUNTER.fetch_add(1, Ordering::SeqCst));
     let init_script = format!(
@@ -138,7 +174,9 @@ fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<(
 /// in that case brings the existing window to the front instead of stacking a duplicate. Used
 /// by every "open a file while the app is already running" entry point (RF-14 single-instance
 /// callback, macOS `RunEvent::Opened` while already running) so repeated "Open With" on the
-/// same file always converges on one window instead of accumulating copies.
+/// same file always converges on one window instead of accumulating copies. Desktop-only:
+/// every caller (instancia única, `RunEvent::Opened` de macOS, `open_in_new_window`) lo es.
+#[cfg(desktop)]
 fn open_or_focus_document(app: &tauri::AppHandle, path: String) {
     let canonical = canonical_path_str(&path);
     let existing_label = app
@@ -541,6 +579,10 @@ pub mod commands {
     /// archivos nativo del sistema con `path` resaltado (archivo) o abierto (carpeta). Sin
     /// plugin ni dependencia nueva: `std::process::Command` directo, sin invocar un shell
     /// intermedio (los argumentos van tal cual al proceso, sin riesgo de inyección).
+    ///
+    /// Desktop-only: Android no tiene un gestor de archivos del sistema accesible por Intent
+    /// estándar con selección de archivo exacta — ver SPECIFICATIONS.md RF-25 en Android.
+    #[cfg(desktop)]
     #[tauri::command]
     pub fn reveal_in_file_manager(path: String) -> Result<(), String> {
         let is_dir = Path::new(&path).is_dir();
@@ -575,6 +617,10 @@ pub mod commands {
     /// `tauri::async_runtime::spawn` (no `std::thread::spawn`) logra ese "hilo distinto"
     /// reutilizando el pool de Tokio que Tauri ya tiene en marcha, sin crear/destruir un
     /// hilo de sistema operativo por cada `Ctrl+clic`.
+    ///
+    /// Desktop-only: el modelo de una sola Activity de Android no tiene equivalente a "ventana
+    /// nueva" — ver SPECIFICATIONS.md RF-14/RF-25 en Android.
+    #[cfg(desktop)]
     #[tauri::command]
     pub fn open_in_new_window(app: tauri::AppHandle, path: String) {
         tauri::async_runtime::spawn(async move {
@@ -729,8 +775,24 @@ mod macos_menu {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+    // `builder` se construye en dos tramos: el plugin de instancia única (RF-14) y el
+    // manejador de eventos de menú (macOS) no existen en Android — el modelo de una sola
+    // Activity ya garantiza instancia única, y no hay menú nativo que emitir eventos. No se
+    // puede condicionar un `.plugin(...)`/`.on_menu_event(...)` a mitad de una cadena de
+    // métodos con `#[cfg]` (los atributos de `cfg` no se aplican a fragmentos de expresión),
+    // así que se reasigna `builder` dentro de bloques `#[cfg(desktop)]` en su lugar — mismo
+    // patrón que usan los ejemplos oficiales de Tauri Mobile.
+    let mut builder = tauri::Builder::default();
+
+    #[cfg(desktop)]
+    {
+        // RF-13: sin tauri-plugin-updater en Android — Google Play gestiona las
+        // actualizaciones (decisión de producto, ver SPECIFICATIONS.md), no relacionado con el
+        // crash de rustls de más arriba (esa causa era el propio núcleo de `tauri`, no este
+        // plugin).
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             // RF-14: un doble clic / "Abrir con" en un .md mientras la app ya está en
             // marcha no debe lanzar un proceso dbv-md-reader.exe nuevo — abre una
             // ventana más en este mismo proceso (o, sin ruta, enfoca una existente).
@@ -745,10 +807,12 @@ pub fn run() {
                     }
                 }
             });
-        }))
+        }));
+    }
+
+    builder = builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(|_app| {
             // macOS espera la barra de menú superior del SO (Cmd+Q, Cmd+H,
@@ -761,8 +825,11 @@ pub fn run() {
                 _app.handle().set_menu(menu)?;
             }
             Ok(())
-        })
-        .on_menu_event(|app, event| {
+        });
+
+    #[cfg(desktop)]
+    {
+        builder = builder.on_menu_event(|app, event| {
             // "Abrir archivo…" del menú File (macOS) reusa el flujo que ya tiene
             // el frontend para el botón de la toolbar — sólo hace falta avisar
             // a la ventana enfocada, no reimplementar el diálogo en Rust.
@@ -782,7 +849,10 @@ pub fn run() {
                     let _ = window.emit(event_name, ());
                 }
             }
-        })
+        });
+    }
+
+    builder
         .manage(WatcherState(Mutex::new(None)))
         .manage(OpenedFileState(Mutex::new(None)))
         .manage(OpenDocumentsState(Mutex::new(HashMap::new())))
@@ -800,7 +870,9 @@ pub fn run() {
             commands::clear_recent_files,
             commands::register_open_document,
             commands::list_directory,
+            #[cfg(desktop)]
             commands::reveal_in_file_manager,
+            #[cfg(desktop)]
             commands::open_in_new_window
         ])
         .build(tauri::generate_context!())

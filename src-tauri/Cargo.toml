@@ -19,12 +19,30 @@ tauri-plugin-shell = "2.0.0"
 tauri-plugin-dialog = "2.0.0"
 tauri-plugin-updater = "2.10.1"
 tauri-plugin-process = "2.3.1"
-tauri-plugin-single-instance = "2.4.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 notify = "8.2.0"
 ureq = "3.4.0"
 sys-locale = "0.3"
+# Instala el proveedor criptográfico por defecto de rustls (ver `install_rustls_provider` en
+# lib.rs) — sin dependencia directa no se puede llamar a `rustls::crypto::ring::default_provider()`,
+# aunque el crate ya esté presente de forma transitiva (vía `tauri`/`reqwest`) con la feature
+# `ring` ya activada por esa vía. `default-features = false` evita arrastrar también
+# `aws-lc-rs` (feature por defecto de rustls 0.23), que además de innecesario compila C vía
+# cmake — sin beneficio, ya que `ring` es el proveedor real ya presente en el árbol.
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }
+# Ejecuta `install_rustls_provider` como constructor de biblioteca compartida (símbolo
+# `.init_array` en ELF, invocado por el propio enlazador dinámico al cargar la librería) — en
+# Android, el hilo nativo que arranca `tao`/`wry` puede construir un cliente `reqwest` antes de
+# que nuestro `run()` llegue a ejecutarse, así que instalar el proveedor dentro de `run()` llega
+# tarde. Ya transitivo (vía `tauri`), se declara explícito para poder usar `#[ctor::ctor]`.
+ctor = "0.8"
+
+# RF-14: sin equivalente en Android (una sola Activity, el propio SO ya garantiza instancia
+# única) — el crate tampoco compila para ese target. Ver SPECIFICATIONS.md RF-14 en Android
+# y ARCHITECTURA.md §5.
+[target.'cfg(not(target_os = "android"))'.dependencies]
+tauri-plugin-single-instance = "2.4.3"
 
 [features]
 default = ["custom-protocol"]
