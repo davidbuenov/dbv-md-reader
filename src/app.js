@@ -452,12 +452,12 @@
             invoke('register_open_document', { path: doc.path }).catch(function (err) {
               console.warn('[register_open_document]', err);
             });
-            // Archivos recientes (RF-11): solo en aperturas explícitas
-            if (isPrimaryOpen) {
-              invoke('add_recent_file', { path: doc.path, fileName: doc.file_name })
-                .then(renderRecentPanel)
-                .catch(function (err) { console.warn('[add_recent_file]', err); });
-            }
+          }
+          // Archivos recientes (RF-11): registrar en aperturas explícitas (escritorio y Android SAF)
+          if (isPrimaryOpen) {
+            invoke('add_recent_file', { path: doc.path, fileName: doc.file_name })
+              .then(renderRecentPanel)
+              .catch(function (err) { console.warn('[add_recent_file]', err); });
           }
           // RF-25: la raíz del árbol de directorios sigue siempre al documento activo.
           if (window.DBVFileTree) window.DBVFileTree.onDocumentLoaded(doc);
@@ -1403,7 +1403,7 @@
     nameEl.textContent = file.file_name;
     var pathEl = document.createElement('span');
     pathEl.className = 'recent-item-path';
-    pathEl.textContent = file.path;
+    pathEl.textContent = isSafUri(file.path) ? decodeURIComponent(file.path.split('/').pop() || file.file_name) : file.path;
     var timeEl = document.createElement('span');
     timeEl.className = 'recent-item-time';
     timeEl.textContent = formatRelativeTime(file.last_opened);
