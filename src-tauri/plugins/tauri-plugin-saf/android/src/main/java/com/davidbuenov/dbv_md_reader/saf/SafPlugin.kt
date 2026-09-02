@@ -339,8 +339,19 @@ class SafPlugin(private val activity: Activity) : Plugin(activity) {
         return entries
     }
 
-    private fun findFirstMarkdownChild(rootDirUri: Uri): ChildEntry? =
-        queryChildren(rootDirUri).firstOrNull { !it.isDir && isMarkdownName(it.name) }
+    private fun findFirstMarkdownChild(rootDirUri: Uri): ChildEntry? {
+        val direct = queryChildren(rootDirUri)
+        val firstDirect = direct.firstOrNull { !it.isDir && isMarkdownName(it.name) }
+        if (firstDirect != null) return firstDirect
+
+        // Búsqueda en subcarpetas inmediatas si la raíz no tiene archivos .md directos
+        for (sub in direct.filter { it.isDir }) {
+            val subChildren = queryChildren(sub.uri)
+            val firstInSub = subChildren.firstOrNull { !it.isDir && isMarkdownName(it.name) }
+            if (firstInSub != null) return firstInSub
+        }
+        return null
+    }
 
     /** Padre real de `uri` vía `DocumentsContract.findDocumentPath` (API 26+,
      * `Path#getPath()` incluye el propio documento como último elemento — el

@@ -152,6 +152,7 @@
   // ─── Exclusiones de UI en Android (Slice 4, RF-13/19/20/21/25) ─────────────
   function applyPlatformExclusions() {
     if (!isAndroid) return;
+    document.body.classList.add('is-android');
     if (btnEditToggle) btnEditToggle.classList.add('hidden');
     if (btnSave) btnSave.classList.add('hidden');
     var btnAlways = document.getElementById('btn-always-on-top');
@@ -398,8 +399,12 @@
           renderMarkdown(doc.content);
           emptyEl.classList.add('hidden');
           contentEl.classList.remove('hidden');
-          // Auto-abrir TOC si tiene encabezados (calculados por buildToc() dentro de renderMarkdown)
-          if (tocHeaders.length > 0) setTocVisible(true);
+          // Auto-abrir TOC si tiene encabezados en pantalla ancha (>768px); en móvil permanece cerrado hasta toggle explícito
+          if (tocHeaders.length > 0 && window.innerWidth > 768) {
+            setTocVisible(true);
+          } else {
+            setTocVisible(false);
+          }
           // Scroll: si hay ancla, ir a ella; si no, al inicio
           var container = document.getElementById('reader-container');
           if (scrollAnchor) {
@@ -469,21 +474,7 @@
       });
   }
 
-  // Sonda sin efectos visibles: el comando "ping" solo existe cuando el plugin
-  // SAF está registrado (Android, ver el gating por plataforma en Cargo.toml/
-  // lib.rs) — en desktop la promesa se rechaza sin ejecutar nada en Kotlin, y
-  // los botones de abrir se quedan con su comportamiento de diálogo nativo.
-  invoke('plugin:saf|ping')
-    .then(function () {
-      var openHandler = openAndroidSafFolder;
-      var btnEmptyOpen = document.getElementById('btn-empty-open');
-      var btnOpenFile = document.getElementById('btn-open-file');
-      btnEmptyOpen.removeEventListener('click', openFileDialog);
-      btnEmptyOpen.addEventListener('click', openHandler);
-      btnOpenFile.removeEventListener('click', openFileDialog);
-      btnOpenFile.addEventListener('click', openHandler);
-    })
-    .catch(function () { /* desktop: sin plugin SAF, se mantiene openFileDialog */ });
+
 
   // Puente hacia módulos hermanos (RF-25 árbol, RF-26 Quick Open,
   // `src/filetree.js`, cargado DESPUÉS de este script) — reutilizan la misma
@@ -858,7 +849,13 @@
       a.textContent = h.innerText;
       a.className = 'block py-1 hover:text-accent truncate transition ' +
         (h.tagName === 'H1' ? 'toc-item-h1' : h.tagName === 'H2' ? 'toc-item-h2' : 'toc-item-h3');
-      a.addEventListener('click', function (e) { e.preventDefault(); scrollElementIntoView(h); });
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        scrollElementIntoView(h);
+        if (window.innerWidth <= 768) {
+          setTocVisible(false);
+        }
+      });
       tocList.appendChild(a);
     });
   }
@@ -1384,8 +1381,16 @@
       });
   }
 
-  document.getElementById('btn-open-file').addEventListener('click', openFileDialog);
-  document.getElementById('btn-empty-open').addEventListener('click', openFileDialog);
+  function handleOpenAction() {
+    if (isAndroid) {
+      openAndroidSafFolder();
+    } else {
+      openFileDialog();
+    }
+  }
+
+  document.getElementById('btn-open-file').addEventListener('click', handleOpenAction);
+  document.getElementById('btn-empty-open').addEventListener('click', handleOpenAction);
   document.getElementById('btn-print').addEventListener('click', function () { window.print(); });
 
   // ─── Always on Top (por ventana, sin persistencia — ver memory.md ADR-023) ─
