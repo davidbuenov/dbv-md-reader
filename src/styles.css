@@ -144,6 +144,23 @@ body.is-android #app-header * {
   -webkit-app-region: no-drag !important;
 }
 
+body.is-android #doc-breadcrumb,
+body.is-android #doc-reading-time,
+body.is-android #doc-readonly-badge,
+body.is-android #btn-print,
+body.is-android #btn-markdown-help,
+body.is-android #btn-about,
+body.is-android #btn-recent,
+body.is-android #theme-switcher,
+body.is-android #lang-switcher,
+body.is-android #app-header .toolbar-divider {
+  display: none !important;
+}
+
+body.is-android #btn-settings {
+  display: inline-flex !important;
+}
+
 .toolbar-left,
 .toolbar-right {
   display: flex;
@@ -863,6 +880,50 @@ body.is-android #app-header * {
 .floating-panel-input:focus { border-color: var(--accent); }
 
 #url-input { width: 320px; }
+
+/* ─── Panel de Configuración (Móvil) ──────────────────────────────────────── */
+#settings-panel {
+  flex-direction: column;
+  width: min(300px, 90vw);
+  gap: 12px;
+  padding: 14px;
+}
+.settings-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.settings-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.settings-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.settings-action-btn:hover {
+  background-color: var(--bg-tertiary);
+}
 
 .btn-link {
   display: inline-block;

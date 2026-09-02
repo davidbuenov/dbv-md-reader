@@ -6,6 +6,21 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-09-02] ADR-040: Versión Android — Aligeramiento de la barra superior en móvil y menú de Ajustes (rueda de configuración)
+- **Contexto:** tras verificar en dispositivo real Samsung Galaxy A53 5G, la barra superior en pantallas verticales (360-412px de ancho) y horizontales se saturaba con el nombre del documento, tiempo de lectura, insignias, conmutadores de tema/idioma y botones de ayuda/impresión, provocando que los botones de acción (especialmente el Índice/TOC) quedaran desplazados fuera de pantalla.
+- **Decisión de UX móvil y arquitectura:**
+  1. **Simplificación de la barra en Android (`body.is-android`):**
+     - Ocultados: `#doc-breadcrumb`, `#doc-reading-time`, `#doc-readonly-badge`, `#btn-print`, `#btn-markdown-help`, `#btn-about`, `#btn-recent`, `#theme-switcher`, `#lang-switcher` y divisores.
+     - Elementos visibles prioritarios: Navegación de historial (`<`, `>`), Buscar (🔍), Abrir archivo/carpeta (📁), Abrir URL (🔗), Índice/TOC (📑) y Rueda de configuración (⚙️).
+     - Todos los botones caben de forma holgada en cualquier ancho de pantalla (vertical y horizontal) sin desbordamiento.
+  2. **Menú de configuración (`#settings-panel`):**
+     - Panel flotante accesible mediante el nuevo botón `#btn-settings` (icono engranaje).
+     - Agrupa los selectores de Tema (Light, Dark, Sepia), Idioma (Español, English) y acceso a "Acerca de".
+     - Integrado con el helper reutilizable `registerPanel()`: soporta alternar apertura, cierre al hacer clic fuera o pulsar la tecla atrás/escape.
+     - En `app.js`, `setTheme()` y `setLang()` sincronizan tanto los controles de escritorio como los del panel móvil de forma transparente.
+  3. **Preservación total de escritorio:** En entornos de escritorio (`!isAndroid`), `#btn-settings` permanece oculto y la barra superior mantiene el 100% de su estructura y diseño original.
+  4. **Estabilidad de Gradle en Windows:** Se añadió `org.gradle.daemon=false` y `org.gradle.vfs.watch=false` en `src-tauri/gen/android/gradle.properties` para prevenir corrupciones en `outputFiles.bin` durante builds repetidos.
+
 ### [2026-09-02] ADR-039: Versión Android — `/build` Slice 5 completada; Keystore de subida generado, Bundle `.aab` firmado para Google Play Store, y APK de release verificado e instalado en dispositivo físico real (Samsung Galaxy A53 5G)
 - **Contexto:** cierre de las fases de desarrollo de Android planificadas en `implementation_plan.md` (Slices 0 a 5). Requisito: generación del keystore de subida (*Upload Key*) para Google Play App Signing, configuración de firma release en Gradle, compilación del paquete AAB para Google Play, verificación criptográfica de firma y validación en hardware físico real a petición del usuario.
 - **Decisión y configuración técnica de firma:**

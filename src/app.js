@@ -944,15 +944,26 @@
     sepia: document.getElementById('theme-sepia')
   };
 
+  var mBtnThemes = {
+    light: document.getElementById('m-theme-light'),
+    dark:  document.getElementById('m-theme-dark'),
+    sepia: document.getElementById('m-theme-sepia')
+  };
+
   function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    Object.keys(btnThemes).forEach(function (k) { btnThemes[k].classList.remove('active'); });
+    Object.keys(btnThemes).forEach(function (k) {
+      if (btnThemes[k]) btnThemes[k].classList.remove('active');
+      if (mBtnThemes[k]) mBtnThemes[k].classList.remove('active');
+    });
     if (btnThemes[theme]) btnThemes[theme].classList.add('active');
+    if (mBtnThemes[theme]) mBtnThemes[theme].classList.add('active');
     localStorage.setItem('dbv-md-theme', theme);
   }
 
   Object.keys(btnThemes).forEach(function (name) {
-    btnThemes[name].addEventListener('click', function () { setTheme(name); });
+    if (btnThemes[name]) btnThemes[name].addEventListener('click', function () { setTheme(name); });
+    if (mBtnThemes[name]) mBtnThemes[name].addEventListener('click', function () { setTheme(name); });
   });
 
   document.getElementById('btn-toggle-toc').addEventListener('click', function () {
@@ -968,10 +979,19 @@
     en: document.getElementById('lang-en')
   };
 
+  var mBtnLangs = {
+    es: document.getElementById('m-lang-es'),
+    en: document.getElementById('m-lang-en')
+  };
+
   function setLang(lang) {
     window.DBV_I18N.setLang(lang);
-    Object.keys(btnLangs).forEach(function (k) { btnLangs[k].classList.remove('active'); });
+    Object.keys(btnLangs).forEach(function (k) {
+      if (btnLangs[k]) btnLangs[k].classList.remove('active');
+      if (mBtnLangs[k]) mBtnLangs[k].classList.remove('active');
+    });
     if (btnLangs[lang]) btnLangs[lang].classList.add('active');
+    if (mBtnLangs[lang]) mBtnLangs[lang].classList.add('active');
     // El breadcrumb no lleva data-i18n (si hay un documento abierto, applyTranslations()
     // no debe pisar su nombre de archivo con el texto de "sin documento").
     if (!currentDoc) breadcrumb.textContent = t('toolbar.noDocument');
@@ -984,7 +1004,8 @@
   }
 
   Object.keys(btnLangs).forEach(function (name) {
-    btnLangs[name].addEventListener('click', function () { setLang(name); });
+    if (btnLangs[name]) btnLangs[name].addEventListener('click', function () { setLang(name); });
+    if (mBtnLangs[name]) mBtnLangs[name].addEventListener('click', function () { setLang(name); });
   });
 
   // =========================================================================
@@ -1105,6 +1126,29 @@
       openExternal(link.getAttribute('href'));
     });
   });
+
+  // =========================================================================
+  // Configuración móvil (Android)
+  // =========================================================================
+
+  var settingsPanelEl = document.getElementById('settings-panel');
+  var btnSettingsEl = document.getElementById('btn-settings');
+  if (settingsPanelEl && btnSettingsEl) {
+    var settingsPanel = registerPanel(settingsPanelEl, {
+      trigger: btnSettingsEl,
+      toggle: true,
+      closeOnOutsideClick: true
+    });
+    var settingsCloseBtn = document.getElementById('settings-close');
+    if (settingsCloseBtn) settingsCloseBtn.addEventListener('click', settingsPanel.close);
+    var mBtnAboutEl = document.getElementById('m-btn-about');
+    if (mBtnAboutEl) {
+      mBtnAboutEl.addEventListener('click', function () {
+        settingsPanel.close();
+        aboutPanel.open();
+      });
+    }
+  }
 
   // =========================================================================
   // Ayuda de sintaxis Markdown (chuleta ES/EN según idioma activo)
