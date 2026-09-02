@@ -810,6 +810,14 @@ pub fn run() {
         }));
     }
 
+    #[cfg(target_os = "android")]
+    {
+        // Slice 1 (versión Android): capa mínima de Storage Access Framework (SAF) —
+        // sin equivalente de escritorio, ver ADR-032 en memory.md y el crate en
+        // src-tauri/plugins/tauri-plugin-saf/.
+        builder = builder.plugin(tauri_plugin_saf::init());
+    }
+
     builder = builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())

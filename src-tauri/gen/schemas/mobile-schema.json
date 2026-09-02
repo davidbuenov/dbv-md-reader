@@ -2499,6 +2499,36 @@
           "markdownDescription": "Denies the restart command without any pre-configured scope."
         },
         {
+          "description": "Permite las operaciones mínimas de Storage Access Framework (SAF) usadas por\nla versión Android de dbv-md-reader en la Slice 1: la sonda de disponibilidad\n(`ping`) y conceder una carpeta + leer su primer documento `.md`\n(`pick_folder_and_read_first_markdown`).\n\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-pick-folder-and-read-first-markdown`",
+          "type": "string",
+          "const": "saf:default",
+          "markdownDescription": "Permite las operaciones mínimas de Storage Access Framework (SAF) usadas por\nla versión Android de dbv-md-reader en la Slice 1: la sonda de disponibilidad\n(`ping`) y conceder una carpeta + leer su primer documento `.md`\n(`pick_folder_and_read_first_markdown`).\n\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-pick-folder-and-read-first-markdown`"
+        },
+        {
+          "description": "Enables the pick_folder_and_read_first_markdown command without any pre-configured scope.",
+          "type": "string",
+          "const": "saf:allow-pick-folder-and-read-first-markdown",
+          "markdownDescription": "Enables the pick_folder_and_read_first_markdown command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the ping command without any pre-configured scope.",
+          "type": "string",
+          "const": "saf:allow-ping",
+          "markdownDescription": "Enables the ping command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the pick_folder_and_read_first_markdown command without any pre-configured scope.",
+          "type": "string",
+          "const": "saf:deny-pick-folder-and-read-first-markdown",
+          "markdownDescription": "Denies the pick_folder_and_read_first_markdown command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the ping command without any pre-configured scope.",
+          "type": "string",
+          "const": "saf:deny-ping",
+          "markdownDescription": "Denies the ping command without any pre-configured scope."
+        },
+        {
           "description": "This permission set configures which\nshell functionality is exposed by default.\n\n#### Granted Permissions\n\nIt allows to use the `open` functionality with a reasonable\nscope pre-configured. It will allow opening `http(s)://`,\n`tel:` and `mailto:` links.\n\n#### This default permission set includes:\n\n- `allow-open`",
           "type": "string",
           "const": "shell:default",

@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/android-schema.json",
+  "identifier": "android-capability",
+  "description": "Permisos exclusivos de Android — capa SAF (Slice 1, ver dbv-specs-ops/implementation_plan.md). Restringido con \"platforms\" para no exigir el plugin \"saf\" en Windows/Linux/macOS, donde ni siquiera se compila (ver ADR-032 en memory.md).",
+  "platforms": ["android"],
+  "windows": ["main"],
+  "permissions": [
+    "saf:default"
+  ]
+}

@@ -44,6 +44,12 @@ ctor = "0.8"
 [target.'cfg(not(target_os = "android"))'.dependencies]
 tauri-plugin-single-instance = "2.4.3"
 
+# Slice 1 (versión Android, ver implementation_plan.md): capa mínima de Storage Access
+# Framework (SAF), primer código Kotlin del proyecto — sin equivalente de escritorio
+# (ADR-032 en memory.md), así que solo se depende de este crate al compilar para Android.
+[target.'cfg(target_os = "android")'.dependencies]
+tauri-plugin-saf = { path = "plugins/tauri-plugin-saf" }
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

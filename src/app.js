@@ -362,6 +362,51 @@
     });
   }
 
+  // ─── Android: Storage Access Framework (SAF), Slice 1 ─────────────────────
+  // Un único comando de punta a punta (ver dbv-specs-ops/implementation_plan.md):
+  // conceder una carpeta vía ACTION_OPEN_DOCUMENT_TREE y renderizar su primer
+  // documento .md. Deliberadamente NO reutiliza loadDocument() completo: ese
+  // flujo llama a watch_file/register_open_document/add_recent_file (RF-06/
+  // RF-14/RF-11), ninguno con equivalente SAF todavía (llegan en las Slices
+  // 2-3) — aquí solo se ejercita el pipeline de renderizado ya existente
+  // (Markdown + Mermaid + KaTeX + temas), como pide el entregable de la Slice 1.
+  function openAndroidSafFolder() {
+    invoke('plugin:saf|pick_folder_and_read_first_markdown')
+      .then(function (doc) {
+        currentDoc = doc;
+        breadcrumb.textContent = doc.file_name;
+        breadcrumb.title = doc.file_name;
+        renderMarkdown(doc.content);
+        emptyEl.classList.add('hidden');
+        contentEl.classList.remove('hidden');
+        if (tocHeaders.length > 0) setTocVisible(true);
+        document.getElementById('reader-container').scrollTop = 0;
+      })
+      .catch(function (err) {
+        // Cancelado por el usuario, o SecurityException/permiso inválido: mismo
+        // criterio de autocuración que RF-11 (sin alert(), se queda en el
+        // estado vacío) — "cancelled"/"permission_denied"/"no_markdown_found"
+        // vienen del lado Kotlin (SafPlugin.handleFolderPicked).
+        console.warn('[saf pick_folder_and_read_first_markdown]', err);
+      });
+  }
+
+  // Sonda sin efectos visibles: el comando "ping" solo existe cuando el plugin
+  // SAF está registrado (Android, ver el gating por plataforma en Cargo.toml/
+  // lib.rs) — en desktop la promesa se rechaza sin ejecutar nada en Kotlin, y
+  // los botones de abrir se quedan con su comportamiento de diálogo nativo.
+  invoke('plugin:saf|ping')
+    .then(function () {
+      var openHandler = openAndroidSafFolder;
+      var btnEmptyOpen = document.getElementById('btn-empty-open');
+      var btnOpenFile = document.getElementById('btn-open-file');
+      btnEmptyOpen.removeEventListener('click', openFileDialog);
+      btnEmptyOpen.addEventListener('click', openHandler);
+      btnOpenFile.removeEventListener('click', openFileDialog);
+      btnOpenFile.addEventListener('click', openHandler);
+    })
+    .catch(function () { /* desktop: sin plugin SAF, se mantiene openFileDialog */ });
+
   // Puente hacia módulos hermanos (RF-25 árbol, RF-26 Quick Open,
   // `src/filetree.js`, cargado DESPUÉS de este script) — reutilizan la misma
   // apertura de documento, detección de URL remota y mecanismo de panel

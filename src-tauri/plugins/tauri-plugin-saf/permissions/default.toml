@@ -1,0 +1,10 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = """
+Permite las operaciones mínimas de Storage Access Framework (SAF) usadas por
+la versión Android de dbv-md-reader en la Slice 1: la sonda de disponibilidad
+(`ping`) y conceder una carpeta + leer su primer documento `.md`
+(`pick_folder_and_read_first_markdown`).
+"""
+permissions = ["allow-ping", "allow-pick-folder-and-read-first-markdown"]

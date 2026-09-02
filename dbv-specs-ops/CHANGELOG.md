@@ -7,6 +7,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+### Añadido
+- **Android (en desarrollo, MVP de solo lectura): capa mínima de Storage Access Framework (SAF), Slice 1 de `implementation_plan.md`.** Primer código Kotlin del proyecto (`tauri-plugin-saf`, `src-tauri/plugins/tauri-plugin-saf/`): un botón "Abrir archivo .md" concede una carpeta vía `ACTION_OPEN_DOCUMENT_TREE`, persiste el permiso con `takePersistableUriPermission` y renderiza el primer documento `.md` encontrado con el pipeline completo (Markdown + Mermaid + KaTeX + temas) — verificado en el emulador `dbv_md_reader_test` sin crashes. Sin equivalente de escritorio (ADR-032 en `memory.md`): el plugin solo compila y se registra para `target_os = "android"`, sin afectar a Windows/Linux/macOS. Árbol completo de carpetas, apertura por Intent y exclusiones de UI llegan en las Slices 2-4.
+
 ---
 
 ## [0.14.0] - 2026-09-02

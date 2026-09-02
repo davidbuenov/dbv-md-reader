@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-pick-folder-and-read-first-markdown"
+description = "Enables the pick_folder_and_read_first_markdown command without any pre-configured scope."
+commands.allow = ["pick_folder_and_read_first_markdown"]
+
+[[permission]]
+identifier = "deny-pick-folder-and-read-first-markdown"
+description = "Denies the pick_folder_and_read_first_markdown command without any pre-configured scope."
+commands.deny = ["pick_folder_and_read_first_markdown"]

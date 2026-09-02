@@ -1,0 +1,16 @@
+[package]
+name = "tauri-plugin-saf"
+version = "0.1.0"
+description = "Acceso mínimo a Storage Access Framework (SAF) en Android para dbv-md-reader (Slice 1: conceder una carpeta y leer el primer .md)"
+authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
+license = "MIT"
+edition = "2021"
+links = "tauri-plugin-saf"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tauri = { version = "2" }
