@@ -46,6 +46,7 @@
         "ext": ["md", "markdown"],
         "name": "dbv-md-reader.md",
         "description": "Documento Markdown",
+        "mimeType": "text/markdown",
         "role": "Viewer"
       }
     ]
