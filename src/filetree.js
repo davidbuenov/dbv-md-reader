@@ -199,7 +199,10 @@
   // una carpeta (RF-25) fue válido.
   function renderLevel(containerEl, dirPath, depth) {
     var gen = treeGeneration;
-    return invoke('list_directory', { path: dirPath })
+    // window.DBVApp.listDirectory despacha a `list_directory` (escritorio) o al
+    // plugin `saf` (Android, `content://`) según el esquema de dirPath — ver
+    // isSafUri()/listDirectoryAny() en app.js (Slice 2 de la versión Android).
+    return window.DBVApp.listDirectory(dirPath)
       .then(function (entries) {
         if (gen !== treeGeneration) return false; // superada por un setRoot() más reciente
         registerKnownFiles(entries);

@@ -5,7 +5,14 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 
-const COMMANDS: &[&str] = &["ping", "pick_folder_and_read_first_markdown"];
+const COMMANDS: &[&str] = &[
+    "ping",
+    "pick_folder_and_read_first_markdown",
+    "list_children",
+    "read_document",
+    "resolve_relative",
+    "read_image_data_uri",
+];
 
 fn main() {
     tauri_plugin::Builder::new(COMMANDS)

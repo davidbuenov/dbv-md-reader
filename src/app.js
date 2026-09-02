@@ -286,6 +286,35 @@
   // Carga y renderizado de documentos
   // =========================================================================
 
+  // ─── Android: Storage Access Framework (SAF) — despacho por esquema de URI ─
+  // Slice 2 (dbv-specs-ops/implementation_plan.md): en vez de hacer que los
+  // comandos Rust de escritorio (`read_file`/`list_directory`/
+  // `resolve_relative_path`) entiendan `content://`, cada uno tiene un
+  // equivalente Android en el plugin `saf` (mismo shape de entrada/salida,
+  // ver `src-tauri/plugins/tauri-plugin-saf/src/commands.rs`) y estas tres
+  // funciones eligen cuál invocar según el esquema de la propia ruta — el
+  // resto de la app (loadDocument, filetree.js, resolveImages, interceptLinks)
+  // no necesita saber en qué plataforma corre.
+  function isSafUri(path) { return !!path && path.indexOf('content://') === 0; }
+
+  function readFileAny(path) {
+    return isSafUri(path)
+      ? invoke('plugin:saf|read_document', { uri: path })
+      : invoke('read_file', { path: path });
+  }
+
+  function listDirectoryAny(path) {
+    return isSafUri(path)
+      ? invoke('plugin:saf|list_children', { uri: path })
+      : invoke('list_directory', { path: path });
+  }
+
+  function resolveRelativeAny(baseDir, relativePath) {
+    return isSafUri(baseDir)
+      ? invoke('plugin:saf|resolve_relative', { baseDirUri: baseDir, relativePath: relativePath })
+      : invoke('resolve_relative_path', { baseDir: baseDir, relativePath: relativePath });
+  }
+
   function loadDocument(filePath, opts) {
     if (!filePath) return;
     opts = opts || {};
@@ -301,7 +330,7 @@
     var confirmed = isHistory ? Promise.resolve(true) : confirmDiscardUnsavedChanges();
     confirmed.then(function (proceed) {
       if (!proceed) return;
-      invoke('read_file', { path: filePath })
+      readFileAny(filePath)
         .then(function (doc) {
           currentDoc = doc;
           resolvedImageCache = {}; // documento nuevo: mismas rutas relativas podrían resolver distinto
@@ -337,23 +366,31 @@
           } else {
             container.scrollTop = 0;
           }
-          // Auto-recarga (RF-06): vigilar el documento activo
-          invoke('watch_file', { path: doc.path }).catch(function (err) {
-            console.warn('[watch_file]', err);
-          });
-          // RF-14: registra qué documento muestra esta ventana, para que un "Abrir con"
-          // repetido sobre el mismo archivo enfoque esta ventana en vez de duplicarla.
-          invoke('register_open_document', { path: doc.path }).catch(function (err) {
-            console.warn('[register_open_document]', err);
-          });
+          // Auto-recarga (RF-06), instancia única (RF-14) y Archivos Recientes
+          // (RF-11): ninguno tiene todavía equivalente SAF en Android (RF-06 está
+          // fuera de alcance por diseño; RF-14 no aplica al modelo de una sola
+          // Activity; RF-11 sobre `content://` se autocuraría de inmediato porque
+          // `Path::exists()` en Rust siempre es `false` para esas URIs) — se
+          // omiten en vez de hacer llamadas Rust que fallarían o no harían nada.
+          if (!isSafUri(doc.path)) {
+            // Auto-recarga (RF-06): vigilar el documento activo
+            invoke('watch_file', { path: doc.path }).catch(function (err) {
+              console.warn('[watch_file]', err);
+            });
+            // RF-14: registra qué documento muestra esta ventana, para que un "Abrir con"
+            // repetido sobre el mismo archivo enfoque esta ventana en vez de duplicarla.
+            invoke('register_open_document', { path: doc.path }).catch(function (err) {
+              console.warn('[register_open_document]', err);
+            });
+            // Archivos recientes (RF-11): solo en aperturas explícitas
+            if (isPrimaryOpen) {
+              invoke('add_recent_file', { path: doc.path, fileName: doc.file_name })
+                .then(renderRecentPanel)
+                .catch(function (err) { console.warn('[add_recent_file]', err); });
+            }
+          }
           // RF-25: la raíz del árbol de directorios sigue siempre al documento activo.
           if (window.DBVFileTree) window.DBVFileTree.onDocumentLoaded(doc);
-          // Archivos recientes (RF-11): solo en aperturas explícitas
-          if (isPrimaryOpen) {
-            invoke('add_recent_file', { path: doc.path, fileName: doc.file_name })
-              .then(renderRecentPanel)
-              .catch(function (err) { console.warn('[add_recent_file]', err); });
-          }
         })
         .catch(function (err) {
           showError('[loadDocument] ' + err);
@@ -362,26 +399,17 @@
     });
   }
 
-  // ─── Android: Storage Access Framework (SAF), Slice 1 ─────────────────────
-  // Un único comando de punta a punta (ver dbv-specs-ops/implementation_plan.md):
-  // conceder una carpeta vía ACTION_OPEN_DOCUMENT_TREE y renderizar su primer
-  // documento .md. Deliberadamente NO reutiliza loadDocument() completo: ese
-  // flujo llama a watch_file/register_open_document/add_recent_file (RF-06/
-  // RF-14/RF-11), ninguno con equivalente SAF todavía (llegan en las Slices
-  // 2-3) — aquí solo se ejercita el pipeline de renderizado ya existente
-  // (Markdown + Mermaid + KaTeX + temas), como pide el entregable de la Slice 1.
+  // ─── Android: Storage Access Framework (SAF) ───────────────────────────────
+  // Conceder una carpeta vía ACTION_OPEN_DOCUMENT_TREE y abrir su primer
+  // documento — a partir de la Slice 2 pasa por loadDocument() como cualquier
+  // otra apertura (RF-25 árbol/RF-26 Quick Open/RF-08A enlaces ya la
+  // reutilizan sin cambios, ver isSafUri() más arriba), así que el árbol se
+  // enraiza solo y el historial Alt+←/→ funciona igual que en escritorio. La
+  // Slice 1 llamaba a renderMarkdown() a mano aquí mismo porque ninguno de
+  // esos flujos tenía todavía equivalente SAF — ya no hace falta.
   function openAndroidSafFolder() {
     invoke('plugin:saf|pick_folder_and_read_first_markdown')
-      .then(function (doc) {
-        currentDoc = doc;
-        breadcrumb.textContent = doc.file_name;
-        breadcrumb.title = doc.file_name;
-        renderMarkdown(doc.content);
-        emptyEl.classList.add('hidden');
-        contentEl.classList.remove('hidden');
-        if (tocHeaders.length > 0) setTocVisible(true);
-        document.getElementById('reader-container').scrollTop = 0;
-      })
+      .then(function (doc) { loadDocument(doc.path, { isPrimaryOpen: true }); })
       .catch(function (err) {
         // Cancelado por el usuario, o SecurityException/permiso inválido: mismo
         // criterio de autocuración que RF-11 (sin alert(), se queda en el
@@ -418,7 +446,11 @@
     openDocument: function (path) { loadDocument(path, { isPrimaryOpen: true }); },
     isRemoteUrl: isRemoteUrl,
     setTocVisible: setTocVisible,
-    registerPanel: registerPanel
+    registerPanel: registerPanel,
+    // RF-25 sobre SAF (Slice 2): filetree.js lista carpetas sin saber si la
+    // raíz actual es una ruta de disco o un árbol `content://` — ver
+    // isSafUri()/listDirectoryAny() más arriba.
+    listDirectory: listDirectoryAny
   };
 
   // ─── Auto-recarga por cambios externos (RF-06) ────────────────────────────
@@ -428,7 +460,7 @@
     if (!currentDoc) return;
     var container = document.getElementById('reader-container');
     var savedScroll = container.scrollTop;
-    invoke('read_file', { path: currentDoc.path })
+    readFileAny(currentDoc.path)
       .then(function (doc) {
         currentDoc = doc;
         var tokens = renderMarkdown(doc.content);
@@ -528,8 +560,17 @@
       var src = img.getAttribute('src');
       if (!src || /^(https?:|data:|asset:)/i.test(src)) return;
       if (resolvedImageCache[src]) { img.src = resolvedImageCache[src]; return; }
-      invoke('resolve_relative_path', { baseDir: currentDoc.dir_path, relativePath: src })
+      resolveRelativeAny(currentDoc.dir_path, src)
         .then(function (resolved) {
+          // El WebView de Android no puede cargar `content://` directamente en
+          // <img src> como sí hace convertFileSrc() con rutas de fichero reales
+          // en escritorio — se lee la imagen y se incrusta como `data:` URI.
+          if (isSafUri(resolved)) {
+            return invoke('plugin:saf|read_image_data_uri', { uri: resolved }).then(function (dataUri) {
+              resolvedImageCache[src] = dataUri;
+              img.src = dataUri;
+            });
+          }
           var assetUrl = window.__TAURI__.core.convertFileSrc(resolved);
           resolvedImageCache[src] = assetUrl;
           img.src = assetUrl;
@@ -665,7 +706,7 @@
             if (el) scrollElementIntoView(el);
             return;
           }
-          invoke('resolve_relative_path', { baseDir: currentDoc.dir_path, relativePath: filePart })
+          resolveRelativeAny(currentDoc.dir_path, filePart)
             .then(function (resolved) { loadDocument(resolved, { scrollAnchor: anchorPart }); })
             .catch(function (err) { showError('[link] ' + err); });
         }

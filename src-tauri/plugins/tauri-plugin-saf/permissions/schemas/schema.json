@@ -295,6 +295,18 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the list_children command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-children",
+          "markdownDescription": "Enables the list_children command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_children command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-children",
+          "markdownDescription": "Denies the list_children command without any pre-configured scope."
+        },
+        {
           "description": "Enables the pick_folder_and_read_first_markdown command without any pre-configured scope.",
           "type": "string",
           "const": "allow-pick-folder-and-read-first-markdown",
@@ -319,10 +331,46 @@
           "markdownDescription": "Denies the ping command without any pre-configured scope."
         },
         {
-          "description": "Permite las operaciones mínimas de Storage Access Framework (SAF) usadas por\nla versión Android de dbv-md-reader en la Slice 1: la sonda de disponibilidad\n(`ping`) y conceder una carpeta + leer su primer documento `.md`\n(`pick_folder_and_read_first_markdown`).\n\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-pick-folder-and-read-first-markdown`",
+          "description": "Enables the read_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-document",
+          "markdownDescription": "Enables the read_document command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the read_document command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-document",
+          "markdownDescription": "Denies the read_document command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the read_image_data_uri command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-read-image-data-uri",
+          "markdownDescription": "Enables the read_image_data_uri command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the read_image_data_uri command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-read-image-data-uri",
+          "markdownDescription": "Denies the read_image_data_uri command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the resolve_relative command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-resolve-relative",
+          "markdownDescription": "Enables the resolve_relative command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the resolve_relative command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-resolve-relative",
+          "markdownDescription": "Denies the resolve_relative command without any pre-configured scope."
+        },
+        {
+          "description": "Permite las operaciones de Storage Access Framework (SAF) usadas por la\nversión Android de dbv-md-reader: la sonda de disponibilidad (`ping`),\nconceder una carpeta + leer su primer documento (`pick_folder_and_read_first_markdown`,\nSlice 1), y la navegación del árbol completo — listar una carpeta, leer un\ndocumento arbitrario, resolver rutas relativas e imágenes (`list_children`,\n`read_document`, `resolve_relative`, `read_image_data_uri`, Slice 2).\n\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-pick-folder-and-read-first-markdown`\n- `allow-list-children`\n- `allow-read-document`\n- `allow-resolve-relative`\n- `allow-read-image-data-uri`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Permite las operaciones mínimas de Storage Access Framework (SAF) usadas por\nla versión Android de dbv-md-reader en la Slice 1: la sonda de disponibilidad\n(`ping`) y conceder una carpeta + leer su primer documento `.md`\n(`pick_folder_and_read_first_markdown`).\n\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-pick-folder-and-read-first-markdown`"
+          "markdownDescription": "Permite las operaciones de Storage Access Framework (SAF) usadas por la\nversión Android de dbv-md-reader: la sonda de disponibilidad (`ping`),\nconceder una carpeta + leer su primer documento (`pick_folder_and_read_first_markdown`,\nSlice 1), y la navegación del árbol completo — listar una carpeta, leer un\ndocumento arbitrario, resolver rutas relativas e imágenes (`list_children`,\n`read_document`, `resolve_relative`, `read_image_data_uri`, Slice 2).\n\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-pick-folder-and-read-first-markdown`\n- `allow-list-children`\n- `allow-read-document`\n- `allow-resolve-relative`\n- `allow-read-image-data-uri`"
         }
       ]
     }

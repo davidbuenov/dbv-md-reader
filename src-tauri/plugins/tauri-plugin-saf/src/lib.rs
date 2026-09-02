@@ -21,7 +21,7 @@ use tauri::{
 mod commands;
 mod mobile;
 
-pub use commands::FirstMarkdownDocument;
+pub use commands::{SafDirEntry, SafDocument};
 pub use mobile::Saf;
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
@@ -29,6 +29,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .invoke_handler(tauri::generate_handler![
             commands::ping,
             commands::pick_folder_and_read_first_markdown,
+            commands::list_children,
+            commands::read_document,
+            commands::resolve_relative,
+            commands::read_image_data_uri,
         ])
         .setup(|app, api| {
             let saf = mobile::init(app, api)?;
