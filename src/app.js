@@ -1544,12 +1544,29 @@
   }
 
   // Evita el bucle de retroalimentación: al fijar el scroll del otro panel a
-  // mano, ese propio cambio dispara su listener de scroll — se ignora durante
-  // el siguiente frame en vez de reaccionar en cadena.
-  function withScrollLock(fn) {
+  // mano, ese propio cambio dispara su listener de scroll — se ignora hasta
+  // que llega ese eco. WebKit despacha el evento 'scroll' de forma asíncrona
+  // y sin orden garantizado respecto a requestAnimationFrame, así que limpiar
+  // el flag en un solo rAF es una carrera: si el eco llega después, el
+  // listener lo trata como scroll real del usuario y sincroniza el otro
+  // panel otra vez, y como interpolateScroll() no es exactamente su propia
+  // inversa cada ida y vuelta arrastra unos píxeles de más, formando un
+  // bucle que ya no para solo. En vez de adivinar el timing, se limpia el
+  // flag cuando el propio elemento modificado dispara su eco (listener
+  // 'once'), con un rAF doble como red de seguridad por si el navegador
+  // coalesce el evento y no llega a dispararse.
+  function withScrollLock(el, fn) {
     syncingScroll = true;
+    var cleared = false;
+    function clear() {
+      if (cleared) return;
+      cleared = true;
+      el.removeEventListener('scroll', clear);
+      syncingScroll = false;
+    }
+    el.addEventListener('scroll', clear, { once: true });
     fn();
-    requestAnimationFrame(function () { syncingScroll = false; });
+    requestAnimationFrame(function () { requestAnimationFrame(clear); });
   }
 
   function setEditMode(on) {
@@ -1600,12 +1617,12 @@
     if (syncingScroll || !editMode) return;
     var line = editorTextarea.scrollTop / editorLineHeightPx();
     var top = interpolateScroll(fullScrollAnchors(), 'line', line, 'top');
-    withScrollLock(function () { contentEl.scrollTop = top; });
+    withScrollLock(contentEl, function () { contentEl.scrollTop = top; });
   });
   contentEl.addEventListener('scroll', function () {
     if (syncingScroll || !editMode) return;
     var line = interpolateScroll(fullScrollAnchors(), 'top', contentEl.scrollTop, 'line');
-    withScrollLock(function () { editorTextarea.scrollTop = line * editorLineHeightPx(); });
+    withScrollLock(editorTextarea, function () { editorTextarea.scrollTop = line * editorLineHeightPx(); });
   });
 
   // =========================================================================
