@@ -1,7 +1,7 @@
 [package]
 name = "dbv-md-reader"
-version = "0.14.0"
-description = "Lector y editor nativo de Markdown (.md) ultra-ligero y seguro para Windows, Linux y macOS"
+version = "0.15.0"
+description = "Lector y editor nativo de Markdown (.md) ultra-ligero y seguro para Windows, Linux, macOS y Android"
 authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
 license = "MIT"
 edition = "2021"

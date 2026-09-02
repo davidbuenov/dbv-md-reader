@@ -1,5 +1,5 @@
 // =============================================================================
-// dbv-md-reader — Lector y editor nativo de Markdown (.md) para Windows, Linux y macOS
+// dbv-md-reader — Lector y editor nativo de Markdown (.md) para Windows, Linux, macOS y Android
 // Copyright (c) 2026 David Bueno Vallejo
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops

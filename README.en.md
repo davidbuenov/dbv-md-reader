@@ -12,11 +12,12 @@
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-.deb%20%2F%20AppImage-FCC624?logo=linux&logoColor=black)
 ![macOS](https://img.shields.io/badge/macOS-unsigned%20.dmg-000000?logo=apple&logoColor=white)
+![Android](https://img.shields.io/badge/Android-7.0%2B%20%2F%20Google%20Play-3DDC84?logo=android&logoColor=white)
 ![Status](https://img.shields.io/badge/status-active-success)
 [![Last Update](https://img.shields.io/github/last-commit/davidbuenov/dbv-md-reader?label=last%20update)](https://github.com/davidbuenov/dbv-md-reader/commits/master)
 [![Framework](https://img.shields.io/badge/framework-dbv--specs--ops-111827?logo=github&logoColor=white)](https://github.com/davidbuenov/dbv-specs-ops)
 
-> Native Markdown (`.md`) reader and editor — ultra-lightweight, secure and fast for Windows, Linux and macOS, built with Rust and Tauri v2.
+> Native Markdown (`.md`) reader and editor — ultra-lightweight, secure and fast for Windows, Linux, macOS and Android, built with Rust and Tauri v2.
 
 **[🌐 View the project website](https://davidbuenov.github.io/dbv-md-reader/en/)**
 
@@ -30,6 +31,7 @@
   - [Windows](#-windows)
   - [Linux](#-linux)
   - [macOS](#-macos)
+  - [Android](#-android)
 - [About the project](#-about-the-project)
 - [Key Features](#-key-features)
 - [Keyboard Shortcuts](#-keyboard-shortcuts)
@@ -119,6 +121,16 @@ npm run tauri build
 The resulting `.app` lands in `src-tauri/target/release/bundle/macos/`, also unsigned — same Gatekeeper warning and same fix as above (`xattr -cr "src-tauri/target/release/bundle/macos/DBV Markdown Reader.app"`).
 
 Requires Xcode Command Line Tools (`xcode-select --install`), [Rust](https://rustup.rs/) and Node.js 18+ installed — see the [For developers](#-for-developers) section below for the setup shared across all three platforms.
+
+### 🤖 Android
+
+**[🛒 Get it on Google Play Store](https://play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader)** *(currently in store publication process)*
+
+- **Ultra-lightweight native touch reader:** designed for phones and tablets with a streamlined touch interface and strict compliance with system insets (status bar, notch, and navigation bar).
+- **Storage Access Framework (SAF):** open individual Markdown files in 1 tap, or browse entire folder trees with support for relative local images and cross-document links.
+- **WhatsApp, Telegram, and Gmail integration:** open and view Markdown files shared directly from messaging and mail apps via in-memory streaming without downloading first.
+- **Mobile theme and language switcher:** floating Settings menu (⚙️) with instant switching between Light, Dark, and Sepia themes, and Spanish/English language.
+- **Universal signed AAB bundle:** official release package prepared for Google Play App Signing compiled for ARM64, ARMv7, x86, and x86_64 architectures.
 
 ---
 
