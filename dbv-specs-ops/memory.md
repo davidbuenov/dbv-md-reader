@@ -6,6 +6,26 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-09-02] ADR-039: Versión Android — `/build` Slice 5 completada; Keystore de subida generado, Bundle `.aab` firmado para Google Play Store, y APK de release verificado e instalado en dispositivo físico real (Samsung Galaxy A53 5G)
+- **Contexto:** cierre de las fases de desarrollo de Android planificadas en `implementation_plan.md` (Slices 0 a 5). Requisito: generación del keystore de subida (*Upload Key*) para Google Play App Signing, configuración de firma release en Gradle, compilación del paquete AAB para Google Play, verificación criptográfica de firma y validación en hardware físico real a petición del usuario.
+- **Decisión y configuración técnica de firma:**
+  1. Keystore generado en `C:\Users\bueno\.tauri-keys\dbv-md-reader-upload.jks` con `keytool` (alias `upload`, RSA 2048 bits, validez 10.000 días), fuera del repositorio tal como define `MARKETPLACE_PUBLISHING.md` y coherente con las claves minisign de Windows/desktop (ADR-014).
+  2. Archivo `src-tauri/gen/android/keystore.properties` creado con las credenciales del almacén. Este fichero ya se encuentra expresamente en `.gitignore` de Android para evitar filtración accidental de secretos.
+  3. En `src-tauri/gen/android/app/build.gradle.kts`: añadido bloque `signingConfigs { create("release") { ... } }` que lee `keystore.properties` si existe, y asigna `signingConfig = signingConfigs.getByName("release")` al `buildType` `release`. Si el archivo no existiera en otro entorno, no bloquea las tareas de debug.
+- **Generación y verificación del AAB (Google Play):**
+  - Comando: `npx tauri android build --aab` compilando todas las arquitecturas (`aarch64`, `armv7`, `i686`, `x86_64`) en perfil release optimizado.
+  - Artefacto generado: `src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab`.
+  - Verificación de firma: `jarsigner -verify` confirma `jar verified. Signed by "CN=David Bueno Vallejo, OU=dbv-md-reader, O=David Bueno, L=Malaga, ST=Malaga, C=ES"`.
+- **Generación, verificación e instalación del APK en hardware físico real:**
+  - Dispositivo físico: Samsung Galaxy A53 5G (`SM-A536B`, arquitectura ARM64 / `aarch64`).
+  - Durante la conexión inicial, Samsung One UI 6 bloqueó los comandos USB por la función "Bloqueador automático" (*Auto Blocker*); tras desactivar la restricción, el dispositivo quedó autorizado por ADB.
+  - Se limpió una corrupción transitoria en la caché binaria de Gradle (`.gradle/buildOutputCleanup/outputFiles.bin`) generada por bloqueos de proceso.
+  - Compilación de release APK completada: `app-universal-release.apk`.
+  - Verificación de firma moderna: `apksigner verify --verbose` confirma firma v2 (APK Signature Scheme v2) válida con 1 firmante (`David Bueno Vallejo`).
+  - Instalación exitosa vía ADB: `adb -s RZCTA0054EE install -r app-universal-release.apk`.
+  - Lanzamiento y verificación visual: la app arranca fluidamente en el teléfono físico (`screen_real_phone.png`), mostrando el Estado Vacío adaptado, sin botones de edición/guardar, y con los textos localizados en español.
+  - Se subieron archivos de prueba a la carpeta `/sdcard/Download/dbv_md_test/` del móvil para que el usuario pueda abrirlos directamente desde la app.
+
 ### [2026-09-02] ADR-038: Versión Android — `/build` Slice 4 completada; detección de plataforma con `tauri-plugin-os` y exclusiones de UI verificadas en emulador
 - **Contexto:** continuación de la sesión tras ADR-037. Objetivo de la Slice 4 (`implementation_plan.md`, R4): detección de plataforma en frontend (`isAndroid`) mediante el plugin oficial `tauri-plugin-os` y exclusión/ocultación limpia de las características fuera de alcance en el MVP de Android (decididas en `/spec`, ADR-031 a ADR-033).
 - **Decisión técnica — `tauri-plugin-os` integrado con doble vía de detección:**
