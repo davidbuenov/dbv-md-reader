@@ -6,6 +6,14 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-09-02] ADR-043: Versión Android — Sustitución de logo Tauri por el icono oficial de DBV Markdown Reader y persistencia de recientes SAF
+- **Contexto:**
+  1. En el lanzador de Android se mostraba el icono por defecto de la plantilla de Tauri (círculos concéntricos azules) en lugar del logo oficial de DBV Markdown Reader, debido a que `tauri android init` generó `ic_launcher.png` genéricos en `res/mipmap-*`.
+  2. Al abrir ficheros en Android, la lista de archivos recientes permanecía vacía porque `filter_existing()` en `src-tauri/src/lib.rs` descartaba todas las rutas que no cumplieran `Path::new(&path).exists()` — y las URIs de ContentProvider/SAF (`content://...`) no son rutas POSIX locales de disco.
+- **Decisión técnica y solución:**
+  1. **Iconos nativos actualizados:** Se sincronizó el árbol completo de assets de `src-tauri/icons/android/*` (`mipmap-mdpi`, `mipmap-hdpi`, `mipmap-xhdpi`, `mipmap-xxhdpi`, `mipmap-xxxhdpi`, `mipmap-anydpi-v26` y `values/ic_launcher_background.xml`) hacia `src-tauri/gen/android/app/src/main/res/`, reemplazando limpiamente los placeholders de Tauri por los iconos oficiales de DBV Markdown Reader.
+  2. **Persistencia de URIs SAF en el filtro de recientes:** Se actualizó `filter_existing()` en `lib.rs` incorporando `is_saf(&f.path)` (`path.starts_with("content://")`), de modo que las URIs de Android no se eliminen en el ciclo de auto-curación de recientes. Se añadió prueba unitaria para verificar la persistencia de entradas SAF junto a las rutas locales y URLs remotas.
+
 ### [2026-09-02] ADR-042: Versión Android — Reincorporación del botón de recientes en móvil y auto-restauración limpia sin permisos
 - **Contexto:** 
   1. El botón de archivos recientes (`#btn-recent`) había quedado oculto por el aligeramiento inicial de la barra en Android, pero tras ajustar los anchos y padding, cabe holgadamente en todas las pantallas táctiles.

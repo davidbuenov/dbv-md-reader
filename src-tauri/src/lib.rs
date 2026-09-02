@@ -213,12 +213,17 @@ fn upsert_recent(mut list: Vec<RecentFile>, entry: RecentFile) -> Vec<RecentFile
     list
 }
 
+fn is_saf(path: &str) -> bool {
+    path.starts_with("content://")
+}
+
 /// Drops local entries whose file no longer exists on disk; remote entries
-/// are always kept (RF-11 self-healing). Pure function, separate from
-/// `get_recent_files` so it can be unit-tested without a Tauri AppHandle.
+/// and Android SAF content URIs are always kept (RF-11 self-healing). Pure
+/// function, separate from `get_recent_files` so it can be unit-tested without
+/// a Tauri AppHandle.
 fn filter_existing(list: Vec<RecentFile>) -> Vec<RecentFile> {
     list.into_iter()
-        .filter(|f| is_remote(&f.path) || Path::new(&f.path).exists())
+        .filter(|f| is_remote(&f.path) || is_saf(&f.path) || Path::new(&f.path).exists())
         .collect()
 }
 
@@ -1053,6 +1058,7 @@ mod tests {
             rf(&existing_str, 1),
             rf("C:\\definitely\\not\\a\\real\\path\\gone.md", 2),
             rf("https://example.com/remote.md", 3),
+            rf("content://com.android.externalstorage.documents/document/123", 4),
         ];
 
         let filtered = filter_existing(list);
@@ -1060,7 +1066,8 @@ mod tests {
         let paths: Vec<&str> = filtered.iter().map(|f| f.path.as_str()).collect();
         assert!(paths.contains(&existing_str.as_str()), "existing local file must be kept");
         assert!(paths.contains(&"https://example.com/remote.md"), "remote entries are never filtered by disk existence");
-        assert_eq!(filtered.len(), 2, "the missing local file must be dropped");
+        assert!(paths.contains(&"content://com.android.externalstorage.documents/document/123"), "saf content entries must be kept");
+        assert_eq!(filtered.len(), 3, "the missing local file must be dropped");
     }
 
     // ── canonical_path_str (RF-14 dedupe) ──────────────────────────────────
