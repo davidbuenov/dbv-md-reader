@@ -6,6 +6,14 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-09-02] ADR-042: Versión Android — Reincorporación del botón de recientes en móvil y auto-restauración limpia sin permisos
+- **Contexto:** 
+  1. El botón de archivos recientes (`#btn-recent`) había quedado oculto por el aligeramiento inicial de la barra en Android, pero tras ajustar los anchos y padding, cabe holgadamente en todas las pantallas táctiles.
+  2. Al recrearse o reinstalarse la app, intentar re-leer una URI de SAF (`content://...`) guardada en sesiones anteriores provocaba `permission_denied` y un banner de error rojo si el permiso temporal caducaba o se revocaba.
+- **Decisión técnica y solución:**
+  1. **Botón de recientes activo en móvil:** Eliminada la exclusión de `#btn-recent` en `styles.css`. Bajo `@media (max-width: 768px)`, `#recent-panel` adopta posicionamiento fijo fluido (`position: fixed; top: 56px; left: 12px; right: 12px; width: auto; max-width: calc(100vw - 24px)`) para desplegarse como tarjeta modal centrada sin salirse de los límites de pantalla.
+  2. **Uso directo de `initialPayload` en `loadDocument()`:** En `app.js`, `loadDocument` ahora consume directamente el payload almacenado en memoria/`localStorage` mediante `Promise.resolve(opts.initialPayload)` si existe, evitando llamadas redundantes a `readFileAny()`. Además, si la auto-restauración (`opts.isAutoRestore`) falla, se descarta silenciosamente y limpia `localStorage` sin mostrar alertas o banners de error al usuario.
+
 ### [2026-09-02] ADR-041: Versión Android — Soporte de streaming para WhatsApp/ContentProviders externos, selector directo de archivo, botón de salida y persistencia de sesión
 - **Contexto:** pruebas continuadas en Samsung Galaxy A53 5G revelaron:
   1. Al abrir o compartir un archivo Markdown desde WhatsApp (`content://com.whatsapp.provider.media/...`), la app lanzaba `Invalid URI` porque `DocumentsContract.getTreeDocumentId` fallaba sobre ContentProviders que no son árboles DocumentProvider.

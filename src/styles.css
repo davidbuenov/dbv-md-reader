@@ -150,7 +150,6 @@ body.is-android #doc-readonly-badge,
 body.is-android #btn-print,
 body.is-android #btn-markdown-help,
 body.is-android #btn-about,
-body.is-android #btn-recent,
 body.is-android #theme-switcher,
 body.is-android #lang-switcher,
 body.is-android #app-header .toolbar-divider {
@@ -1237,6 +1236,16 @@ body.drag-over #reader-container {
     flex: 1 1 auto;
     width: auto !important;
     min-width: 80px;
+  }
+  #recent-panel {
+    position: fixed !important;
+    top: 56px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: 70vh !important;
+    z-index: 200 !important;
   }
 }
 

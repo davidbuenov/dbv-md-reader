@@ -378,7 +378,10 @@
     var confirmed = isHistory ? Promise.resolve(true) : confirmDiscardUnsavedChanges();
     confirmed.then(function (proceed) {
       if (!proceed) return;
-      readFileAny(filePath)
+      var docPromise = (opts.initialPayload && opts.initialPayload.content)
+        ? Promise.resolve(opts.initialPayload)
+        : readFileAny(filePath);
+      docPromise
         .then(function (doc) {
           currentDoc = doc;
           resolvedImageCache = {}; // documento nuevo: mismas rutas relativas podrían resolver distinto
@@ -460,6 +463,11 @@
           if (window.DBVFileTree) window.DBVFileTree.onDocumentLoaded(doc);
         })
         .catch(function (err) {
+          if (opts.isAutoRestore) {
+            console.warn('[autoRestore]', err);
+            try { localStorage.removeItem('dbv-md-last-doc'); } catch (_) {}
+            return;
+          }
           showError('[loadDocument] ' + err);
           alert(t('errors.loadFailed', { error: err }));
         });
@@ -2254,7 +2262,7 @@
               if (savedDoc) {
                 var parsed = JSON.parse(savedDoc);
                 if (parsed && parsed.path && parsed.content) {
-                  loadDocument(parsed.path, { isPrimaryOpen: false, initialPayload: parsed });
+                  loadDocument(parsed.path, { isPrimaryOpen: false, isAutoRestore: true, initialPayload: parsed });
                 }
               }
             } catch (_) {}
@@ -2268,7 +2276,7 @@
               if (savedDoc) {
                 var parsed = JSON.parse(savedDoc);
                 if (parsed && parsed.path && parsed.content) {
-                  loadDocument(parsed.path, { isPrimaryOpen: false, initialPayload: parsed });
+                  loadDocument(parsed.path, { isPrimaryOpen: false, isAutoRestore: true, initialPayload: parsed });
                 }
               }
             } catch (_) {}
