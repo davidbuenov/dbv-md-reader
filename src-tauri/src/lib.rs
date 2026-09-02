@@ -899,6 +899,28 @@ pub fn run() {
                     }
                 }
             }
+
+            // Slice 3 (versión Android): "Abrir con" desde Gmail/Drive/un gestor de
+            // archivos (ACTION_VIEW/SEND) llega igual que en macOS, vía RunEvent::Opened
+            // — tao ya lo traduce así en Android (confirmado leyendo su código fuente
+            // real, `tao::platform_impl::android::ndk_glue::handle_intent`), tanto en
+            // frío (`create`) como con la Activity ya viva (`onNewIntent`, gracias a
+            // `android:launchMode="singleTask"` en el manifiesto — nunca se lanza una
+            // Activity nueva). A diferencia de macOS, la URL es `content://` (no
+            // `file://`): no hay `opened_url_to_path` que valga, y no existe el
+            // concepto de "ventana nueva" en Android (RF-14) — en caliente, sustituye
+            // el documento actual en la única ventana vía un evento propio en vez de
+            // `open_or_focus_document`.
+            #[cfg(target_os = "android")]
+            if let tauri::RunEvent::Opened { urls } = _event {
+                if let Some(uri) = urls.first().map(|u| u.to_string()) {
+                    if _app_handle.webview_windows().is_empty() {
+                        *_app_handle.state::<OpenedFileState>().0.lock().unwrap() = Some(uri);
+                    } else {
+                        let _ = _app_handle.emit("android-intent-opened", uri);
+                    }
+                }
+            }
         });
 }
 

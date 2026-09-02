@@ -103,8 +103,13 @@
     return /^https?:\/\//i.test(str || '');
   }
 
+  // "Sin guardado posible" — no solo URLs remotas (RF-08A): un documento SAF
+  // en Android (content://) tampoco tiene comando de escritura implementado
+  // (RF-20 fuera de alcance ahí, ADR-031) — mismo criterio de solo lectura,
+  // así el botón "Editar"/badge "Solo lectura" no dependen de que exista
+  // isSafUri() en el momento en que se declara esta función (hoisting).
   function isRemoteDoc(doc) {
-    return !!doc && isRemoteUrl(doc.path);
+    return !!doc && (isRemoteUrl(doc.path) || isSafUri(doc.path));
   }
 
   // ─── DOM ─────────────────────────────────────────────────────────────────
@@ -488,6 +493,19 @@
     reloadDebounceTimer = setTimeout(reloadCurrentDocument, 150);
   }).catch(function (err) {
     showError('[file-changed listener] ' + err);
+  });
+
+  // Slice 3 (versión Android): "Abrir con" desde Gmail/Drive/un gestor de archivos
+  // mientras la app ya está en marcha — emitido por lib.rs (RunEvent::Opened en
+  // Android, ver el comentario junto a `.run(...)`) solo cuando ya hay una ventana,
+  // así que aquí siempre sustituye el documento actual (RF-14 en Android: sin
+  // equivalente a "ventana nueva"). El caso en frío (app arrancando) no pasa por
+  // aquí — lo cubre `get_cli_argument()` más abajo en la inicialización, igual que
+  // ya hace con argv en Windows/Linux.
+  window.__TAURI__.event.listen('android-intent-opened', function (event) {
+    loadDocument(event.payload, { isPrimaryOpen: true });
+  }).catch(function (err) {
+    showError('[android-intent-opened listener] ' + err);
   });
 
   // targetEl: dónde renderizar — por defecto #content (el documento abierto),

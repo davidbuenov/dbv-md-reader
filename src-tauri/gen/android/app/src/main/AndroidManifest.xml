@@ -35,6 +35,26 @@
             </intent-filter>
             
             <!-- tauri-file-associations. AUTO-GENERATED. DO NOT REMOVE. -->
+
+            <!-- R1 (implementation_plan.md, ADR-036/037 en memory.md): la regla de reserva
+                 por pathPattern/pathSuffix ya prevista en el plan para el gap de MIME de
+                 Gmail/Drive ("application/octet-stream" en vez de "text/markdown") SE
+                 INTENTÓ y se descartó tras verificación real (no solo teórica) — Android no
+                 ofrece una combinación declarativa segura de "cualquier MIME, pero solo
+                 esta extensión" en un <intent-filter>: declarar `mimeType="*/*"` en la
+                 MISMA fila que `scheme`+`pathSuffix` no restringe por path como cabría
+                 esperar, sino que actúa como comodín total sobre TODO el filtro — verificado
+                 con `am start` real (no solo `pm resolve-activity`) resolviendo esta app
+                 incluso para un `content://.../algo.pdf` sin relación ninguna con Markdown,
+                 confirmado visualmente en el selector "Open with" del sistema junto a
+                 "Drive PDF Viewer". Revertido por seguridad — mostrar la app como candidata
+                 para cualquier archivo compartido sería peor que el propio gap de MIME que
+                 se quería cerrar. R1 queda aceptado tal cual (mismo criterio que el
+                 `implementation_plan.md` original): el intent-filter autogenerado de arriba
+                 (`mimeType="text/markdown"` exacto) es la única regla de resolución activa;
+                 el resto del código de esta Slice (RunEvent::Opened en frío/caliente) SÍ
+                 funciona correctamente una vez el Intent llega — solo falla si el
+                 proveedor externo nunca lo entrega con el MIME correcto. -->
         </activity>
 
         <provider
