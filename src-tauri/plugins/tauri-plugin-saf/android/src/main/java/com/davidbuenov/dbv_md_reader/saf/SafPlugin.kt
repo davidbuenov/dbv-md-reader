@@ -380,65 +380,68 @@ class SafPlugin(private val activity: Activity) : Plugin(activity) {
         }
 
     private fun queryDisplayName(uri: Uri): String? {
-        return try {
+        var name: String? = null
+        try {
             val projection = arrayOf(OpenableColumns.DISPLAY_NAME)
             activity.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
                 val nameIdx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (nameIdx != -1 && cursor.moveToFirst()) return cursor.getString(nameIdx)
+                if (nameIdx != -1 && cursor.moveToFirst()) {
+                    name = cursor.getString(nameIdx)
+                }
             }
-            uri.lastPathSegment
-        } catch (e: Exception) {
-            uri.lastPathSegment
-        }
+        } catch (_: Exception) {}
+        return name ?: uri.lastPathSegment
     }
 
     /** Un único nivel de hijos de `dirUri` — carpetas primero, alfabético
      * insensible a mayúsculas, mismo orden que `list_directory_entries` en
      * `lib.rs` (RF-25). */
     private fun queryChildren(dirUri: Uri): List<ChildEntry> {
-        return try {
-            if (!DocumentsContract.isTreeUri(dirUri)) return emptyList()
-            val treeUri = DocumentsContract.buildTreeDocumentUri(dirUri.authority, DocumentsContract.getTreeDocumentId(dirUri))
-            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                treeUri,
-                DocumentsContract.getDocumentId(dirUri)
-            )
-            val projection = arrayOf(
-                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                DocumentsContract.Document.COLUMN_MIME_TYPE
-            )
-            val entries = mutableListOf<ChildEntry>()
-            activity.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
-                val idIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
-                val nameIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-                val mimeIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
-                while (cursor.moveToNext()) {
-                    val name = cursor.getString(nameIdx) ?: continue
-                    val docId = cursor.getString(idIdx)
-                    val isDir = cursor.getString(mimeIdx) == DocumentsContract.Document.MIME_TYPE_DIR
-                    entries.add(ChildEntry(name, DocumentsContract.buildDocumentUriUsingTree(treeUri, docId), isDir))
+        val entries = mutableListOf<ChildEntry>()
+        try {
+            if (DocumentsContract.isTreeUri(dirUri)) {
+                val treeUri = DocumentsContract.buildTreeDocumentUri(dirUri.authority, DocumentsContract.getTreeDocumentId(dirUri))
+                val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                    treeUri,
+                    DocumentsContract.getDocumentId(dirUri)
+                )
+                val projection = arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE
+                )
+                activity.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                    val idIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                    val nameIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                    val mimeIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                    while (cursor.moveToNext()) {
+                        val name = cursor.getString(nameIdx) ?: continue
+                        val docId = cursor.getString(idIdx)
+                        val isDir = cursor.getString(mimeIdx) == DocumentsContract.Document.MIME_TYPE_DIR
+                        entries.add(ChildEntry(name, DocumentsContract.buildDocumentUriUsingTree(treeUri, docId), isDir))
+                    }
                 }
+                entries.sortWith(compareByDescending<ChildEntry> { it.isDir }.thenBy { it.name.lowercase() })
             }
-            entries.sortWith(compareByDescending<ChildEntry> { it.isDir }.thenBy { it.name.lowercase() })
-            entries
-        } catch (e: Exception) {
-            emptyList()
-        }
+        } catch (_: Exception) {}
+        return entries
     }
 
     private fun findFirstMarkdownChild(rootDirUri: Uri): ChildEntry? {
         val direct = queryChildren(rootDirUri)
-        val firstDirect = direct.firstOrNull { !it.isDir && isMarkdownName(it.name) }
-        if (firstDirect != null) return firstDirect
+        var target = direct.firstOrNull { !it.isDir && isMarkdownName(it.name) }
 
-        // Búsqueda en subcarpetas inmediatas si la raíz no tiene archivos .md directos
-        for (sub in direct.filter { it.isDir }) {
-            val subChildren = queryChildren(sub.uri)
-            val firstInSub = subChildren.firstOrNull { !it.isDir && isMarkdownName(it.name) }
-            if (firstInSub != null) return firstInSub
+        if (target == null) {
+            for (sub in direct.filter { it.isDir }) {
+                val subChildren = queryChildren(sub.uri)
+                val inSub = subChildren.firstOrNull { !it.isDir && isMarkdownName(it.name) }
+                if (inSub != null) {
+                    target = inSub
+                    break
+                }
+            }
         }
-        return null
+        return target
     }
 
     /** Padre real de `uri` vía `DocumentsContract.findDocumentPath` (API 26+,
