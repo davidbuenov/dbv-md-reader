@@ -924,6 +924,12 @@ body.is-android #btn-settings {
 .settings-action-btn:hover {
   background-color: var(--bg-tertiary);
 }
+.settings-exit-btn {
+  color: var(--danger, #ef4444);
+}
+.settings-exit-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
 
 .btn-link {
   display: inline-block;
@@ -1209,6 +1215,28 @@ body.drag-over #reader-container {
   }
   #toc-resizer {
     display: none !important;
+  }
+  #search-modal {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+  #search-input {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 80px;
+  }
+  #url-panel {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+  #url-input {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 80px;
   }
 }
 

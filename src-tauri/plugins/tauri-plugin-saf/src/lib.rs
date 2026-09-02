@@ -28,6 +28,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("saf")
         .invoke_handler(tauri::generate_handler![
             commands::ping,
+            commands::exit_app,
+            commands::pick_file_and_read_markdown,
             commands::pick_folder_and_read_first_markdown,
             commands::list_children,
             commands::read_document,

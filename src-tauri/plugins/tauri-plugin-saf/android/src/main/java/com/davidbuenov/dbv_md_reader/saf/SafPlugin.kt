@@ -12,6 +12,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.util.Base64
 import androidx.activity.result.ActivityResult
 import app.tauri.annotation.ActivityCallback
@@ -71,6 +72,72 @@ class SafPlugin(private val activity: Activity) : Plugin(activity) {
         val result = JSObject()
         result.put("available", true)
         invoke.resolve(result)
+    }
+
+    @Command
+    fun exitApp(invoke: Invoke) {
+        activity.finishAffinity()
+        invoke.resolve()
+    }
+
+    @Command
+    fun pickFileAndReadMarkdown(invoke: Invoke) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(
+                Intent.EXTRA_MIME_TYPES,
+                arrayOf(
+                    "text/markdown",
+                    "text/plain",
+                    "text/x-markdown",
+                    "application/octet-stream"
+                )
+            )
+        }
+        startActivityForResult(invoke, intent, "handleFilePicked")
+    }
+
+    @ActivityCallback
+    fun handleFilePicked(invoke: Invoke, result: ActivityResult) {
+        if (result.resultCode != Activity.RESULT_OK) {
+            invoke.reject("cancelled")
+            return
+        }
+
+        val fileUri: Uri? = result.data?.data
+        if (fileUri == null) {
+            invoke.reject("cancelled")
+            return
+        }
+
+        try {
+            val grantedFlags = (result.data?.flags ?: 0) and
+                (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            activity.contentResolver.takePersistableUriPermission(fileUri, grantedFlags)
+        } catch (_: SecurityException) {
+            // Ignorar si el proveedor particular no soporta persistencia directa
+        }
+
+        val displayName = queryDisplayName(fileUri) ?: fileUri.lastPathSegment ?: "documento.md"
+        val content = try {
+            readTextDocument(fileUri)
+        } catch (e: Exception) {
+            invoke.reject("read_failed: ${e.message}")
+            return
+        }
+
+        if (content == null) {
+            invoke.reject("read_failed: content is null")
+            return
+        }
+
+        val payload = JSObject()
+        payload.put("path", fileUri.toString())
+        payload.put("dir_path", "")
+        payload.put("file_name", displayName)
+        payload.put("content", content)
+        invoke.resolve(payload)
     }
 
     /**
@@ -202,7 +269,11 @@ class SafPlugin(private val activity: Activity) : Plugin(activity) {
         }
 
         val name = queryDisplayName(docUri) ?: docUri.lastPathSegment ?: "documento.md"
-        val parent = findParent(docUri) ?: rootDirUriOf(docUri)
+        val parent = try {
+            findParent(docUri) ?: rootDirUriOf(docUri)
+        } catch (e: Exception) {
+            docUri
+        }
 
         val payload = JSObject()
         payload.put("path", docUri.toString())
@@ -291,8 +362,16 @@ class SafPlugin(private val activity: Activity) : Plugin(activity) {
      * a diferencia de la URI "pelada" que devuelve `ACTION_OPEN_DOCUMENT_TREE`,
      * esta sirve directamente como `uri` de entrada de `listChildren`. */
     private fun rootDirUriOf(treeOrDocUri: Uri): Uri {
-        val treeId = DocumentsContract.getTreeDocumentId(treeOrDocUri)
-        return DocumentsContract.buildDocumentUriUsingTree(treeOrDocUri, treeId)
+        return try {
+            if (DocumentsContract.isTreeUri(treeOrDocUri)) {
+                val treeId = DocumentsContract.getTreeDocumentId(treeOrDocUri)
+                DocumentsContract.buildDocumentUriUsingTree(treeOrDocUri, treeId)
+            } else {
+                treeOrDocUri
+            }
+        } catch (e: Exception) {
+            treeOrDocUri
+        }
     }
 
     private fun readTextDocument(uri: Uri): String? =
@@ -301,42 +380,51 @@ class SafPlugin(private val activity: Activity) : Plugin(activity) {
         }
 
     private fun queryDisplayName(uri: Uri): String? {
-        val projection = arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-        activity.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-            val nameIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-            if (cursor.moveToFirst()) return cursor.getString(nameIdx)
+        return try {
+            val projection = arrayOf(OpenableColumns.DISPLAY_NAME)
+            activity.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                val nameIdx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIdx != -1 && cursor.moveToFirst()) return cursor.getString(nameIdx)
+            }
+            uri.lastPathSegment
+        } catch (e: Exception) {
+            uri.lastPathSegment
         }
-        return null
     }
 
     /** Un único nivel de hijos de `dirUri` — carpetas primero, alfabético
      * insensible a mayúsculas, mismo orden que `list_directory_entries` en
      * `lib.rs` (RF-25). */
     private fun queryChildren(dirUri: Uri): List<ChildEntry> {
-        val treeUri = DocumentsContract.buildTreeDocumentUri(dirUri.authority, DocumentsContract.getTreeDocumentId(dirUri))
-        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-            treeUri,
-            DocumentsContract.getDocumentId(dirUri)
-        )
-        val projection = arrayOf(
-            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-            DocumentsContract.Document.COLUMN_MIME_TYPE
-        )
-        val entries = mutableListOf<ChildEntry>()
-        activity.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
-            val idIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
-            val nameIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-            val mimeIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
-            while (cursor.moveToNext()) {
-                val name = cursor.getString(nameIdx) ?: continue
-                val docId = cursor.getString(idIdx)
-                val isDir = cursor.getString(mimeIdx) == DocumentsContract.Document.MIME_TYPE_DIR
-                entries.add(ChildEntry(name, DocumentsContract.buildDocumentUriUsingTree(treeUri, docId), isDir))
+        return try {
+            if (!DocumentsContract.isTreeUri(dirUri)) return emptyList()
+            val treeUri = DocumentsContract.buildTreeDocumentUri(dirUri.authority, DocumentsContract.getTreeDocumentId(dirUri))
+            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                treeUri,
+                DocumentsContract.getDocumentId(dirUri)
+            )
+            val projection = arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE
+            )
+            val entries = mutableListOf<ChildEntry>()
+            activity.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                val idIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                val nameIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                val mimeIdx = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                while (cursor.moveToNext()) {
+                    val name = cursor.getString(nameIdx) ?: continue
+                    val docId = cursor.getString(idIdx)
+                    val isDir = cursor.getString(mimeIdx) == DocumentsContract.Document.MIME_TYPE_DIR
+                    entries.add(ChildEntry(name, DocumentsContract.buildDocumentUriUsingTree(treeUri, docId), isDir))
+                }
             }
+            entries.sortWith(compareByDescending<ChildEntry> { it.isDir }.thenBy { it.name.lowercase() })
+            entries
+        } catch (e: Exception) {
+            emptyList()
         }
-        entries.sortWith(compareByDescending<ChildEntry> { it.isDir }.thenBy { it.name.lowercase() })
-        return entries
     }
 
     private fun findFirstMarkdownChild(rootDirUri: Uri): ChildEntry? {
@@ -361,14 +449,14 @@ class SafPlugin(private val activity: Activity) : Plugin(activity) {
      * en cualquiera de esos casos el llamante degrada a la raíz del árbol. */
     private fun findParent(uri: Uri): Uri? {
         if (Build.VERSION.SDK_INT < 26) return null
-        val treeUri = DocumentsContract.buildTreeDocumentUri(uri.authority, DocumentsContract.getTreeDocumentId(uri))
         return try {
+            if (!DocumentsContract.isTreeUri(uri)) return null
+            val treeId = DocumentsContract.getTreeDocumentId(uri)
+            val treeUri = DocumentsContract.buildTreeDocumentUri(uri.authority, treeId)
             val path = DocumentsContract.findDocumentPath(activity.contentResolver, uri) ?: return null
             val ids = path.path
             if (ids.size < 2) null else DocumentsContract.buildDocumentUriUsingTree(treeUri, ids[ids.size - 2])
         } catch (e: Exception) {
-            // FileNotFoundException (declarada) o UnsupportedOperationException
-            // (proveedor sin soporte) — ambas degradan igual, sin propagar el error.
             null
         }
     }

@@ -32,11 +32,12 @@
   var invoke = window.__TAURI__.core.invoke;
 
   // ─── Detección de plataforma vía tauri-plugin-os (Slice 4) ────────────────
-  var isAndroid = false;
+  // ─── Detección de plataforma vía UserAgent y tauri-plugin-os (Slice 4) ───
+  var isAndroid = /android/i.test(navigator.userAgent);
   try {
-    if (window.__TAURI__ && window.__TAURI__.os && typeof window.__TAURI__.os.platform === 'function') {
+    if (!isAndroid && window.__TAURI__ && window.__TAURI__.os && typeof window.__TAURI__.os.platform === 'function') {
       isAndroid = window.__TAURI__.os.platform() === 'android';
-    } else if (window.__TAURI_OS_PLUGIN_INTERNALS__ && window.__TAURI_OS_PLUGIN_INTERNALS__.platform) {
+    } else if (!isAndroid && window.__TAURI_OS_PLUGIN_INTERNALS__ && window.__TAURI_OS_PLUGIN_INTERNALS__.platform) {
       isAndroid = window.__TAURI_OS_PLUGIN_INTERNALS__.platform === 'android';
     }
   } catch (_) {}
@@ -421,6 +422,17 @@
           } else {
             container.scrollTop = 0;
           }
+          // Persistencia del documento activo para restauración tras pausa/recarga en Android
+          if (isAndroid && doc && doc.content) {
+            try {
+              localStorage.setItem('dbv-md-last-doc', JSON.stringify({
+                path: doc.path,
+                file_name: doc.file_name,
+                content: doc.content,
+                dir_path: doc.dir_path || ''
+              }));
+            } catch (_) {}
+          }
           // Auto-recarga (RF-06), instancia única (RF-14) y Archivos Recientes
           // (RF-11): ninguno tiene todavía equivalente SAF en Android (RF-06 está
           // fuera de alcance por diseño; RF-14 no aplica al modelo de una sola
@@ -455,21 +467,34 @@
   }
 
   // ─── Android: Storage Access Framework (SAF) ───────────────────────────────
-  // Conceder una carpeta vía ACTION_OPEN_DOCUMENT_TREE y abrir su primer
-  // documento — a partir de la Slice 2 pasa por loadDocument() como cualquier
-  // otra apertura (RF-25 árbol/RF-26 Quick Open/RF-08A enlaces ya la
-  // reutilizan sin cambios, ver isSafUri() más arriba), así que el árbol se
-  // enraiza solo y el historial Alt+←/→ funciona igual que en escritorio. La
-  // Slice 1 llamaba a renderMarkdown() a mano aquí mismo porque ninguno de
-  // esos flujos tenía todavía equivalente SAF — ya no hace falta.
+  // Selección directa de archivo individual con ACTION_OPEN_DOCUMENT (un solo toque)
+  function openAndroidSafFile() {
+    invoke('plugin:saf|pick_file_and_read_markdown')
+      .then(function (doc) {
+        if (!doc) return;
+        loadDocument(doc.path, {
+          isPrimaryOpen: true,
+          initialPayload: doc
+        });
+      })
+      .catch(function (err) {
+        if (err === 'cancelled') return;
+        console.warn('[saf pick_file_and_read_markdown fallback]', err);
+        openAndroidSafFolder();
+      });
+  }
+
+  // Selección de árbol/carpeta completa con ACTION_OPEN_DOCUMENT_TREE
   function openAndroidSafFolder() {
     invoke('plugin:saf|pick_folder_and_read_first_markdown')
-      .then(function (doc) { loadDocument(doc.path, { isPrimaryOpen: true }); })
+      .then(function (doc) {
+        if (!doc) return;
+        loadDocument(doc.path, {
+          isPrimaryOpen: true,
+          initialPayload: doc
+        });
+      })
       .catch(function (err) {
-        // Cancelado por el usuario, o SecurityException/permiso inválido: mismo
-        // criterio de autocuración que RF-11 (sin alert(), se queda en el
-        // estado vacío) — "cancelled"/"permission_denied"/"no_markdown_found"
-        // vienen del lado Kotlin (SafPlugin.handleFolderPicked).
         console.warn('[saf pick_folder_and_read_first_markdown]', err);
       });
   }
@@ -1148,6 +1173,19 @@
         aboutPanel.open();
       });
     }
+    var mBtnExitEl = document.getElementById('m-btn-exit');
+    if (mBtnExitEl) {
+      mBtnExitEl.addEventListener('click', function () {
+        settingsPanel.close();
+        if (isAndroid) {
+          invoke('plugin:saf|exit_app').catch(function () {
+            try { window.__TAURI__.window.getCurrentWindow().close(); } catch (_) { window.close(); }
+          });
+        } else {
+          try { window.__TAURI__.window.getCurrentWindow().close(); } catch (_) { window.close(); }
+        }
+      });
+    }
   }
 
   // =========================================================================
@@ -1427,7 +1465,7 @@
 
   function handleOpenAction() {
     if (isAndroid) {
-      openAndroidSafFolder();
+      openAndroidSafFile();
     } else {
       openFileDialog();
     }
@@ -2208,10 +2246,33 @@
     } else {
       invoke('get_cli_argument')
         .then(function (cliPath) {
-          if (cliPath) loadDocument(cliPath, { isPrimaryOpen: true });
+          if (cliPath) {
+            loadDocument(cliPath, { isPrimaryOpen: true });
+          } else if (isAndroid) {
+            try {
+              var savedDoc = localStorage.getItem('dbv-md-last-doc');
+              if (savedDoc) {
+                var parsed = JSON.parse(savedDoc);
+                if (parsed && parsed.path && parsed.content) {
+                  loadDocument(parsed.path, { isPrimaryOpen: false, initialPayload: parsed });
+                }
+              }
+            } catch (_) {}
+          }
         })
         .catch(function (err) {
           console.log('[init] no CLI arg:', err);
+          if (isAndroid) {
+            try {
+              var savedDoc = localStorage.getItem('dbv-md-last-doc');
+              if (savedDoc) {
+                var parsed = JSON.parse(savedDoc);
+                if (parsed && parsed.path && parsed.content) {
+                  loadDocument(parsed.path, { isPrimaryOpen: false, initialPayload: parsed });
+                }
+              }
+            } catch (_) {}
+          }
         });
     }
 

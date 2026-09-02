@@ -6,6 +6,20 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-09-02] ADR-041: Versión Android — Soporte de streaming para WhatsApp/ContentProviders externos, selector directo de archivo, botón de salida y persistencia de sesión
+- **Contexto:** pruebas continuadas en Samsung Galaxy A53 5G revelaron:
+  1. Al abrir o compartir un archivo Markdown desde WhatsApp (`content://com.whatsapp.provider.media/...`), la app lanzaba `Invalid URI` porque `DocumentsContract.getTreeDocumentId` fallaba sobre ContentProviders que no son árboles DocumentProvider.
+  2. Al pulsar "Abrir archivo .md", el selector SAF abría la selección de carpetas (`ACTION_OPEN_DOCUMENT_TREE`) requiriendo "Usar esta carpeta" en lugar de abrir el archivo al tocarlo directamente.
+  3. Tras reposo o suspensión de la Activity en Android, la app regresaba al estado vacío ("Sin documento abierto") por falta de persistencia en recarga.
+  4. No existía una opción explícita para cerrar/salir de la aplicación desde la interfaz.
+  5. La barra de búsqueda modal flotante se desbordaba hacia la izquierda en pantallas verticales estrechas.
+- **Decisión técnica y solución:**
+  1. **Streaming directo desde WhatsApp y ContentProviders externos:** En `SafPlugin.kt`, se protegieron todas las invocaciones a `DocumentsContract` mediante `DocumentsContract.isTreeUri()`. Si la URI recibida es de un proveedor de medios (WhatsApp, Telegram, Gmail, Drive), se lee directamente a través de `contentResolver.openInputStream(uri)` en memoria sin forzar descarga previa ni requerir árbol de directorios, y el nombre se extrae con `OpenableColumns.DISPLAY_NAME`.
+  2. **Selector de archivo directo en 1 toque (`ACTION_OPEN_DOCUMENT`):** Añadido comando `pick_file_and_read_markdown` en Kotlin/Rust. Al pulsar "Abrir archivo .md", Android abre el selector nativo de documentos; al tocar cualquier archivo `.md`, se abre de inmediato sin pedir confirmación de carpetas.
+  3. **Persistencia del documento activo:** En `app.js`, se almacena el estado del documento en `localStorage('dbv-md-last-doc')`, restaurándolo automáticamente en `init()` si Android reinicia la Activity o recrea la vista tras suspensión.
+  4. **Botón de salida:** Incorporado `#m-btn-exit` en el panel de configuración (rueda ⚙️) que invoca `exit_app` en Kotlin (`activity.finishAffinity()`), cerrando limpiamente la aplicación.
+  5. **Búsqueda fluida:** En `styles.css` (<= 768px), `#search-modal` adopta `left: 12px; right: 12px; width: auto; max-width: calc(100vw - 24px)` con `flex: 1` en el input, centrándose y adaptándose a cualquier pantalla.
+
 ### [2026-09-02] ADR-040: Versión Android — Aligeramiento de la barra superior en móvil y menú de Ajustes (rueda de configuración)
 - **Contexto:** tras verificar en dispositivo real Samsung Galaxy A53 5G, la barra superior en pantallas verticales (360-412px de ancho) y horizontales se saturaba con el nombre del documento, tiempo de lectura, insignias, conmutadores de tema/idioma y botones de ayuda/impresión, provocando que los botones de acción (especialmente el Índice/TOC) quedaran desplazados fuera de pantalla.
 - **Decisión de UX móvil y arquitectura:**

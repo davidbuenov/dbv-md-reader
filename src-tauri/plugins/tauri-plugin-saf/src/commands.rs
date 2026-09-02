@@ -77,6 +77,28 @@ pub async fn ping<R: Runtime>(
         .map_err(|e| e.to_string())
 }
 
+#[command]
+pub async fn exit_app<R: Runtime>(
+    #[allow(unused)] window: Window<R>,
+    saf: State<'_, Saf<R>>,
+) -> Result<(), String> {
+    saf.0
+        .run_mobile_plugin_async("exitApp", ())
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn pick_file_and_read_markdown<R: Runtime>(
+    #[allow(unused)] window: Window<R>,
+    saf: State<'_, Saf<R>>,
+) -> Result<SafDocument, String> {
+    saf.0
+        .run_mobile_plugin_async("pickFileAndReadMarkdown", ())
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Comando único de punta a punta de la Slice 1 (ver `implementation_plan.md`):
 /// lanza `ACTION_OPEN_DOCUMENT_TREE`, persiste el permiso concedido con
 /// `takePersistableUriPermission`, localiza el primer documento hijo con
