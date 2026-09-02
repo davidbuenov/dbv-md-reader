@@ -23,6 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 notify = "8.2.0"
 ureq = "3.4.0"
+tauri-plugin-os = "2.0.0"
 sys-locale = "0.3"
 # Instala el proveedor criptográfico por defecto de rustls (ver `install_rustls_provider` en
 # lib.rs) — sin dependencia directa no se puede llamar a `rustls::crypto::ring::default_provider()`,

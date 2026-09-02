@@ -12,6 +12,7 @@
     "shell:allow-open",
     "updater:default",
     "process:allow-restart",
-    "core:webview:allow-print"
+    "core:webview:allow-print",
+    "os:default"
   ]
 }

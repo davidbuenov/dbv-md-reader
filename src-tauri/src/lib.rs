@@ -822,6 +822,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_os::init())
         .setup(|_app| {
             // macOS espera la barra de menú superior del SO (Cmd+Q, Cmd+H,
             // Editar con Cortar/Copiar/Pegar, etc.) — sin ella la app no se

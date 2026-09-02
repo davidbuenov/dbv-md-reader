@@ -31,6 +31,16 @@
 
   var invoke = window.__TAURI__.core.invoke;
 
+  // ─── Detección de plataforma vía tauri-plugin-os (Slice 4) ────────────────
+  var isAndroid = false;
+  try {
+    if (window.__TAURI__ && window.__TAURI__.os && typeof window.__TAURI__.os.platform === 'function') {
+      isAndroid = window.__TAURI__.os.platform() === 'android';
+    } else if (window.__TAURI_OS_PLUGIN_INTERNALS__ && window.__TAURI_OS_PLUGIN_INTERNALS__.platform) {
+      isAndroid = window.__TAURI_OS_PLUGIN_INTERNALS__.platform === 'android';
+    }
+  } catch (_) {}
+
   // ─── Abrir una URL en el navegador del sistema (con fallback) ─────────────
   function openExternal(href) {
     try {
@@ -138,6 +148,37 @@
   var btnEditToggle     = document.getElementById('btn-edit-toggle');
   var btnSave           = document.getElementById('btn-save');
   var conflictBanner    = document.getElementById('conflict-banner');
+
+  // ─── Exclusiones de UI en Android (Slice 4, RF-13/19/20/21/25) ─────────────
+  function applyPlatformExclusions() {
+    if (!isAndroid) return;
+    if (btnEditToggle) btnEditToggle.classList.add('hidden');
+    if (btnSave) btnSave.classList.add('hidden');
+    var btnAlways = document.getElementById('btn-always-on-top');
+    if (btnAlways) btnAlways.classList.add('hidden');
+    var btnCheck = document.getElementById('btn-check-update');
+    if (btnCheck) btnCheck.style.display = 'none';
+    var uStatus = document.getElementById('update-status');
+    if (uStatus) {
+      uStatus.textContent = t('update.playStore');
+      uStatus.classList.remove('is-available');
+    }
+    var aboutDesc = document.querySelector('.about-desc');
+    if (aboutDesc) aboutDesc.textContent = t('about.descAndroid');
+    var dragHint = document.querySelector('.empty-hint');
+    if (dragHint) dragHint.classList.add('hidden');
+  }
+
+  if (isAndroid) {
+    applyPlatformExclusions();
+  } else if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
+    invoke('plugin:os|platform').then(function (plat) {
+      if (plat === 'android') {
+        isAndroid = true;
+        applyPlatformExclusions();
+      }
+    }).catch(function () {});
+  }
 
   // ─── markdown-it ─────────────────────────────────────────────────────────
   if (!window.markdownit) { showError('[ERROR] markdown-it no cargado'); return; }
@@ -341,6 +382,10 @@
           resolvedImageCache = {}; // documento nuevo: mismas rutas relativas podrían resolver distinto
           setEditMode(false); // cada documento nuevo empieza en modo lectura (RF-20)
           btnEditToggle.disabled = isRemoteDoc(doc); // sin guardado posible sobre una URL (RF-08A)
+          if (isAndroid) {
+            btnEditToggle.classList.add('hidden');
+            btnSave.classList.add('hidden');
+          }
           readOnlyBadge.classList.toggle('hidden', !isRemoteDoc(doc));
           if (!isHistory) {
             if (histIdx < history.length - 1) history = history.slice(0, histIdx + 1);
@@ -455,7 +500,10 @@
     // RF-25 sobre SAF (Slice 2): filetree.js lista carpetas sin saber si la
     // raíz actual es una ruta de disco o un árbol `content://` — ver
     // isSafUri()/listDirectoryAny() más arriba.
-    listDirectory: listDirectoryAny
+    listDirectory: listDirectoryAny,
+    // Detección de plataforma expuesta para filetree.js (Slice 4)
+    get isAndroid() { return isAndroid; },
+    set isAndroid(v) { isAndroid = !!v; }
   };
 
   // ─── Auto-recarga por cambios externos (RF-06) ────────────────────────────
@@ -930,6 +978,12 @@
     // El breadcrumb no lleva data-i18n (si hay un documento abierto, applyTranslations()
     // no debe pisar su nombre de archivo con el texto de "sin documento").
     if (!currentDoc) breadcrumb.textContent = t('toolbar.noDocument');
+    if (isAndroid) {
+      var uStatus = document.getElementById('update-status');
+      if (uStatus) uStatus.textContent = t('update.playStore');
+      var aboutDesc = document.querySelector('.about-desc');
+      if (aboutDesc) aboutDesc.textContent = t('about.descAndroid');
+    }
   }
 
   Object.keys(btnLangs).forEach(function (name) {
@@ -1118,17 +1172,19 @@
       });
   }
 
-  // Instalado vía MSIX (Microsoft Store): las actualizaciones las gestiona la
-  // Store/Windows Update, no este updater (que apunta a GitHub Releases y
-  // solo tiene sentido para el instalador NSIS). Descargar y ejecutar ese
-  // instalador dentro del sandbox del paquete fallaría o crearía una
-  // instalación separada y desconectada de la de la Store.
-  invoke('is_packaged_app').then(function (isPackaged) {
-    if (isPackaged) {
-      btnCheckUpdate.style.display = 'none';
-      setUpdateStatus(t('update.store'), false);
-      return;
-    }
+  // Instalado vía MSIX (Microsoft Store) o en Android (Google Play Store): las
+  // actualizaciones las gestiona la Store, no este updater (que apunta a GitHub
+  // Releases). En Android la comprobación de updates queda completamente fuera de alcance.
+  if (isAndroid) {
+    btnCheckUpdate.style.display = 'none';
+    setUpdateStatus(t('update.playStore'), false);
+  } else {
+    invoke('is_packaged_app').then(function (isPackaged) {
+      if (isPackaged) {
+        btnCheckUpdate.style.display = 'none';
+        setUpdateStatus(t('update.store'), false);
+        return;
+      }
 
     btnCheckUpdate.addEventListener('click', function () {
       if (pendingUpdate) { installPendingUpdate(); return; }
@@ -1154,6 +1210,7 @@
         });
     });
   });
+}
 
   // =========================================================================
   // Búsqueda (Ctrl+F)
@@ -1334,6 +1391,10 @@
   // ─── Always on Top (por ventana, sin persistencia — ver memory.md ADR-023) ─
   (function () {
     var btnAlwaysOnTop = document.getElementById('btn-always-on-top');
+    if (isAndroid) {
+      if (btnAlwaysOnTop) btnAlwaysOnTop.classList.add('hidden');
+      return;
+    }
     var currentWindow = window.__TAURI__.window.getCurrentWindow();
 
     function setButtonState(active) {
@@ -1674,12 +1735,14 @@
   }
 
   function setEditMode(on) {
+    if (isAndroid && on) return;
     editMode = on;
     readerContainer.classList.toggle('edit-mode', on);
     editorPane.classList.toggle('hidden', !on);
     editorResizer.classList.toggle('hidden', !on);
-    btnSave.classList.toggle('hidden', !on);
+    btnSave.classList.toggle('hidden', !on || isAndroid);
     btnEditToggle.classList.toggle('active', on);
+    if (isAndroid) btnEditToggle.classList.add('hidden');
     var key = on ? 'toolbar.editModeActive' : 'toolbar.editMode';
     btnEditToggle.setAttribute('data-i18n-title', key);
     btnEditToggle.title = t(key);
@@ -1699,7 +1762,7 @@
   }
 
   function toggleEditMode() {
-    if (!currentDoc || isRemoteDoc(currentDoc)) return;
+    if (isAndroid || !currentDoc || isRemoteDoc(currentDoc)) return;
     confirmDiscardUnsavedChanges().then(function (proceed) {
       if (proceed) setEditMode(!editMode);
     });
@@ -1978,7 +2041,7 @@
   });
 
   function saveCurrentDocument() {
-    if (!currentDoc || !editMode || isRemoteDoc(currentDoc)) return;
+    if (isAndroid || !currentDoc || !editMode || isRemoteDoc(currentDoc)) return;
     var path = currentDoc.path;
     var content = editorTextarea.value;
     clearTimeout(editDebounceTimer);

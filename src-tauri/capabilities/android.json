@@ -5,6 +5,7 @@
   "platforms": ["android"],
   "windows": ["main"],
   "permissions": [
-    "saf:default"
+    "saf:default",
+    "os:default"
   ]
 }

@@ -95,8 +95,14 @@
     });
   }
 
+  function isAndroidPlatform() {
+    return (window.DBVApp && window.DBVApp.isAndroid) ||
+      (window.__TAURI__ && window.__TAURI__.os && typeof window.__TAURI__.os.platform === 'function' && window.__TAURI__.os.platform() === 'android') ||
+      (window.__TAURI_OS_PLUGIN_INTERNALS__ && window.__TAURI_OS_PLUGIN_INTERNALS__.platform === 'android');
+  }
+
   function openFromTree(path, e) {
-    var openInNewWindow = !!(e && (e.ctrlKey || e.metaKey));
+    var openInNewWindow = !isAndroidPlatform() && !!(e && (e.ctrlKey || e.metaKey));
     if (openInNewWindow) {
       invoke('open_in_new_window', { path: path }).catch(function (err) {
         console.warn('[open_in_new_window]', err);
@@ -108,8 +114,10 @@
 
   // "Abrir en ventana nueva" solo tiene sentido sobre un archivo `.md` abrible
   // (no sobre una carpeta ni sobre un archivo no-`.md`, ver RF-25) — se oculta
-  // en esos dos casos en vez de mostrarse deshabilitado.
+  // en esos dos casos en vez de mostrarse deshabilitado. En Android queda
+  // completamente fuera de alcance (no hay multi-ventana ni explorador de archivos de escritorio).
   function showTreeContextMenu(x, y, path, isMarkdown) {
+    if (isAndroidPlatform()) return;
     treeContextMenu.dataset.path = path;
     treeOpenNewWinBtn.textContent = t('fileTree.openNewWindow', { mod: MOD_KEY_LABEL });
     treeOpenNewWinBtn.classList.toggle('hidden', !isMarkdown);
@@ -185,10 +193,12 @@
       row.addEventListener('click', function (e) { openFromTree(entry.path, e); });
     }
 
-    row.addEventListener('contextmenu', function (e) {
-      e.preventDefault();
-      showTreeContextMenu(e.clientX, e.clientY, entry.path, entry.is_markdown);
-    });
+    if (!isAndroidPlatform()) {
+      row.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        showTreeContextMenu(e.clientX, e.clientY, entry.path, entry.is_markdown);
+      });
+    }
 
     return wrap;
   }

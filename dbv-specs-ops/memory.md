@@ -6,6 +6,29 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-09-02] ADR-038: Versión Android — `/build` Slice 4 completada; detección de plataforma con `tauri-plugin-os` y exclusiones de UI verificadas en emulador
+- **Contexto:** continuación de la sesión tras ADR-037. Objetivo de la Slice 4 (`implementation_plan.md`, R4): detección de plataforma en frontend (`isAndroid`) mediante el plugin oficial `tauri-plugin-os` y exclusión/ocultación limpia de las características fuera de alcance en el MVP de Android (decididas en `/spec`, ADR-031 a ADR-033).
+- **Decisión técnica — `tauri-plugin-os` integrado con doble vía de detección:**
+  1. Dependencia `tauri-plugin-os = "2"` añadida en `src-tauri/Cargo.toml`.
+  2. Inicialización en `src-tauri/src/lib.rs` con `.plugin(tauri_plugin_os::init())`.
+  3. Permiso `"os:default"` añadido tanto en `capabilities/android.json` como en `capabilities/main.json` para permitir la consulta multiplataforma sin romper la resolución de ACL.
+  4. En `src/app.js`: variable de estado `isAndroid`. Se consulta de forma asíncrona al inicializar la app (`window.__TAURI__.os.platform()` o `invoke('plugin:os|platform')`) y se aplica `applyPlatformExclusions()`.
+- **Exclusiones de UI aplicadas en Android:**
+  - **Modo Edición (RF-20/RF-21):** `#btn-edit-toggle` y `#btn-save` se ocultan con la clase `hidden`. Las funciones `setEditMode()`, `toggleEditMode()` y `saveCurrentDocument()` comprueban `if (isAndroid) return` como salvaguarda funcional.
+  - **Always on Top (RF-19):** `#btn-always-on-top` oculto en Android (no aplicable al ciclo de vida móvil).
+  - **Actualizaciones (RF-13):** En el modal de comprobación de actualización, el botón `#btn-check-update` se oculta y el texto de estado se sustituye dinámicamente con una indicación en español e inglés ("Las actualizaciones se gestionan a través de Google Play Store" / "Updates are managed through Google Play Store").
+  - **Drag & Drop (RF-09):** El texto indicativo de arrastrar archivo se oculta en el Estado Vacío en Android, dejando solo los botones de acción táctil ("Abrir archivo .md" y "o abrir desde una URL").
+  - **Menú contextual del Explorador de Árbol (RF-25):** Las opciones "Abrir en ventana nueva" y "Revelar en el explorador de archivos" se deshabilitan en Android al carecer de soporte en el modelo de actividad única de Android.
+  - **Acerca de (RF-16):** La descripción en el diálogo "Acerca de" se adapta en Android destacando que es un lector nativo ultraligero con soporte para Storage Access Framework.
+- **Verificación real en emulador:**
+  - Build de depuración ejecutado con éxito (`npx tauri android build --debug --target x86_64`) e instalado vía `adb install -r`.
+  - Capturas de pantalla (`screen_slice4.png` y `screen_doc.png`) tomadas con `adb shell screencap`:
+    - El Estado Vacío muestra únicamente "Open .md file" y "or open from a URL", sin la pista de arrastrar y soltar.
+    - La barra de herramientas omite los botones de edición, guardado y Always on Top.
+    - Al abrir un documento (`index.md` con enlaces y subcarpetas), se renderiza fluidamente con el badge "READ-ONLY" y el árbol de navegación sin controles de edición.
+  - Tests unitarios en escritorio (`cargo test --lib` en `src-tauri`): 20/20 pasando, sin regresiones en la lógica desktop.
+- **Siguiente paso:** Slice 5 (empaquetado, firma y generación de AAB para Google Play).
+
 ### [2026-09-02] ADR-037: Versión Android — `/build` Slice 3 completada; R1 (gap de MIME de Gmail/Drive) investigado a fondo y revertido por inseguro
 - **Adenda posterior al commit de la slice (misma sesión):** al preparar una demo para el usuario se detectó que el caso realmente en frío (app completamente parada, primer lanzamiento directo con un Intent `ACTION_VIEW`) se quedaba en el Estado Vacío — todos los tests previos de esta ADR habían probado sin querer solo el camino en caliente (lanzar la app normal primero, luego enviar el Intent con la app ya viva). Causa: `_app_handle.webview_windows().is_empty()` **no distingue frío/caliente de forma fiable en Android** como sí hace en macOS — la ventana ya está registrada en el mapa de Tauri antes de que el frontend termine de cargar y registre su listener de `android-intent-opened`, así que la rama "caliente" se tomaba de forma prematura y el evento se perdía sin que nadie lo escuchara. Fix: escribir siempre en `OpenedFileState` **y** emitir el evento, sin condicional — `get_cli_argument()` solo se llama una vez al arrancar (cubre el frío) y el listener solo existe una vez cargado el frontend (cubre el caliente), así que cada lanzamiento real solo completa uno de los dos caminos sin riesgo de abrir el documento dos veces. Verificado con `am start` real tras `am force-stop` (app genuinamente muerta, no solo en segundo plano) — el documento se abre correctamente con el badge "Solo lectura". **Lección:** al portar un patrón de macOS a Android que depende de "¿ya existe una ventana?" para decidir frío vs. caliente, no asumir que el orden de eventos es el mismo entre plataformas — verificar explícitamente el caso frío genuino (proceso muerto de verdad, no solo un `am start` sobre una app que ya estaba en segundo plano).
 - **Contexto:** misma sesión que ADR-035/036 (Slices 1-2), continuada a petición del usuario ("adelante, no hay dolor, sigamos"), que también pidió explícitamente deshabilitar el botón "Editar" en documentos SAF antes de seguir — hecho primero como fix pequeño y separado (`isRemoteDoc()` en `app.js` ahora también es `true` para `content://`, mismo criterio que documentos remotos `http(s)://`; cierra el gap de UI ya registrado como deuda consciente en ADR-036). Objetivo de la Slice 3 (`implementation_plan.md`): `ACTION_VIEW` en frío y `onNewIntent` con la Activity ya viva, sustituyendo el documento actual sin crear ventana nueva (RF-14 en Android), cerrando R1 si el gap de MIME se confirmaba.
