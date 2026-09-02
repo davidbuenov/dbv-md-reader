@@ -911,14 +911,22 @@ pub fn run() {
             // concepto de "ventana nueva" en Android (RF-14) — en caliente, sustituye
             // el documento actual en la única ventana vía un evento propio en vez de
             // `open_or_focus_document`.
+            // `webview_windows().is_empty()` no distingue frío/caliente de forma fiable en
+            // Android como sí hace en macOS (verificado en real: un cold start genuino con
+            // esa comprobación se quedaba en el Estado Vacío, ni el evento ni
+            // `OpenedFileState` llegaban a tiempo — la ventana ya está registrada en el mapa
+            // de Tauri antes de que el frontend termine de cargar y registrar su listener,
+            // a diferencia del orden "Opened -> Ready -> Window" documentado para macOS).
+            // Fix: escribir SIEMPRE en ambos sitios, sin condicional — `get_cli_argument()`
+            // solo se llama una vez al arrancar (recoge el caso frío) y el listener de
+            // `android-intent-opened` solo existe una vez cargado el frontend (recoge el
+            // caso caliente); cada lanzamiento real solo puede completar uno de los dos
+            // caminos, así que no hay riesgo de abrir el documento dos veces.
             #[cfg(target_os = "android")]
             if let tauri::RunEvent::Opened { urls } = _event {
                 if let Some(uri) = urls.first().map(|u| u.to_string()) {
-                    if _app_handle.webview_windows().is_empty() {
-                        *_app_handle.state::<OpenedFileState>().0.lock().unwrap() = Some(uri);
-                    } else {
-                        let _ = _app_handle.emit("android-intent-opened", uri);
-                    }
+                    *_app_handle.state::<OpenedFileState>().0.lock().unwrap() = Some(uri.clone());
+                    let _ = _app_handle.emit("android-intent-opened", uri);
                 }
             }
         });
