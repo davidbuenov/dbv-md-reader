@@ -33,7 +33,7 @@
   "bundle": {
     "active": true,
     "android": {
-      "versionCode": 15001
+      "versionCode": 15002
     },
     "publisher": "David Bueno Vallejo",
     "createUpdaterArtifacts": true,
