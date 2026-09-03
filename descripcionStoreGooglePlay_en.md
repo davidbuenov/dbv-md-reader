@@ -117,3 +117,12 @@ Folder: `google-play-assets/tablet-screenshots/`:
 In Google Play Console under **Create new release**:
 
 `src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab`
+*(Cryptographically signed, with 16 kB memory page size support for Android 15+, supporting ARM64, ARMv7, x86, and x86_64)*
+
+---
+
+## 🛠️ Native Debug Symbols (Optional / Recommended)
+
+If Google Play Console shows an advisory warning regarding native debug symbols:
+* **Pre-packaged ZIP:** [`google-play-assets/native-debug-symbols.zip`](file:///d:/Programacion/github-davidbuenov/dbv-md-reader/google-play-assets/native-debug-symbols.zip)
+* **Where to upload:** Alongside the `.aab` file or in *App Bundle Explorer > Downloads tab > Native debug symbols*.

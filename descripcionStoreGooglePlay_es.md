@@ -117,4 +117,13 @@ Carpeta: `google-play-assets/tablet-screenshots/`:
 En la sección **Crear nueva versión** de Google Play Console (pista interna o producción), sube el archivo generado:
 
 `src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab`
-*(Firmado criptográficamente con la clave upload para todas las arquitecturas ARM64, ARMv7, x86 y x86_64)*
+*(Firmado criptográficamente con la clave upload, con soporte nativo de páginas de memoria de 16 kB para Android 15+ y optimizado para ARM64, ARMv7, x86 y x86_64)*
+
+---
+
+## 🛠️ Símbolos de Depuración Nativos (Opcional / Recomendado)
+
+Si Google Play Console te solicita o muestra una advertencia sobre símbolos de depuración nativos:
+* **Archivo ZIP preparado:** [`google-play-assets/native-debug-symbols.zip`](file:///d:/Programacion/github-davidbuenov/dbv-md-reader/google-play-assets/native-debug-symbols.zip)
+* **Dónde subirlo:** Junto al archivo `.aab` subido en la consola (o en *Explorador de paquetes de aplicaciones > pestaña Descargas > Símbolos de depuración nativos*).
+* *Nota:* La advertencia de símbolos de depuración es informativa y no bloquea el lanzamiento, pero subir este archivo facilita la lectura de informes de fallos nativos.
