@@ -1,23 +1,21 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-02) — Fase 37: Versión Android v0.15.0 completada, verificada y entregada (/ship). Bundle AAB firmado (`app-universal-release.aab`) para Google Play Console.**
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-03) — Fase 38: Publicación oficial en Google Play Store (Android v0.15.0, versionCode 15002) completada y enviada a revisión.**
 >
-> **Ciclo SDD recorrido:** `/spec` → `/plan` → `/build` (Slices 0 a 5 completadas y verificadas) → `/code-simplify` → `/test` → `/ship`. Documentos de referencia: `dbv-specs-ops/docs/SPECIFICATIONS.md` (Escenario H, RF-01/06/07/08A/13/14/20/25/26 con notas Android, RNF-01), `dbv-specs-ops/docs/ARCHITECTURE.md` §5 (sección "Android — MVP de solo lectura vía Google Play"), `dbv-specs-ops/implementation_plan.md`, `dbv-specs-ops/memory.md` (ADR-031 a ADR-043) y `dbv-specs-ops/docs/MARKETPLACE_PUBLISHING.md` §8.
+> **Ciclo SDD recorrido:** `/spec` → `/plan` → `/build` (Slices 0 a 5 completadas y verificadas en hardware real) → `/code-simplify` → `/test` → `/ship` → Fase de Certificación y Tienda Google Play.
 >
-> **Decisiones de alcance y UX móvil cerradas:** MVP de Android **solo lectura** (RF-20/RF-21 excluidos); modelo de archivos **árbol completo vía SAF** (`ACTION_OPEN_DOCUMENT_TREE`) y **apertura directa de archivos** (`ACTION_OPEN_DOCUMENT`); streaming directo para ContentProviders externos (WhatsApp, Gmail, Telegram); **recarga en vivo (RF-06) fuera de alcance**; distribución **Google Play Store**.
+> **Hitos y resoluciones de Google Play Console alcanzados:**
+> 1. **Resolución de Error Bloqueante de 16 kB Page Size:** Inyección de flags de enlazador (`-Wl,-z,max-page-size=16384` y `-Wl,-z,common-page-size=16384`) en `src-tauri/build.rs` y `useLegacyPackaging = false` en `build.gradle.kts`. Verificados encabezados ELF de todas las librerías `.so` (`PT_LOAD align: 16384 => OK`).
+> 2. **Símbolos de Depuración Nativos:** Configurado `debugSymbolLevel = "FULL"` y generado el archivo oficial `google-play-assets/native-debug-symbols.zip` con las 4 arquitecturas unstripped (`arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`).
+> 3. **Eliminación de APIs Obsoletas de Extremo a Extremo (Android 15):** Cambio de tema base a `Theme.AppCompat.DayNight.NoActionBar` y eliminación de la dependencia innecesaria `com.google.android.material:material`, eliminando llamadas a `MaterialDatePicker.onStart` y `setStatusBarColor`.
+> 4. **Optimización R8 y Reducción de Recursos:** Activado `isShrinkResources = true` junto con `isMinifyEnabled = true`, reduciendo el total de archivos internos del AAB de 969 a 606.
+> 5. **Incremento de Versión:** `versionCode = 15002` con `versionName = 0.15.0` en `tauri.conf.json`.
+> 6. **Assets de Tienda Completos:** Icono 512x512 (`icon-512x512.png`), Gráfico Destacado 1024x500 (`feature-graphic-1024x500.png`), 6 capturas de teléfono (1080x2400) y 4 capturas de tablet (7" y 10" generadas dinámicamente vía emulador).
+> 7. **Documentación de Tienda y Framework:** Creados `descripcionStoreGooglePlay_es.md`, `descripcionStoreGooglePlay_en.md`, y el documento de lecciones aprendidas para el framework `dbv-specs-ops/actualizacion_dbv_specs_ops_android.md`.
 >
-> **Slices y logros Android v0.15.0:**
-> - Slice 0 (gating desktop + arranque en emulador): ✅ (`37d0a15`, ADR-034).
-> - Slice 1 (capa SAF mínima de punta a punta): ✅ (`4db959c`, ADR-035).
-> - Slice 2 (árbol completo, imágenes relativas y enlaces cruzados sobre SAF): ✅ (`19174a2`, ADR-036).
-> - Slice 3 (apertura por Intent contra apps externas reales): ✅ (`1a41aa5`, fix `f82565e`, ADR-037).
-> - Slice 4 (detección de plataforma y exclusiones de UI): ✅ (`773ac9c`, ADR-038).
-> - Slice 5 (empaquetado, firma y verificación en dispositivo real): ✅ (`024086d`, ADR-039).
-> - Mejoras en hardware real (Samsung Galaxy A53 5G): Insets de barra de sistema y toques (`156ed49`), aligeramiento de barra y menú de Ajustes ⚙️ (ADR-040, `9bc0e17`), streaming WhatsApp/Telegram/Gmail (ADR-041, `393be81`), reincorporación botón recientes táctil (ADR-042, `08391a8`), iconos oficiales de DBV Markdown Reader y persistencia de recientes SAF (ADR-043, `aaad950`, `53bb06d`).
+> **Estado:** Todo terminado · Versión enviada a producción en Google Play Console para 177 países/regiones, pendiente de aprobación por el equipo de revisión de Google.
 >
-> **Estado:** Fases 0 a 37 completadas · **v0.15.0** en `Cargo.toml`/`tauri.conf.json`/`package.json`/`Cargo.lock` (Minor). AAB firmado universal listo para subida a Google Play Console.
->
-> **Siguiente paso:** Subir `app-universal-release.aab` a Google Play Console (pista interna/cerrada) con los datos del paquete: `com.davidbuenov.dbv_md_reader`.
+> **Siguiente paso:** Esperar la aprobación y publicación oficial en Google Play Store. Tras la publicación, incorporar las lecciones aprendidas al repositorio central del framework `dbv-specs-ops`.
 
 ---
 
