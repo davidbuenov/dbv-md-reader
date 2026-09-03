@@ -32,6 +32,9 @@
   },
   "bundle": {
     "active": true,
+    "android": {
+      "versionCode": 15001
+    },
     "publisher": "David Bueno Vallejo",
     "createUpdaterArtifacts": true,
     "icon": [
