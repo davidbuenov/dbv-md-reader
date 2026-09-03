@@ -17,6 +17,9 @@
 | **5** | **Advertencia de Símbolos de Depuración Nativos** | Google Play advierte sobre la ausencia de símbolos de depuración nativos para análisis de caídas (ANR y crash reporting). | Configuración de `debugSymbolLevel = "FULL"` en `buildTypes.release.ndk` y generación de paquete `native-debug-symbols.zip` organizado por arquitecturas (`arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`) con los binarios *unstripped*. |
 | **6** | **Requisito de Capturas de Tablet sin Dispositivo Físico** | Google Play exige al menos 1-2 capturas para tablets de 7" y 10", pero los desarrolladores frecuentemente no disponen de hardware tablet físico. | Uso de comandos dinámicos sobre el emulador Android (`adb shell wm size` y `adb shell wm density`) para tomar capturas nativas reales en 7" (1200x1920) y 10" (2560x1600 apaisado) sin distorsión. |
 | **7** | **Generación Automatizada del Gráfico Destacado (1024x500)** | La consola exige un banner promocional obligatorio de exactamente 1024x500 px sin canal alfa. | Script reutilizable con Node.js + Microsoft Edge headless que renderiza una plantilla HTML/SVG con degradados, logo oficial y mockup de la interfaz en alta resolución. |
+| **8** | **Optimización R8 y Resource Shrinking** | Google Play advierte que la reducción de recursos no está habilitada, manteniendo layouts, strings y drawables innecesarios en el AAB. | Añadir `isShrinkResources = true` junto con `isMinifyEnabled = true` en `buildTypes.release` en `build.gradle.kts`, reduciendo el número de entradas del AAB de 969 a 606 archivos. |
+| **9** | **APIs Obsoletas de Extremo a Extremo en Android 15** | Google Play advierte sobre llamadas a `setStatusBarColor` / `setNavigationBarColor` heredadas de `MaterialDatePicker` en `com.google.android.material`. | Cambiar el tema base a `Theme.AppCompat.DayNight.NoActionBar` y eliminar la dependencia `com.google.android.material:material`, innecesaria para apps WebView, erradicando las clases obsoletas. |
+
 
 ---
 
