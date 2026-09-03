@@ -28,3 +28,6 @@ desktop.ini
 # Manifiesto del updater (RF-13) — se genera con scripts/generate-latest-json.mjs
 # y se sube como asset de la Release de GitHub, nunca se commitea.
 /latest.json
+
+# Símbolos de depuración nativos de Android (pesados, se suben a Google Play Console)
+google-play-assets/*.zip
