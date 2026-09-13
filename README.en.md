@@ -124,7 +124,7 @@ Requires Xcode Command Line Tools (`xcode-select --install`), [Rust](https://rus
 
 ### 🤖 Android
 
-**[🛒 Get it on Google Play Store](https://play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader)** *(currently in store publication process)*
+**[🛒 Get it on Google Play Store](https://play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader)**
 
 - **Ultra-lightweight native touch reader:** designed for phones and tablets with a streamlined touch interface and strict compliance with system insets (status bar, notch, and navigation bar).
 - **Storage Access Framework (SAF):** open individual Markdown files in 1 tap, or browse entire folder trees with support for relative local images and cross-document links.

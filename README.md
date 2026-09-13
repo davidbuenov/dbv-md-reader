@@ -125,7 +125,7 @@ Requiere tener instalados Xcode Command Line Tools (`xcode-select --install`), [
 
 ### 🤖 Android
 
-**[🛒 Consíguelo en Google Play Store](https://play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader)** *(en proceso de publicación en la tienda)*
+**[🛒 Consíguelo en Google Play Store](https://play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader)**
 
 - **Lector nativo táctil ultra-ligero:** adaptado para teléfonos y tabletas con interfaz táctil simplificada y respeto de los insets del sistema (barra de estado, notch y barra de navegación).
 - **Storage Access Framework (SAF):** apertura directa de archivos Markdown en 1 solo toque, o navegación del árbol de carpetas con soporte para imágenes locales relativas y enlaces cruzados entre documentos.

@@ -1,6 +1,6 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-03) — Fase 38: Publicación oficial en Google Play Store (Android v0.15.0, versionCode 15002) completada y enviada a revisión.**
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-13) — Fase 38: Publicación oficial en Google Play Store (Android v0.15.0, versionCode 15002) APROBADA Y PUBLICADA — ficha en vivo en [play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader](https://play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader).**
 >
 > **Ciclo SDD recorrido:** `/spec` → `/plan` → `/build` (Slices 0 a 5 completadas y verificadas en hardware real) → `/code-simplify` → `/test` → `/ship` → Fase de Certificación y Tienda Google Play.
 >
@@ -13,9 +13,9 @@
 > 6. **Assets de Tienda Completos:** Icono 512x512 (`icon-512x512.png`), Gráfico Destacado 1024x500 (`feature-graphic-1024x500.png`), 6 capturas de teléfono (1080x2400) y 4 capturas de tablet (7" y 10" generadas dinámicamente vía emulador).
 > 7. **Documentación de Tienda y Framework:** Creados `descripcionStoreGooglePlay_es.md`, `descripcionStoreGooglePlay_en.md`, y el documento de lecciones aprendidas para el framework `dbv-specs-ops/actualizacion_dbv_specs_ops_android.md`.
 >
-> **Estado:** Todo terminado · Versión enviada a producción en Google Play Console para 177 países/regiones, pendiente de aprobación por el equipo de revisión de Google.
+> **Estado:** ✅ Publicado en Google Play para 177 países/regiones — aprobación de Google recibida y ficha en vivo confirmada el 2026-09-13.
 >
-> **Siguiente paso:** Esperar la aprobación y publicación oficial en Google Play Store. Tras la publicación, incorporar las lecciones aprendidas al repositorio central del framework `dbv-specs-ops`.
+> **Siguiente paso:** Documentación y anuncio actualizados (README, landing web bilingüe, este snapshot) para reflejar la disponibilidad. Pendiente: incorporar las lecciones aprendidas al repositorio central del framework `dbv-specs-ops` (parcialmente cubierto ya en `dbv-specs-ops/actualizacion_dbv_specs_ops_android.md`).
 
 ---
 
