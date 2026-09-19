@@ -51,39 +51,9 @@
 
 ### 🪟 Windows
 
-#### 🏬 Microsoft Store (recommended on Windows 11)
-
 **[🛒 Get it on Microsoft Store](https://apps.microsoft.com/detail/9n7bmdzgcp0s)**
 
-The preferred route on Windows 11: the package is signed by the Store itself (no SmartScreen warning like the `.exe` gets), installs in one click, and updates itself. If you'd rather not use the Store, or you're on Windows 10, use the `.exe` installer below.
-
-#### 1️⃣ Download (`.exe` installer)
-
-**[⬇️ See all versions (Releases)](https://github.com/davidbuenov/dbv-md-reader/releases)**
-
-Download the installer for the latest version: `dbv-markdown-reader_x.y.z_x64-setup.exe`.
-
-Your browser may warn that the file "isn't commonly downloaded" or "isn't trusted" (Microsoft Edge/Chrome SmartScreen). This is normal for new installers without a commercial code-signing certificate: in Edge, open the downloads panel and click **Show more → Keep** (or **Keep anyway**).
-
-#### 2️⃣ Install
-
-Double-click the downloaded installer. It doesn't require administrator permissions (it installs for your user only) nor an internet connection during setup — the required WebView2 runtime already ships inside. Windows may also show an "Unrecognized publisher" warning when you run it — click **More info → Run anyway**.
-
-Before copying files, the installer shows a screen with two independent checkboxes (both checked by default, but you can uncheck either):
-
-1. **Context menu**: whether **DBV Markdown Reader** appears as an option when you right-click a `.md` file → **Open with...**.
-2. **Default application**: whether it also becomes the app that opens `.md` files on double-click.
-
-You can change this at any time from Windows' **Settings → Apps → Default apps**.
-
-> If you had a previous version installed with a different (or no) `.md` association screen, and the "Open with" menu still shows a duplicate entry or the old icon, uninstall the previous version first from "Installed apps" in Windows, then install the new one — earlier versions used a different internal identifier that the uninstaller doesn't automatically clean up between versions.
-
-#### 3️⃣ Update
-
-From here on you don't need to come back to this page for every new version. Open the **About** panel (ⓘ icon in the top bar) and click **Check for updates**. The check is always on-demand — it never runs on its own at startup, so it doesn't affect the app's instant launch.
-
-- If you already have the latest version: **"You already have the latest version."**
-- If a new one is available: **"New version X.Y.Z available."** and the button becomes **Update** — one click downloads, installs and restarts the app for you, without leaving **DBV Markdown Reader**, your browser, or the Releases page.
+As of `v0.16.0`, Microsoft Store is the **only** installation channel for Windows (same as Android via Google Play): the package is signed by the Store itself, installs in one click, and updates itself, with no SmartScreen warning at all. The `.exe` installer from GitHub Releases is discontinued — if you had it installed that way, install from the Store to keep getting updates (they're two separate app identities, so they'll briefly coexist as two entries under "Installed apps" until you uninstall the old one).
 
 ### 🐧 Linux
 
@@ -294,31 +264,26 @@ npm test          # Unit tests (fast, no network)
 npm run test:all  # Includes the integration test that downloads a real .md file (RF-08A)
 ```
 
-### Publishing a new Release (with update support, RF-13)
+### Publishing a new Windows version (Microsoft Store only, as of `v0.16.0`)
 
-⚠️ **Mandatory checklist.** Since the "Check for updates" button exists, publishing a Release without step 3 (`latest.json`) leaves the app working, but that button will never find the new version — it's easy to forget because the build and `git push` keep working fine without it.
+> ⚠️ The signed NSIS installer on GitHub Releases **is discontinued as of `v0.16.0`** (see `CHANGELOG.md`) — Windows now ships only via Microsoft Store, same as Android via Google Play. The steps below are the current ones; the old flow with `TAURI_SIGNING_PRIVATE_KEY`/`latest.json`/uploading the `.exe` to Releases is kept only as historical reference in `git log`.
 
 1. Bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`, and move the `[Unreleased]` section of `dbv-specs-ops/CHANGELOG.md` to `[x.y.z] - date`.
-2. Build with the signing variables set in the environment, so each installer's `.sig` file is also generated:
+2. Build the executable (no signing key of your own needed — the Store re-signs the package with its own when it receives it):
    ```bash
-   export TAURI_SIGNING_PRIVATE_KEY="<path to your minisign private key>"
-   export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<that key's password>"
    npm run build
    ```
-   `npm run build` compiles and also automatically renames the installer (Tauri generates it with the app's full name, including a space) to `dbv-markdown-reader_x.y.z_x64-setup.exe`, space-free and ready for its download URL.
-3. **Generate `latest.json` automatically** (it's not built by hand, to avoid mistakes or forgetting it):
+3. Generate the `.msixbundle` from that build:
    ```bash
-   npm run release:manifest -- --notes "Short summary of this version"
+   npx @choochmeque/tauri-windows-bundle build --runner npm
    ```
-   Writes `latest.json` to the repo root (not committed, see `.gitignore`), reading the version from `tauri.conf.json` and the `.sig` generated in step 2.
+   Output lands in `src-tauri/target/msix/dbv-md-reader_x.y.z.0.msixbundle`. Check that the 4 generated icons in `src-tauri/target/appx/x64/Assets/` aren't single-color placeholders before submitting (checklist in `dbv-specs-ops/docs/MARKETPLACE_PUBLISHING.md` §3).
 4. `git commit`, `git tag vx.y.z`, `git push origin master --tags`.
-5. Create the GitHub Release uploading **all three files**: the installer `dbv-markdown-reader_x.y.z_x64-setup.exe`, its `.sig`, and `latest.json`.
-
-The signing private key **is not in this repository** — it's generated and kept by whoever maintains the project (`npx tauri signer generate`). Losing it forces publishing a new public key and manually updating existing installations once.
+5. Upload the `.msixbundle` to Partner Center and submit it for certification — full checklist in [`dbv-specs-ops/docs/MICROSOFT_STORE.md`](./dbv-specs-ops/docs/MICROSOFT_STORE.md).
 
 ### Microsoft Store (MSIX channel, published)
 
-In addition to the NSIS installer on GitHub Releases, the project publishes an MSIX package on Microsoft Store: **[apps.microsoft.com/detail/9n7bmdzgcp0s](https://apps.microsoft.com/detail/9n7bmdzgcp0s)** (Partner Center identity configured, no own signing certificate needed — the Store signs the package). Full submission and update checklist for this channel in [`dbv-specs-ops/docs/MICROSOFT_STORE.md`](./dbv-specs-ops/docs/MICROSOFT_STORE.md).
+**[apps.microsoft.com/detail/9n7bmdzgcp0s](https://apps.microsoft.com/detail/9n7bmdzgcp0s)** — Partner Center identity already configured, no own signing certificate needed. Full submission and update checklist for this channel in [`dbv-specs-ops/docs/MICROSOFT_STORE.md`](./dbv-specs-ops/docs/MICROSOFT_STORE.md).
 
 ### Linux Release (automatic, via CI)
 

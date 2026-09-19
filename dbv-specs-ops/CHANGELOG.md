@@ -26,6 +26,10 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ### Eliminado
 - Dependencia vendorizada `prism-line-numbers` (plugin de Prism), ya innecesaria con el nuevo mecanismo de numeración de línea.
+- **Instalador NSIS de Windows en GitHub Releases**: a partir de esta versión, Windows se distribuye únicamente vía Microsoft Store (igual que Android vía Google Play) — ver "Cambiado" más abajo.
+
+### Cambiado
+- **Windows pasa a distribuirse solo por Microsoft Store**: se descontinúa el instalador `.exe` firmado de GitHub Releases. Quien lo tenga instalado deberá migrar a la Store manualmente una vez (el botón "Buscar actualizaciones" ya no encontrará versiones nuevas para ese canal).
 
 ---
 

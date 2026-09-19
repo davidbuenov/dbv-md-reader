@@ -117,7 +117,7 @@
 
 El código de aplicación (`src-tauri/src/lib.rs`) es 100% cross-platform: no usa APIs específicas de Windows (sin registro, sin `cfg(windows)`), y las dependencias clave (`tauri-plugin-single-instance` 2.4.3+, `notify`, `ureq`, `tauri-plugin-dialog/updater/process`) soportan oficialmente Windows, Linux y macOS. Lo que sí difiere por plataforma es exclusivamente el **empaquetado**, resuelto con el mecanismo nativo de Tauri v2 de fusión de configuración por sistema operativo (`tauri.<platform>.conf.json` se fusiona automáticamente sobre `tauri.conf.json` según el SO donde se ejecuta `cargo tauri build`, sin flags adicionales):
 
-- **`src-tauri/tauri.windows.conf.json`:** `bundle.targets: ["nsis"]` + configuración de instalador NSIS con imágenes de marca (igual que antes de esta separación).
+- **`src-tauri/tauri.windows.conf.json`:** `bundle.targets: ["nsis"]` + configuración de instalador NSIS con imágenes de marca (igual que antes de esta separación). **El NSIS ya no se publica en GitHub Releases desde `v0.16.0`** (ver ADR-047 en `memory.md`) — el `.exe` generado se sigue usando solo como entrada para empaquetar el `.msixbundle` de Microsoft Store (`@choochmeque/tauri-windows-bundle`), que es ya el único canal oficial de Windows.
 - **`src-tauri/tauri.linux.conf.json`:** `bundle.targets: ["appimage", "deb"]`. El `.deb` registra la asociación de `.md` vía `.desktop`/`fileAssociations` al instalarse con `dpkg`/`apt`; el `.AppImage` es portátil pero **no** se asocia automáticamente sin una herramienta adicional como AppImageLauncher (limitación inherente del formato, no del proyecto).
 - **`src-tauri/tauri.macos.conf.json`:** `bundle.targets: ["dmg", "app"]`, usado únicamente para compilaciones locales del propio usuario (ver más abajo).
 

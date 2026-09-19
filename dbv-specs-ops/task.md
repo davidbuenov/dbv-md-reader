@@ -13,9 +13,11 @@
 >
 > **`/code-simplify`:** 3 hallazgos Importantes (2 Bugs — pérdida de fórmulas y de caracteres de prosa en la exportación Typst; 1 Seguridad — script injection en el workflow de Homebrew), los 3 corregidos y verificados. Sin hallazgos Críticos.
 >
-> **`/ship`:** versión subida a `0.16.0` (Minor, confirmado por el usuario) en `package.json`/`Cargo.toml`/`tauri.conf.json`; `CHANGELOG.md` con `[0.16.0] - 2026-09-19`; `README.md`/`README.en.md` con instrucciones de Homebrew y mención de Exportar a Typst; `walkthrough.md` reescrito para esta fase.
+> **`/ship`:** versión subida a `0.16.0` (Minor, confirmado por el usuario) en `package.json`/`Cargo.toml`/`tauri.conf.json`; `CHANGELOG.md` con `[0.16.0] - 2026-09-19`; `README.md`/`README.en.md` con instrucciones de Homebrew y mención de Exportar a Typst; `walkthrough.md` reescrito para esta fase. Commit `ffcf996`, tag `v0.16.0` y push ejecutados. `release-linux.yml`/`release-macos.yml` en verde, Release **publicada** (ya no borrador). **Verificado end-to-end el workflow de Homebrew**: al publicar, `update-homebrew-tap.yml` se disparó solo, y el sha256 escrito en el Cask coincide exactamente con el del `.dmg` real descargado — confirmado descargándolo y comparando a mano. Borrado el borrador huérfano `v0.15.0` (Android, nunca publicado, sin assets de Windows) a petición del usuario, sin tocar su tag.
 >
-> **Siguiente paso:** confirmar con el usuario el commit/tag/push, y verificar el flujo de Homebrew en un Mac real en cuanto haya oportunidad.
+> **Decisión nueva durante el `/ship` — ADR-047:** al llegar el turno de Windows se descubrió que la contraseña de la clave de firma `minisign` (`~/.tauri-keys/dbv-md-reader.key`) no está disponible (vivía en una conversación previa a la norma de no guardar secretos en el chat). En vez de rotar la clave (invalidaría el auto-update de todas las instalaciones NSIS existentes) o bloquear el ciclo, el usuario decidió **descontinuar el canal NSIS de GitHub Releases para Windows**, igual que Android vía Google Play — Microsoft Store pasa a ser el único canal. Build sin firmar (`npm run build`, sin `TAURI_SIGNING_*`) + `.msixbundle` generado (`npx @choochmeque/tauri-windows-bundle build --runner npm`) y assets verificados sin placeholders. `SPECIFICATIONS.md`/`ARCHITECTURE.md`/`docs/MICROSOFT_STORE.md`/`README.md`/`README.en.md`/`CHANGELOG.md` actualizados con la nueva política.
+>
+> **Siguiente paso:** commit final de la documentación de esta segunda parte (política Windows), pendiente de confirmación del usuario para el push. Fuera del alcance de Claude Code: subir el `.msixbundle` de `v0.16.0` a Partner Center y enviarlo a certificación; decidir en el futuro si se recupera/rota la clave `minisign`.
 
 ---
 
