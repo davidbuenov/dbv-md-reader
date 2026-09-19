@@ -96,6 +96,15 @@ From here on you don't need to come back to this page for every new version. Ope
 
 ### 🍎 macOS
 
+#### 🍺 Homebrew
+
+```bash
+brew tap davidbuenov/dbv-md-reader
+brew install --cask dbv-md-reader
+```
+
+The tap ([davidbuenov/homebrew-dbv-md-reader](https://github.com/davidbuenov/homebrew-dbv-md-reader)) updates itself on every new Release. It doesn't remove the Gatekeeper prompt below (the `.dmg` is still unsigned and non-notarized) — it just makes installing and updating simpler than downloading the `.dmg` by hand.
+
 #### 🟢 Uptodown (recommended on macOS)
 
 **[⬇️ Get it on Uptodown](https://dbv-markdown-reader.uptodown.com/mac)**
@@ -206,7 +215,8 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 - **Navigation & Table of Contents:** floating/sidebar Table of Contents (TOC) auto-generated from headings, with the visible section highlighted as you scroll. Estimated reading time is shown next to the document name, and a thin progress bar under the header tracks scroll progress.
 - **In-page search:** `Ctrl + F` shortcut for fast, intuitive text search.
 - **Visual themes:** Light mode (GitHub Light), Dark mode (VS Code / GitHub Dark), and Sepia (for extended reading).
-- **Print / Export to PDF:** `Ctrl + P` opens the native print dialog with real pagination (A4, no titles/tables/code blocks split across pages). *Tip (Windows):* if you don't want the PDF to include the URL/timestamp footer that the print dialog itself adds (WebView2's Chromium engine), expand "More settings" and uncheck "Headers and footers" — the browser remembers this preference for next time. On macOS/Linux the native dialog is different (macOS print panel / GTK on Linux) and it hasn't been confirmed whether it adds the same footer.
+- **Print / Export to PDF:** `Ctrl + P` opens the native print dialog with real pagination (A4, no titles/tables/code blocks split across pages) and syntax/theme colors preserved on paper regardless of the active on-screen theme. *Tip (Windows):* if you don't want the PDF to include the URL/timestamp footer that the print dialog itself adds (WebView2's Chromium engine), expand "More settings" and uncheck "Headers and footers" — the browser remembers this preference for next time. On macOS/Linux the native dialog is different (macOS print panel / GTK on Linux) and it hasn't been confirmed whether it adds the same footer.
+- **Export to Typst:** button next to Print that converts the document to Typst syntax (`.typ`) and saves it wherever you choose — headings, bold/italic/strikethrough, code, lists, quotes, tables, images and links. No need to have Typst installed. Great for continuing to edit it with [dbv-typst-editor](https://davidbuenov.github.io/dbv-typst-editor/).
 - **Check for updates:** button in the "About" panel — never checked automatically at startup (instant launch stays intact). If a new version is available, it can be installed in one click without leaving the app.
 
 > 🧪 **Want to see all of this in action without hunting for your own files?** Open any of the files in [`testfiles/`](testfiles/) (`demo-funcionalidades_es.md` / `demo-funcionalidades_en.md`) — a single document with syntax highlighting in 8 languages, a Mermaid diagram, KaTeX equations and a table, designed to try or showcase the reader's features at a glance.

@@ -97,6 +97,15 @@ A partir de aquí ya no necesitas volver a esta página para cada versión nueva
 
 ### 🍎 macOS
 
+#### 🍺 Homebrew
+
+```bash
+brew tap davidbuenov/dbv-md-reader
+brew install --cask dbv-md-reader
+```
+
+El tap ([davidbuenov/homebrew-dbv-md-reader](https://github.com/davidbuenov/homebrew-dbv-md-reader)) se actualiza solo en cada Release nueva. No sustituye el aviso de Gatekeeper de más abajo (el `.dmg` sigue sin firma ni notarización de Apple) — solo simplifica instalar y actualizar frente a descargar el `.dmg` a mano.
+
 #### 🟢 Uptodown (recomendado en macOS)
 
 **[⬇️ Consíguelo en Uptodown](https://dbv-markdown-reader.uptodown.com/mac)**
@@ -207,7 +216,8 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Navegación e Índice:** Tabla de Contenidos (TOC) flotante/lateral generada automáticamente a partir de los encabezados, con la sección visible resaltada mientras haces scroll. Junto al nombre del documento se muestra el tiempo de lectura estimado, y una barra fina bajo la cabecera indica el progreso de scroll.
 - **Búsqueda en Página:** Atajo `Ctrl + F` para buscar texto de forma rápida e intuitiva.
 - **Temas Visuales:** Soporte para modo Claro (GitHub Light), Oscuro (VS Code / GitHub Dark) y Sepia (lectura prolongada).
-- **Imprimir / Exportar a PDF:** `Ctrl + P` abre el diálogo nativo de impresión, con paginación real (A4, sin títulos/tablas/código partidos entre páginas). *Truco (Windows):* si no quieres que el PDF lleve el pie con la URL/hora que añade el propio diálogo (motor Chromium de WebView2), despliega "Más opciones" y desmarca "Encabezados y pies de página" — el navegador recuerda esa preferencia para las siguientes veces. En macOS/Linux el diálogo nativo es distinto (panel de impresión de macOS / GTK en Linux) y no se ha confirmado si añade el mismo pie.
+- **Imprimir / Exportar a PDF:** `Ctrl + P` abre el diálogo nativo de impresión, con paginación real (A4, sin títulos/tablas/código partidos entre páginas) y con los colores de sintaxis y del tema conservados en papel, sea cual sea el tema activo en pantalla. *Truco (Windows):* si no quieres que el PDF lleve el pie con la URL/hora que añade el propio diálogo (motor Chromium de WebView2), despliega "Más opciones" y desmarca "Encabezados y pies de página" — el navegador recuerda esa preferencia para las siguientes veces. En macOS/Linux el diálogo nativo es distinto (panel de impresión de macOS / GTK en Linux) y no se ha confirmado si añade el mismo pie.
+- **Exportar a Typst:** botón junto a Imprimir que convierte el documento a sintaxis Typst (`.typ`) y lo guarda donde elijas — encabezados, negrita/cursiva/tachado, código, listas, citas, tablas, imágenes y enlaces. No hace falta tener Typst instalado. Ideal para seguir editándolo con [dbv-typst-editor](https://davidbuenov.github.io/dbv-typst-editor/).
 - **Buscar actualizaciones:** Botón en el panel "Acerca de" — nunca se comprueba al arrancar (arranque instantáneo intacto). Si hay una versión nueva, se puede instalar en un clic sin salir de la app.
 
 > 🧪 **¿Quieres ver todo esto en acción sin buscar tus propios archivos?** Abre cualquiera de los ficheros de [`testfiles/`](testfiles/) (`demo-funcionalidades_es.md` / `demo-funcionalidades_en.md`) — un único documento con resaltado de sintaxis en 8 lenguajes, un diagrama Mermaid, ecuaciones KaTeX y una tabla, pensado para probar o mostrar de un vistazo las funcionalidades del lector.

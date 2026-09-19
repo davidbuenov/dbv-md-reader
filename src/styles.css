@@ -625,10 +625,26 @@ body.is-android #btn-settings {
   border-radius: 4px;
 }
 
+/* El font-size reducido del código vive en el <pre>, no en el <code>, y el
+   interlineado se declara en `em` (longitud) en vez de unitless. Es lo que
+   mantiene alineada la numeración de línea (RF-10): los números viven en un
+   <span> absoluto dentro del <code>, así que su altura de fila sale del
+   line-height del <code>, mientras que la altura real de cada línea de código
+   la marca el *strut* del <pre>. Con font-size distinto entre ambos (0.875em
+   solo en el <code>) y un line-height unitless, cada uno lo recalculaba sobre
+   su propia fuente — 26.25px la línea de código contra 22.97px el número — y la
+   numeración se desviaba ~3px por línea de forma acumulativa (bug reportado por
+   usuarios, ciclo v0.16.0; medido con Edge/Chromium headless antes y después).
+   Igualando font-size y usando `2em` (longitud, se hereda ya resuelta) ambas
+   cajas miden exactamente lo mismo. Los valores resultantes (13.125px de fuente,
+   26.25px de interlineado) son idénticos a los de antes del fix: no cambia el
+   aspecto del bloque, solo se alinean los números. */
 .markdown-body pre {
   position: relative;
   margin-bottom: 20px;
   padding: 16px;
+  font-size: 0.875em;
+  line-height: 2em;
   background-color: var(--code-bg) !important;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -638,7 +654,7 @@ body.is-android #btn-settings {
   padding: 0;
   background: transparent;
   border: none;
-  font-size: 0.875em;
+  font-size: 1em;
 }
 
 /* Ajuste de línea opcional (botón de wrap) — sustituye el scroll horizontal */
@@ -648,13 +664,46 @@ body.is-android #btn-settings {
   word-break: break-word;
 }
 
-/* Números de línea (plugin oficial de Prism) alineados con el resto del tema.
-   3.8em replica el padding-left por defecto de prism-line-numbers.min.css —
-   pre (padding:16px) ya lo pisa, así que hay que reafirmarlo aquí; revisar
-   este valor si se actualiza el plugin. */
+/* Números de línea (RF-10). Cada línea lógica es su propio bloque (`.code-line`,
+   generado por applyLineNumbers en app.js) y su número se pinta con ::before en
+   el gutter, DENTRO de esa misma caja de línea: la alineación la garantiza el
+   navegador. Sustituye al plugin prism-line-numbers, que mantenía una columna
+   paralela de números cuyas alturas había que sincronizar por JavaScript y se
+   desajustaba con el ajuste de línea (ver applyLineNumbers para el detalle).
+   Al envolver, la caja de la línea crece y el número la sigue sin más. */
 .markdown-body pre.line-numbers { padding-left: 3.8em; }
-.line-numbers .line-numbers-rows { border-right-color: var(--border); }
-.line-numbers-rows > span:before { color: var(--text-muted); }
+.markdown-body pre.line-numbers > code { display: block; position: relative; }
+/* Separador vertical del gutter: se dibuja sobre el <code>, así que acompaña al
+   contenido si el bloque se desplaza en horizontal, igual que los números. */
+.markdown-body pre.line-numbers > code::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -0.8em;
+  width: 1px;
+  background: var(--border);
+}
+.markdown-body pre.line-numbers .code-line {
+  display: block;
+  position: relative;
+  /* Una línea vacía no genera caja de línea propia; sin esto se colapsaría a
+     altura 0 y desplazaría toda la numeración siguiente. */
+  min-height: 2em;
+}
+.markdown-body pre.line-numbers .code-line::before {
+  content: attr(data-line);
+  position: absolute;
+  left: -3.8em;
+  width: 3em;
+  padding-right: 0.8em;
+  box-sizing: border-box;
+  text-align: right;
+  color: var(--text-muted);
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}
 
 /* ─── Colores de sintaxis (adaptados a cada tema, sustituye al tema Prism fijo) */
 .token.comment,
@@ -1260,6 +1309,12 @@ body.drag-over #reader-container {
   #editor-pane, #conflict-banner, #conflict-modal, #help-modal, #discard-modal {
     display: none !important;
   }
+  /* Preserva colores/fondos en la impresión real sin depender de que el usuario
+     marque "gráficos de fondo" a mano en el diálogo del SO (Chromium/WebView2
+     los descarta por defecto para ahorrar tinta) — necesario para que la
+     paleta de --code-* de más abajo y los fondos de tablas/alertas se
+     impriman tal cual, no solo se vean así en la vista previa. */
+  html, body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   body, #app-body, #reader-container {
     display: block !important;
     overflow: visible !important;
@@ -1269,6 +1324,44 @@ body.drag-over #reader-container {
   }
   #content { max-width: 100%; }
 
+  /* En papel el fondo es siempre blanco, sea cual sea el tema de pantalla, así
+     que se fuerza aquí la paleta COMPLETA del tema Claro (RF-05) en vez de
+     heredar la del tema activo. Bug reportado por usuarios (ciclo v0.16.0):
+     al imprimir/exportar a PDF desde el tema Oscuro salía "todo gris" — el
+     texto de prosa usa `var(--text-primary)`, que en Oscuro es #e6edf3 (casi
+     blanco) y sobre papel blanco queda gris lavado, y el código salía de un
+     solo color porque `.token { color: inherit !important }` anulaba de golpe
+     todos los colores de sintaxis en vez de ajustar solo su contraste.
+     Redefinir las variables aquí arregla de una vez prosa, encabezados,
+     código, citas, alertas y bordes, en los tres temas. */
+  :root, :root[data-theme] {
+    --bg-primary:      #ffffff;
+    --bg-secondary:    #f6f8fa;
+    --bg-tertiary:     #eaeef2;
+    --text-primary:    #1f2328;
+    --text-secondary:  #57606a;
+    --text-muted:      #8c959f;
+    --accent:          #0969da;
+    --accent-hover:    #0550ae;
+    --border:          #d0d7de;
+    --code-bg:         #f6f8fa;
+    --quote-bg:        rgba(9, 105, 218, 0.05);
+    --shadow:          rgba(0, 0, 0, 0.12);
+    --code-keyword:    #cf222e;
+    --code-string:     #0a3069;
+    --code-comment:    #6e7781;
+    --code-function:   #8250df;
+    --code-number:     #0550ae;
+    --code-tag:        #116329;
+    --code-class:      #953800;
+    --code-operator:   #24292f;
+    --alert-note:      #0969da;
+    --alert-tip:       #1a7f37;
+    --alert-important: #8250df;
+    --alert-warning:   #9a6700;
+    --alert-caution:   #cf222e;
+  }
+
   /* Paginación: evita títulos huérfanos y bloques partidos a mitad de página */
   h1, h2, h3, h4, h5, h6 { page-break-after: avoid; break-after: avoid; }
   table, pre, .mermaid-container, .katex-display, blockquote, .markdown-alert, img {
@@ -1277,13 +1370,13 @@ body.drag-over #reader-container {
   }
   img, .mermaid-container svg { max-width: 100% !important; }
 
-  /* Bloques de código: forzar contraste legible en papel (Prism siempre usa su tema oscuro) */
+  /* Bloques de código: fondo/borde legibles en papel; el color de cada token
+     lo pone ya .token.* (styles.css) vía las variables --code-* de arriba. */
   pre, pre code, pre[class*="language-"], code[class*="language-"] {
     background: #f5f5f5 !important;
-    color: #24292e !important;
     border: 1px solid #ddd;
   }
-  .token { color: inherit !important; text-shadow: none !important; }
+  .token { text-shadow: none !important; }
 
   /* Enlaces: la URL queda legible en papel */
   a { color: #000 !important; text-decoration: underline; }

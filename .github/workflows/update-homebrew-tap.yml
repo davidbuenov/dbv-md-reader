@@ -1,0 +1,113 @@
+name: Update Homebrew Tap
+
+# Actualiza automáticamente el Cask de davidbuenov/homebrew-dbv-md-reader
+# (versión + sha256) cada vez que una Release de este repo pasa a estado
+# "Publicada" — RF planificado en dbv-specs-ops/docs/SPECIFICATIONS.md (RNF-01,
+# canal Homebrew) y dbv-specs-ops/implementation_plan.md (Slice 0).
+#
+# Se dispara con el evento nativo `release: published`, NO al terminar
+# release-macos.yml: ese workflow normalmente deja la Release en estado
+# borrador (ver cabecera de release-macos.yml) para que el maintainer suba a
+# mano los 3 ficheros de Windows antes de publicarla — los assets de un
+# borrador no tienen URL de descarga pública, así que calcular el sha256 en
+# ese momento apuntaría el Cask a un fichero que todavía nadie puede
+# descargar. `release: published` cubre igual el caso de publicar manualmente
+# desde la UI de GitHub que el de `workflow_dispatch` con `draft: false`
+# (release-macos.yml añadiendo assets a una Release ya pública) — es el
+# momento real en que el .dmg queda disponible para cualquiera, sin depender
+# de cuál de los dos caminos se usó para llegar ahí.
+#
+# Si la Release no trae el .dmg universal de macOS (no debería ocurrir desde
+# la Fase 25, pero por robustez ante una Release manual sin ese asset), el
+# job no falla: se limita a omitir la actualización con un aviso.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-tap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el .dmg universal de macOS de la Release
+        id: dl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # El nombre del tag lo elige quien crea la Release — nunca se
+          # interpola directamente en un `run:` (patrón de "script injection"
+          # que las guías de seguridad de GitHub Actions desaconsejan
+          # explícitamente); se pasa siempre por variable de entorno.
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if ! gh release download "$TAG_NAME" \
+              --repo "${{ github.repository }}" \
+              --pattern "*universal.dmg" \
+              --output dbv-md-reader.dmg; then
+            echo "No se encontró un .dmg universal en esta Release — se omite la actualización del tap de Homebrew."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
+
+      - name: Calcular versión y sha256
+        if: steps.dl.outputs.found == 'true'
+        id: meta
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG_NAME#v}"
+          # Guard clause: VERSION acaba escrito tal cual dentro de un fichero
+          # Ruby (Casks/dbv-md-reader.rb) que Homebrew ejecuta en la máquina de
+          # cualquier usuario que instale/actualice el Cask — sin esta
+          # validación, un tag con formato inesperado podría inyectar código
+          # Ruby en el tap en vez de solo un número de versión. Falla alto y
+          # explícito en vez de continuar con un valor sin verificar.
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG_NAME' no tiene formato semver (vX.Y.Z) — se aborta para no escribir un valor sin validar en el Cask." >&2
+            exit 1
+          fi
+          SHA256=$(sha256sum dbv-md-reader.dmg | cut -d' ' -f1)
+          if ! [[ "$SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::sha256sum devolvió un valor con formato inesperado." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout del repositorio del tap
+        if: steps.dl.outputs.found == 'true'
+        uses: actions/checkout@v5
+        with:
+          repository: davidbuenov/homebrew-dbv-md-reader
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Actualizar el Cask (versión + sha256)
+        if: steps.dl.outputs.found == 'true'
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          SHA256: ${{ steps.meta.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          cd tap
+          sed -i "s/^  version \".*\"/  version \"$VERSION\"/" Casks/dbv-md-reader.rb
+          sed -i "s/^  sha256 \".*\"/  sha256 \"$SHA256\"/" Casks/dbv-md-reader.rb
+
+      - name: Commit y push si hay cambios
+        if: steps.dl.outputs.found == 'true'
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd tap
+          if git diff --quiet; then
+            echo "El Cask ya estaba al día (sin cambios) — nada que publicar."
+            exit 0
+          fi
+          git config user.name "dbv-md-reader-bot"
+          git config user.email "actions@github.com"
+          git add Casks/dbv-md-reader.rb
+          git commit -m "chore: bump dbv-md-reader to $VERSION"
+          git push

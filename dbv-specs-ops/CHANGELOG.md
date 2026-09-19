@@ -9,6 +9,26 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ---
 
+## [0.16.0] - 2026-09-19
+
+### Añadido
+- **Exportar a Typst (`.typ`)**: nuevo botón en la barra superior que convierte el documento abierto a sintaxis Typst y lo guarda donde elijas. Convierte encabezados, negrita/cursiva/tachado, código, listas, citas, tablas, imágenes (las remotas se exportan como enlace, ya que Typst no las soporta), enlaces y líneas horizontales. No necesita tener Typst instalado: genera el fichero fuente. Verificado compilando la exportación completa con el compilador real de Typst. Las fórmulas matemáticas (RF-17), los diagramas Mermaid y las alertas se exportan como código sin traducir.
+- **Distribución vía Homebrew (macOS)**: nuevo tap `davidbuenov/homebrew-dbv-md-reader` (`brew tap davidbuenov/dbv-md-reader && brew install --cask dbv-md-reader`), con actualización automática del Cask en cada Release publicada.
+
+### Corregido
+- **Pérdida de color al imprimir/exportar a PDF**: el documento ya no se imprime "todo gris" desde los temas Oscuro/Sepia. En papel se fuerza ahora la paleta completa del tema Claro (prosa, encabezados, código, citas, alertas y bordes), en vez de heredar colores pensados para fondo oscuro; además se añade `print-color-adjust: exact` para que el motor respete esos colores sin depender de la opción "gráficos de fondo" del diálogo de impresión del sistema.
+- **Numeración de línea desalineada en los bloques de código**: los números vuelven a coincidir con su línea de código, también con "Wrap line" activado y con cualquier nivel de zoom. Se ha sustituido el mecanismo por completo: cada línea es ahora su propia caja y el número se pinta dentro de ella, en vez de mantener una columna de números aparte cuyas alturas había que ir sincronizando (de ahí el desajuste, que crecía con el número de líneas).
+- **(encontrado en el pase Bugs de `/code-simplify`) Exportar a Typst borraba las fórmulas matemáticas del documento**: el marcador interno usado para no romper el parseo de Markdown se descartaba junto con el resto del HTML embebido en vez de convertirse al LaTeX original — la fórmula desaparecía del `.typ` sin dejar rastro. Ahora sale como código sin traducir, igual que Mermaid.
+- **(encontrado en el pase Bugs de `/code-simplify`) Exportar a Typst perdía caracteres de la prosa normal**: una tilde (p. ej. en una ruta `~/proyecto`), un guion largo tecleado a mano (`---`) o unos puntos suspensivos sueltos se sustituían silenciosamente por otro símbolo, porque Typst también los interpreta como atajos de símbolo para otros glifos. Ahora se preservan tal cual.
+
+### Seguridad
+- **(encontrado en el pase Seguridad de `/code-simplify`)** El workflow de actualización automática del tap de Homebrew evita interpolar directamente en scripts de shell el nombre del tag de la Release (patrón de "script injection" desaconsejado por las guías de seguridad de GitHub Actions) y valida que la versión extraída tenga formato `X.Y.Z` antes de escribirla en el fichero Ruby del Cask — ese fichero se ejecuta en la máquina de cualquier usuario que instale o actualice con `brew`.
+
+### Eliminado
+- Dependencia vendorizada `prism-line-numbers` (plugin de Prism), ya innecesaria con el nuevo mecanismo de numeración de línea.
+
+---
+
 ## [0.15.0] - 2026-09-02
 
 ### Añadido

@@ -1,5 +1,24 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-19) — Fase 39: Ciclo v0.16.0 completo — `/spec` → `/plan` → `/build` → `/test` → `/code-simplify` → `/ship`. Publicado localmente (commit + tag), pendiente `git push` con confirmación del usuario.**
+>
+> **Origen:** 4 peticiones directas del usuario (Homebrew, numeración de línea desalineada, PDF en gris al imprimir, exportar a Typst). Resumen completo en `walkthrough.md` — aquí solo el estado final.
+>
+> **Entregado:**
+> 1. **Homebrew:** tap `davidbuenov/homebrew-dbv-md-reader` creado y publicado, con `.github/workflows/update-homebrew-tap.yml` (disparado por `release: published`, no encadenado a `release-macos.yml` — ver ADR-045) que actualiza versión/sha256 automáticamente. **Sin verificar en un Mac real** — riesgo aceptado explícitamente por el usuario, a confirmar "cuando despleguemos a alguien".
+> 2. **Numeración de línea (RF-10):** dos causas reales, ninguna coincidía con la hipótesis inicial de `/spec`. Fix definitivo estructural (`.code-line` por línea lógica, sin sincronización JS) tras dos intentos por medición que fallaron en la app real pese a verificar 0.00px en el banco de pruebas — ver Lección 27/28 en `memory.md`.
+> 3. **Color en impresión/PDF (RF-10):** corregido, paleta del tema Claro forzada en `@media print`.
+> 4. **Exportar a Typst (RF-27):** implementado y verificado compilando con el compilador real de Typst (incluido `GFM_test.md` completo, 57 secciones). 3 iteraciones hasta compilar limpio (backticks, imágenes remotas, luego fórmulas/atajos de símbolo en `/code-simplify`).
+> 5. **RF-28 (Exportar PDF dedicado):** investigado y pospuesto — requiere código nativo por plataforma sin API común en Tauri v2, y la motivación original ya no aplica (el bug de color se resolvió en el punto 3).
+>
+> **`/code-simplify`:** 3 hallazgos Importantes (2 Bugs — pérdida de fórmulas y de caracteres de prosa en la exportación Typst; 1 Seguridad — script injection en el workflow de Homebrew), los 3 corregidos y verificados. Sin hallazgos Críticos.
+>
+> **`/ship`:** versión subida a `0.16.0` (Minor, confirmado por el usuario) en `package.json`/`Cargo.toml`/`tauri.conf.json`; `CHANGELOG.md` con `[0.16.0] - 2026-09-19`; `README.md`/`README.en.md` con instrucciones de Homebrew y mención de Exportar a Typst; `walkthrough.md` reescrito para esta fase.
+>
+> **Siguiente paso:** confirmar con el usuario el commit/tag/push, y verificar el flujo de Homebrew en un Mac real en cuanto haya oportunidad.
+
+---
+
 > ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-13) — Fase 38: Publicación oficial en Google Play Store (Android v0.15.0, versionCode 15002) APROBADA Y PUBLICADA — ficha en vivo en [play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader](https://play.google.com/store/apps/details?id=com.davidbuenov.dbv_md_reader).**
 >
 > **Ciclo SDD recorrido:** `/spec` → `/plan` → `/build` (Slices 0 a 5 completadas y verificadas en hardware real) → `/code-simplify` → `/test` → `/ship` → Fase de Certificación y Tienda Google Play.

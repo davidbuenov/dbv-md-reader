@@ -609,6 +609,7 @@
     targetEl.querySelectorAll('pre code:not(.language-mermaid):not(.language-math)').forEach(function (block) {
       block.parentElement.classList.add('line-numbers');
       if (window.Prism) window.Prism.highlightElement(block);
+      applyLineNumbers(block);
       addCopyButton(block.parentElement);
       addWrapToggleButton(block.parentElement);
     });
@@ -704,11 +705,83 @@
     actions.appendChild(btn);
   }
 
+  // Reparte el contenido ya resaltado por Prism en un elemento por linea
+  // logica, con el numero pintado por CSS (::before) en el gutter de esa misma
+  // linea. La alineacion la garantiza asi el navegador.
+  //
+  // Sustituye al mecanismo de `prism-line-numbers`, que mantenia una COLUMNA
+  // PARALELA de numeros absolutamente posicionada cuyas alturas habia que
+  // sincronizar por JavaScript con las del codigo. Ese modelo se desajustaba de
+  // forma acumulativa (bug reportado por usuarios, ciclo v0.16.0) y cada intento
+  // de corregirlo por medicion tapaba un caso y dejaba otro: la altura estimada
+  // nunca coincide exactamente con la real ante ajuste de linea, zoom o fuentes
+  // distintas. Con una caja por linea no hay nada que sincronizar.
+  //
+  // Un token de Prism puede abarcar varias lineas (comentarios de bloque,
+  // plantillas de cadena): al cruzar un salto de linea se cierra en la linea
+  // actual y se reabre clonado en la siguiente, para no perder su color.
+  function applyLineNumbers(code) {
+    var lines = [];
+    var openTokens = [];
+
+    function startLine() {
+      var line = document.createElement('span');
+      line.className = 'code-line';
+      lines.push(line);
+      var parent = line;
+      for (var i = 0; i < openTokens.length; i++) {
+        var clone = openTokens[i].cloneNode(false);
+        parent.appendChild(clone);
+        openTokens[i] = clone;
+        parent = clone;
+      }
+    }
+
+    function container() {
+      return openTokens.length ? openTokens[openTokens.length - 1] : lines[lines.length - 1];
+    }
+
+    function walk(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        var parts = node.nodeValue.split('\n');
+        for (var i = 0; i < parts.length; i++) {
+          if (i > 0) startLine();
+          if (parts[i]) container().appendChild(document.createTextNode(parts[i]));
+        }
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      var clone = node.cloneNode(false);
+      container().appendChild(clone);
+      openTokens.push(clone);
+      var children = Array.prototype.slice.call(node.childNodes);
+      for (var c = 0; c < children.length; c++) walk(children[c]);
+      openTokens.pop();
+    }
+
+    startLine();
+    var original = Array.prototype.slice.call(code.childNodes);
+    for (var i = 0; i < original.length; i++) walk(original[i]);
+
+    // markdown-it cierra el bloque con un salto de linea final: descarta la
+    // linea vacia que genera, que no existe en el fichero del usuario.
+    if (lines.length > 1 && !lines[lines.length - 1].textContent) lines.pop();
+
+    code.textContent = '';
+    for (var n = 0; n < lines.length; n++) {
+      lines[n].setAttribute('data-line', String(n + 1));
+      code.appendChild(lines[n]);
+    }
+  }
+
   function addWrapToggleButton(pre) {
     var actions = ensureCodeActions(pre);
     if (actions.querySelector('.code-wrap-btn')) return;
     var btn = createActionButton('code-wrap-btn', t('code.wrapOn'));
     btn.addEventListener('click', function () {
+      // Al envolver, una línea lógica pasa a ocupar varias líneas visuales y su
+      // caja crece con ellas: el número, que vive en esa misma caja, la sigue
+      // solo. No hay nada que recalcular (ver applyLineNumbers).
       var wrapped = pre.classList.toggle('wrapped');
       btn.textContent = wrapped ? t('code.wrapOff') : t('code.wrapOn');
     });
@@ -1481,6 +1554,212 @@
 
   document.getElementById('btn-open-file').addEventListener('click', handleOpenAction);
   document.getElementById('btn-empty-open').addEventListener('click', handleOpenAction);
+  // ─── Exportar a Typst (RF-27) ─────────────────────────────────────────────
+  // Convierte el documento actual a sintaxis Typst recorriendo los MISMOS
+  // tokens de markdown-it que alimentan el renderizado (RF-02) — sin Pandoc ni
+  // ninguna dependencia nueva, coherente con los presupuestos de tamaño de la
+  // sección 5 de SPECIFICATIONS.md.
+  //
+  // Fuera de alcance por decisión de /spec: fórmulas KaTeX (RF-17), diagramas
+  // Mermaid (RF-15) y alertas GFM. Salen como bloque de código sin traducir:
+  // es preferible un resultado explícitamente "sin convertir" a una traducción
+  // incorrecta que pase desapercibida.
+
+  // Typst da significado propio a estos caracteres (`#` llama a funciones, `$`
+  // abre modo matemático, `_` y `*` marcan énfasis...) y un documento Markdown
+  // real los contiene como texto literal en prosa normal: precios, hashtags,
+  // nombres_de_variable. Sin escaparlos, el .typ no compilaría — o peor,
+  // compilaría con otro significado y en silencio (ver el Adversarial Review
+  // de implementation_plan.md, riesgo R4).
+  function escapeTypstText(text) {
+    var escaped = text.replace(/([\\#$*_`<>@[\]~])/g, '\\$1');
+    // Typst también da significado propio a ciertas SECUENCIAS en modo
+    // markup, no solo a caracteres sueltos (ver typst.app/docs/reference/
+    // symbols/#shorthands): "--"/"---" → guion en/em, "..." → puntos
+    // suspensivos, "-?" → guion blando. Un documento real puede contener
+    // cualquiera de ellas como texto literal (un rango de páginas "5--10",
+    // un guion em tecleado a mano como "---", "espera..."): sin desactivarlas,
+    // el .typ exportado sustituye silenciosamente esos caracteres por otro
+    // símbolo (bug real encontrado en el pase Bugs de /code-simplify, ciclo
+    // v0.16.0). Escapar solo el primer carácter de cada secuencia basta para
+    // desactivarla entera — verificado con el compilador real: `\---` no deja
+    // un guion en residual de los dos caracteres restantes.
+    escaped = escaped.replace(/-{2,}/g, function (m) { return '\\' + m; });
+    escaped = escaped.replace(/\.{3,}/g, function (m) { return '\\' + m; });
+    return escaped.replace(/-\?/g, '\\-?');
+  }
+
+  // Escapa una cadena para pasarla como argumento de #raw("...") — solo hace
+  // falta escapar backslash, comillas y saltos de línea (sintaxis normal de
+  // cadena de Typst), nada de lo que aplica a escapeTypstText().
+  function escapeTypstString(text) {
+    return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  }
+
+  // Un código inline de Markdown puede contener sus propias comillas simples
+  // (`` `code `` with backticks` `` es CommonMark válido). El primer intento
+  // usó un delimitador de comillas más largo que la racha interna más larga
+  // — la convención de CommonMark — pero Typst no sigue esa misma regla para
+  // texto crudo: un delimitador de 2 comillas con una sola comilla dentro
+  // seguía dando "unclosed raw text" con el compilador real (bug encontrado
+  // compilando la exportación completa de GFM_test.md). `#raw("...")` evita
+  // el problema de raíz: es una cadena Typst normal, sin ningún significado
+  // especial para las comillas internas — solo hace falta escapar `\` y `"`.
+  function typstInlineCode(content) {
+    return '#raw("' + escapeTypstString(content) + '")';
+  }
+
+  // `#image()` de Typst solo acepta rutas de fichero locales al proyecto: no
+  // hace peticiones de red. Un `<img src="https://...">` (habitual en
+  // Markdown — badges, capturas alojadas, logos) generaría un `.typ` que
+  // compila roto (bug real encontrado compilando GFM_test.md con el
+  // compilador real de Typst). Para una imagen remota se exporta como enlace
+  // en su lugar — explícito y compilable, coherente con el resto de RF-27
+  // (mejor una construcción sin traducir que una traducción rota).
+  function typstImage(tk) {
+    var src = tk.attrGet('src') || '';
+    var alt = escapeTypstText(tk.content || 'imagen');
+    if (/^https?:\/\//i.test(src)) return '#link("' + escapeTypstString(src) + '")[' + alt + ']';
+    return '#image("' + escapeTypstString(src) + '")';
+  }
+
+  // El placeholder de fórmulas (`mathPlaceholder()`, ver extractMath más arriba)
+  // llega aquí como un `<span class="dbv-math" data-i="N" ...>` — un token
+  // `html_inline` de markdown-it. El resto del HTML embebido en el documento
+  // se descarta sin más al exportar (no tiene traducción razonable a Typst),
+  // pero descartar ESTE placeholder de la misma forma borraba la fórmula del
+  // usuario sin dejar rastro, en vez de "salir como código sin traducir" (el
+  // comportamiento documentado en SPECIFICATIONS.md RF-27 para RF-17/RF-15) —
+  // bug real encontrado en el pase Bugs de /code-simplify.
+  var MATH_PLACEHOLDER_RE = /data-i="(\d+)"/;
+
+  function typstInline(children, mathFormulas) {
+    if (!children) return '';
+    var out = '';
+    for (var i = 0; i < children.length; i++) {
+      var tk = children[i];
+      if (tk.type === 'text')             { out += escapeTypstText(tk.content); continue; }
+      if (tk.type === 'code_inline')      { out += typstInlineCode(tk.content); continue; }
+      if (tk.type === 'strong_open' ||
+          tk.type === 'strong_close')     { out += '*'; continue; }
+      if (tk.type === 'em_open' ||
+          tk.type === 'em_close')         { out += '_'; continue; }
+      if (tk.type === 's_open')           { out += '#strike['; continue; }
+      if (tk.type === 'link_open')        { out += '#link("' + escapeTypstString(tk.attrGet('href') || '') + '")['; continue; }
+      if (tk.type === 's_close' ||
+          tk.type === 'link_close')       { out += ']'; continue; }
+      if (tk.type === 'image')            { out += typstImage(tk); continue; }
+      if (tk.type === 'softbreak')        { out += '\n'; continue; }
+      if (tk.type === 'hardbreak')        { out += ' \\\n'; continue; }
+      if (tk.type === 'html_inline') {
+        var mathMatch = mathFormulas && MATH_PLACEHOLDER_RE.exec(tk.content);
+        if (mathMatch) out += typstInlineCode(mathFormulas[Number(mathMatch[1])]);
+        continue;
+      }
+      if (tk.content)                     { out += escapeTypstText(tk.content); }
+    }
+    return out;
+  }
+
+  function markdownToTypst(tokens, fileName, mathFormulas) {
+    var out = [
+      '// Generado por DBV Markdown Reader a partir de ' + (fileName || 'documento.md'),
+      '// ' + t('typst.editorPromo'),
+      ''
+    ];
+    var listMarkers = [];
+    var pendingPrefix = '';
+    var tableCells = null;
+    var tableCols = 0;
+    var countingHeaderCols = false;
+
+    function push(line) {
+      out.push(pendingPrefix + line);
+      pendingPrefix = '';
+    }
+
+    for (var i = 0; i < tokens.length; i++) {
+      var tk = tokens[i];
+      var inline = tokens[i + 1];
+
+      if (tk.type === 'heading_open') {
+        push(new Array(parseInt(tk.tag.slice(1), 10) + 1).join('=') + ' ' + typstInline(inline && inline.children, mathFormulas));
+        out.push('');
+        i += 2;
+      } else if (tk.type === 'paragraph_open') {
+        var text = typstInline(inline && inline.children, mathFormulas);
+        if (listMarkers.length) push(text);
+        else { push(text); out.push(''); }
+        i += 2;
+      } else if (tk.type === 'fence' || tk.type === 'code_block') {
+        var lang = (tk.info || '').trim().split(/\s+/)[0] || '';
+        var body = tk.content.replace(/\n$/, '');
+        // Bloque de código como cadena Typst (`#raw(..., block: true)`), no
+        // como fence de backticks: un bloque puede contener su propia racha de
+        // backticks (p. ej. un ejemplo de "código anidado" que muestra una
+        // fence dentro de otra, GFM_test.md §38) o el patrón inverso de menos
+        // backticks de los que haría falta contar — bug real encontrado
+        // compilando la exportación completa con el compilador de Typst (ver
+        // Lección en memory.md). `#raw()` no tiene ese problema: es una cadena
+        // normal, sin significado especial para las comillas internas.
+        push('#raw("' + escapeTypstString(body) + '"' + (lang ? ', lang: "' + lang + '"' : '') + ', block: true)');
+        out.push('');
+      } else if (tk.type === 'bullet_list_open') {
+        listMarkers.push('-');
+      } else if (tk.type === 'ordered_list_open') {
+        listMarkers.push('+');
+      } else if (tk.type === 'bullet_list_close' || tk.type === 'ordered_list_close') {
+        listMarkers.pop();
+        if (!listMarkers.length) out.push('');
+      } else if (tk.type === 'list_item_open') {
+        // Typst anida por sangría, igual que Markdown.
+        pendingPrefix = new Array(listMarkers.length).join('  ') + listMarkers[listMarkers.length - 1] + ' ';
+      } else if (tk.type === 'blockquote_open') {
+        push('#quote(block: true)[');
+      } else if (tk.type === 'blockquote_close') {
+        push(']');
+        out.push('');
+      } else if (tk.type === 'hr') {
+        push('#line(length: 100%)');
+        out.push('');
+      } else if (tk.type === 'table_open') {
+        tableCells = [];
+        tableCols = 0;
+        countingHeaderCols = true;
+      } else if (tk.type === 'th_open' || tk.type === 'td_open') {
+        tableCells.push('[' + typstInline(inline && inline.children, mathFormulas) + ']');
+        if (countingHeaderCols) tableCols++;
+        i += 2;
+      } else if (tk.type === 'thead_close') {
+        countingHeaderCols = false;
+      } else if (tk.type === 'table_close') {
+        push('#table(');
+        out.push('  columns: ' + (tableCols || 1) + ',');
+        out.push('  ' + tableCells.join(', '));
+        out.push(')');
+        out.push('');
+        tableCells = null;
+      }
+    }
+
+    return out.join('\n').replace(/\n{3,}/g, '\n\n');
+  }
+
+  function exportToTypst() {
+    if (!currentDoc || !currentDoc.content) return;
+    var baseName = (currentDoc.file_name || 'documento.md').replace(/\.[^.]+$/, '');
+    var extracted = extractMath(currentDoc.content);
+    var typst = markdownToTypst(md.parse(extracted.text, {}), currentDoc.file_name, extracted.formulas);
+    invoke('save_typst_dialog', { defaultName: baseName + '.typ' })
+      .then(function (path) {
+        if (!path) return null;
+        return invoke('write_file', { path: path, content: typst });
+      })
+      .catch(function (err) { showError(String(err)); });
+  }
+
+  document.getElementById('btn-export-typst').addEventListener('click', exportToTypst);
+
   document.getElementById('btn-print').addEventListener('click', function () { window.print(); });
 
   // ─── Always on Top (por ventana, sin persistencia — ver memory.md ADR-023) ─

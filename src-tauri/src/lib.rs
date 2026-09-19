@@ -434,6 +434,18 @@ pub mod commands {
             .map(|p| p.to_string())
     }
 
+    /// Opens a native "save as" dialog for the Typst export (RF-27) and returns the
+    /// chosen path. Writing is done by `write_file` (RF-20) — this only picks where.
+    #[tauri::command]
+    pub async fn save_typst_dialog(app: tauri::AppHandle, default_name: String) -> Option<String> {
+        app.dialog()
+            .file()
+            .add_filter("Typst", &["typ"])
+            .set_file_name(default_name)
+            .blocking_save_file()
+            .map(|p| p.to_string())
+    }
+
     /// Resolves a relative Markdown/image link from the current document's directory (local or remote base)
     #[tauri::command]
     pub fn resolve_relative_path(base_dir: String, relative_path: String) -> Result<String, String> {
@@ -877,6 +889,7 @@ pub fn run() {
             commands::read_file,
             commands::write_file,
             commands::open_file_dialog,
+            commands::save_typst_dialog,
             commands::resolve_relative_path,
             commands::watch_file,
             commands::get_recent_files,
