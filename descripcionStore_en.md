@@ -36,7 +36,7 @@ No internet connection required to function, no personal data collected. Your do
 
 ## What's new in this version
 
-v0.16.0: the app goes from reader to a full reader-and-editor, with a project explorer and export to other formats. New Edit Mode (Ctrl+E) with a live split view, resizable panels, and scroll sync across the code, preview, and table of contents; smart conflict handling if the file changes outside the app while you're editing; a Markdown formatting toolbar with 16 actions (bold, lists, tables, links...) plus Tab/Shift+Tab indenting; a built-in Markdown syntax cheat sheet. A directory tree explorer (rooted at the active document's folder) and a Quick Open file switcher (Ctrl+K) to jump between files without touching the mouse. GitHub-style alerts, task lists, and footnotes (GFM), plus an unsaved-changes indicator that confirms before discarding them. Direct export to Typst (.typ) to keep editing the document with a Typst editor. Correct syntax colors when printing or exporting to PDF (they used to get lost when doing so from the Dark or Sepia theme), and always-aligned line numbers in code blocks. Also: an Always on Top toggle and syntax highlighting for 24+ languages matched to each theme.
+v0.16.0: new direct export to Typst (.typ) to keep editing the document with a Typst editor. Correct syntax colors when printing or exporting to PDF (they used to get lost when doing so from the Dark or Sepia theme), and always-aligned line numbers in code blocks. Also, since the previous update: GitHub-style alerts (Note, Tip, Important...), an unsaved-changes indicator in Edit Mode that confirms before discarding them, and several stability fixes (closing the window with unsaved changes, internal links with accented characters).
 
 ---
 
