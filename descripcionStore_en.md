@@ -6,18 +6,24 @@
 
 ## Description *
 
-DBV Markdown Reader is a native Markdown (.md) file reader for Windows: lightweight, fast, and 100% local — no accounts, no ads, no telemetry.
+DBV Markdown Reader is a native Markdown (.md) reader and editor for Windows: lightweight, fast, and 100% local — no accounts, no ads, no telemetry.
 
-Open any .md document instantly (under 200 ms) using Windows' native rendering engine, with no code editor or heavyweight IDE required. It uses just a few megabytes of memory — literally hundreds of times less than Electron-based alternatives.
+Open any .md document instantly (under 200 ms) using Windows' native rendering engine, with no heavyweight IDE required. When you need to edit, its Edit Mode shows a live split view with your raw Markdown and the rendered preview side by side, complete with a formatting toolbar and smart conflict handling if the file changes from another program. It uses just a few megabytes of memory — literally hundreds of times less than Electron-based alternatives.
 
-Perfect for reading technical documentation, notes, GitHub project READMEs, study notes, or any collection of interlinked Markdown files.
+Perfect for reading and editing technical documentation, notes, GitHub project READMEs, study notes, or any collection of interlinked Markdown files.
 
 Key features:
 • Instant opening via double-click or "Open with..."
+• Edit Mode (Ctrl+E) with a live split view, a Markdown formatting toolbar, and Tab/Shift+Tab list indenting
+• Directory tree explorer and Quick Open file switcher (Ctrl+K)
+• Direct export to Typst (.typ) to keep editing the document with a Typst editor
+• Conflict handling if the file changes from another program while you're editing
 • Live auto-reload when you edit the file from another program, without losing your scroll position
 • Mermaid diagrams rendered as interactive SVG, with an option to open them in mermaid.live
-• Code syntax highlighting with a one-click copy button
-• Automatic table of contents and instant text search (Ctrl+F)
+• LaTeX math equations rendered with KaTeX
+• Code syntax highlighting for 24+ languages, with colors matched to each theme — including when printing or exporting to PDF, with always-aligned line numbers
+• GitHub-style alerts (Note, Tip, Important...), task lists, and footnotes (GFM)
+• Automatic table of contents that highlights the section you're reading, and instant text search (Ctrl+F)
 • Three reading themes: Light, Dark, and Sepia
 • Navigation between linked documents with history (Back/Forward)
 • Also opens remote Markdown documents by URL
@@ -30,34 +36,33 @@ No internet connection required to function, no personal data collected. Your do
 
 ## What's new in this version
 
-v0.8.0: real syntax-highlighting colors for 24+ programming languages (previously only JavaScript/CSS/HTML were colored), with colors that now adapt to each reading theme instead of always using a fixed dark palette. The table of contents highlights the section you're currently reading, an estimated reading time and a scroll progress bar are shown next to the document name, and code blocks now include line numbers with a line-wrap toggle button.
+v0.16.0: the app goes from reader to a full reader-and-editor, with a project explorer and export to other formats. New Edit Mode (Ctrl+E) with a live split view, resizable panels, and scroll sync across the code, preview, and table of contents; smart conflict handling if the file changes outside the app while you're editing; a Markdown formatting toolbar with 16 actions (bold, lists, tables, links...) plus Tab/Shift+Tab indenting; a built-in Markdown syntax cheat sheet. A directory tree explorer (rooted at the active document's folder) and a Quick Open file switcher (Ctrl+K) to jump between files without touching the mouse. GitHub-style alerts, task lists, and footnotes (GFM), plus an unsaved-changes indicator that confirms before discarding them. Direct export to Typst (.typ) to keep editing the document with a Typst editor. Correct syntax colors when printing or exporting to PDF (they used to get lost when doing so from the Dark or Sepia theme), and always-aligned line numbers in code blocks. Also: an Always on Top toggle and syntax highlighting for 24+ languages matched to each theme.
 
 ---
 
 ## Product features
 *(up to 20, short summaries — shown as a bulleted list)*
 
-1. Instant opening of .md files (under 200 ms)
-2. 100% local: no accounts, no telemetry, no ads
-3. Live auto-reload when editing the file from another program
-4. Mermaid diagrams rendered as interactive SVG
-5. Code syntax highlighting with a copy button
-6. Automatically generated table of contents
-7. Instant text search (Ctrl+F)
-8. Three reading themes: Light, Dark, and Sepia
-9. Navigation with history (Back / Forward)
-10. Opens remote Markdown documents by URL
-11. Automatic embedded HTML sanitization (anti-XSS)
-12. Recent files with one-click access
-13. Export to PDF (Ctrl+P)
-14. Proportional document zoom (Ctrl+Wheel)
-15. Interface available in English and Spanish
-16. *(pending: whatever is currently live in Partner Center as #16 — not recorded in this file, reconcile when convenient)*
-17. Syntax highlighting for 24+ languages, colors matched to each theme
-18. Table of contents highlights the section you're reading
-19. Estimated reading time and a scroll progress bar
-20. Code blocks show line numbers, with a line-wrap toggle
-21. Math equations in LaTeX, rendered with KaTeX *(⚠️ the field says max 20 — drop one of the earlier ones before pasting into Partner Center, or try if it accepts 21)*
+1. Markdown reader and editor with direct save (.md)
+2. Instant opening (under 200 ms) and 100% local: no accounts, no telemetry, no ads
+3. Edit Mode with a live split view (code + preview)
+4. Markdown formatting toolbar (16 actions) + Tab/Shift+Tab list indenting
+5. Directory tree explorer and Quick Open file switcher (Ctrl+K)
+6. Export to Typst (.typ) to keep editing with a Typst editor
+7. Conflict handling if the file changes from another program while editing
+8. Live auto-reload when editing the file from another tool
+9. Built-in Markdown syntax help (interactive cheat sheet)
+10. Mermaid diagrams rendered as interactive SVG
+11. Math equations in LaTeX, rendered with KaTeX
+12. Syntax highlighting for 24+ languages, correct colors even when printing/exporting to PDF
+13. Line numbers (always aligned) and a line-wrap toggle in code blocks
+14. GitHub-style alerts, task lists, and footnotes (GFM)
+15. Automatic table of contents that highlights the section you're reading
+16. Instant text search (Ctrl+F)
+17. Three reading themes: Light, Dark, and Sepia
+18. Navigation with history and remote Markdown documents by URL
+19. Recent files, proportional zoom (Ctrl+Wheel), and an Always on Top mode
+20. Interface available in English and Spanish
 
 ---
 
@@ -71,7 +76,7 @@ DBV Markdown Reader
 ### Short description
 *(recommended max. 270 characters)*
 
-Native Markdown reader for Windows: fast, lightweight (a few MB of RAM), and 100% local. Opens .md files instantly, with Mermaid diagrams, Light/Dark/Sepia themes, search, and an automatic table of contents. No telemetry, no ads.
+Native Markdown reader and editor for Windows: fast, lightweight, and 100% local. Live Edit Mode, file explorer, Mermaid diagrams, KaTeX equations, export to Typst and PDF, and three visual themes. No telemetry, no accounts.
 
 ---
 
@@ -81,8 +86,8 @@ Native Markdown reader for Windows: fast, lightweight (a few MB of RAM), and 100
 *(up to 7, 40 characters each)*
 
 - markdown
+- markdown editor
 - markdown reader
-- md viewer
 - documentation viewer
 - github readme
 - markdown notes

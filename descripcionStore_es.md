@@ -6,18 +6,24 @@
 
 ## Descripción *
 
-DBV Markdown Reader es un lector nativo de archivos Markdown (.md) para Windows: ligero, rápido y 100% local — sin cuentas, sin publicidad, sin telemetría.
+DBV Markdown Reader es un lector y editor nativo de archivos Markdown (.md) para Windows: ligero, rápido y 100% local — sin cuentas, sin publicidad, sin telemetría.
 
-Abre cualquier documento .md al instante (menos de 200 ms) con el motor de renderizado nativo de Windows, sin necesidad de un editor de código ni un IDE pesado. Ocupa apenas unos pocos megabytes de memoria — literalmente cientos de veces menos que las alternativas basadas en Electron.
+Abre cualquier documento .md al instante (menos de 200 ms) con el motor de renderizado nativo de Windows, sin necesidad de un IDE pesado. Si necesitas editar, su Modo Edición con vista dividida en vivo muestra el código y la previsualización renderizada en tiempo real, con una barra de formato Markdown y gestión inteligente de conflictos si el archivo cambia desde otro programa. Ocupa apenas unos pocos megabytes de memoria — literalmente cientos de veces menos que las alternativas basadas en Electron.
 
-Ideal para leer documentación técnica, notas, README de proyectos de GitHub, apuntes de estudio o cualquier colección de archivos Markdown interconectados.
+Ideal para leer y editar documentación técnica, notas, README de proyectos de GitHub, apuntes de estudio o cualquier colección de archivos Markdown interconectados.
 
 Características principales:
 • Apertura instantánea por doble clic o "Abrir con..."
+• Modo Edición (Ctrl+E) con vista dividida en vivo, barra de formato Markdown y Tab/Shift+Tab para indentar listas
+• Explorador de árbol de directorios y selector rápido de archivos (Ctrl+K)
+• Exportación directa a Typst (.typ) para seguir editando el documento con un editor de Typst
+• Gestión de conflictos si el archivo cambia desde otro programa mientras editas
 • Auto-recarga en vivo cuando editas el archivo desde otro programa, sin perder el scroll
 • Diagramas Mermaid renderizados como SVG interactivo, con opción de abrirlos en mermaid.live
-• Resaltado de sintaxis de código con botón de copiar
-• Tabla de contenidos automática y búsqueda de texto instantánea (Ctrl+F)
+• Ecuaciones matemáticas en LaTeX renderizadas con KaTeX
+• Resaltado de sintaxis de código en más de 24 lenguajes, con colores adaptados a cada tema — también al imprimir o exportar a PDF, y con numeración de línea siempre alineada
+• Alertas al estilo GitHub (Nota, Consejo, Importante...), listas de tareas y notas al pie (GFM)
+• Tabla de contenidos automática con la sección activa resaltada, y búsqueda de texto instantánea (Ctrl+F)
 • Tres temas de lectura: Claro, Oscuro y Sepia
 • Navegación entre documentos enlazados con historial (Atrás/Adelante)
 • Abre también documentos Markdown remotos por URL
@@ -30,34 +36,33 @@ Sin conexión a internet requerida para funcionar, sin recopilación de datos pe
 
 ## Novedades de esta versión
 
-v0.8.0: colores de resaltado de sintaxis reales para más de 24 lenguajes de programación (antes solo se coloreaban JavaScript/CSS/HTML), con colores que ahora se adaptan a cada tema de lectura en vez de usar siempre una paleta oscura fija. La tabla de contenidos resalta la sección que estás leyendo, junto al nombre del documento se muestra el tiempo de lectura estimado y una barra de progreso de scroll, y los bloques de código ahora incluyen números de línea con un botón para ajustar la línea.
+v0.16.0: la app pasa de lector a lector y editor completo, con explorador de proyecto y exportación a otros formatos. Nuevo Modo Edición (Ctrl+E) con vista dividida en vivo, paneles redimensionables y sincronización de scroll entre código, previsualización y tabla de contenidos; gestión inteligente de conflictos si el archivo cambia fuera de la app mientras editas; barra de formato Markdown con 16 acciones (negrita, listas, tablas, enlaces...) y Tab/Shift+Tab para indentar; chuleta de ayuda de sintaxis Markdown integrada. Explorador de árbol de directorios (la carpeta del documento activo como raíz) y selector rápido de archivos (Ctrl+K) para saltar entre ellos sin tocar el ratón. Alertas al estilo GitHub, listas de tareas y notas al pie (GFM), e indicador de cambios sin guardar con confirmación antes de descartarlos. Exportación directa a Typst (.typ) para seguir editando el documento con un editor de Typst. Colores de sintaxis correctos al imprimir o exportar a PDF (antes se perdían al hacerlo desde el tema Oscuro o Sepia) y numeración de línea siempre alineada en los bloques de código. Además: botón Always on Top y resaltado de sintaxis en más de 24 lenguajes adaptado a cada tema.
 
 ---
 
 ## Características del producto
 *(máximo 20, resúmenes breves — se muestran como lista con viñetas)*
 
-1. Apertura instantánea de archivos .md (menos de 200 ms)
-2. 100% local: sin cuentas, sin telemetría, sin publicidad
-3. Auto-recarga en vivo al editar el archivo desde otro programa
-4. Diagramas Mermaid renderizados como SVG interactivo
-5. Resaltado de sintaxis de código con botón de copiar
-6. Tabla de contenidos generada automáticamente
-7. Búsqueda de texto instantánea (Ctrl+F)
-8. Tres temas de lectura: Claro, Oscuro y Sepia
-9. Navegación con historial (Atrás / Adelante)
-10. Abre documentos Markdown remotos por URL
-11. Sanitización automática de HTML embebido (anti-XSS)
-12. Archivos recientes con acceso de un clic
-13. Exportación a PDF (Ctrl+P)
-14. Zoom proporcional del documento (Ctrl+Rueda)
-15. Interfaz disponible en español e inglés
-16. *(pendiente: lo que tengas ahora mismo en Partner Center como #16 — no quedó registrado en este fichero, sincronizar cuando puedas)*
-17. Resaltado de sintaxis en más de 24 lenguajes, con colores adaptados a cada tema
-18. La tabla de contenidos resalta la sección que estás leyendo
-19. Tiempo de lectura estimado y barra de progreso de scroll
-20. Números de línea y ajuste de línea en los bloques de código
-21. Ecuaciones matemáticas en LaTeX, renderizadas con KaTeX *(⚠️ el campo indica máximo 20 — quitar alguna de las anteriores antes de pegarlo en Partner Center, o probar si admite 21)*
+1. Lector y editor de Markdown con guardado directo (.md)
+2. Apertura instantánea (menos de 200 ms) y 100% local: sin cuentas, sin telemetría, sin publicidad
+3. Modo Edición con vista dividida en vivo (código + previsualización)
+4. Barra de formato Markdown (16 acciones) + Tab/Shift+Tab para indentar listas
+5. Explorador de árbol de directorios y selector rápido de archivos (Ctrl+K)
+6. Exportar a Typst (.typ) para seguir editando con un editor de Typst
+7. Gestión de conflictos si el archivo cambia desde otro programa mientras editas
+8. Auto-recarga en vivo al editar el archivo desde otra herramienta
+9. Ayuda de sintaxis Markdown integrada (chuleta interactiva)
+10. Diagramas Mermaid renderizados como SVG interactivo
+11. Ecuaciones matemáticas en LaTeX, renderizadas con KaTeX
+12. Resaltado de sintaxis en más de 24 lenguajes, colores correctos también al imprimir/exportar a PDF
+13. Números de línea (siempre alineados) y ajuste de línea en los bloques de código
+14. Alertas al estilo GitHub, listas de tareas y notas al pie (GFM)
+15. Tabla de contenidos automática con la sección activa resaltada
+16. Búsqueda de texto instantánea (Ctrl+F)
+17. Tres temas de lectura: Claro, Oscuro y Sepia
+18. Navegación con historial y apertura de documentos remotos por URL
+19. Archivos recientes, zoom proporcional (Ctrl+Rueda) y modo Always on Top
+20. Interfaz disponible en español e inglés
 
 ---
 
@@ -71,7 +76,7 @@ DBV Markdown Reader
 ### Descripción corta
 *(máx. recomendado 270 caracteres)*
 
-Lector nativo de Markdown para Windows: rápido, ligero (unos pocos MB de RAM) y 100% local. Abre archivos .md al instante, con diagramas Mermaid, temas Claro/Oscuro/Sepia, búsqueda y tabla de contenidos automática. Sin telemetría, sin publicidad.
+Lector y editor nativo de Markdown para Windows: rápido, ligero y 100% local. Modo Edición en vivo, explorador de archivos, diagramas Mermaid, ecuaciones KaTeX, exportación a Typst y PDF, y tres temas visuales. Sin telemetría, sin cuentas.
 
 ---
 
@@ -81,8 +86,8 @@ Lector nativo de Markdown para Windows: rápido, ligero (unos pocos MB de RAM) y
 *(máximo 7, 40 caracteres cada una)*
 
 - markdown
+- editor markdown
 - lector markdown
-- visor md
 - documentación técnica
 - readme github
 - notas markdown
