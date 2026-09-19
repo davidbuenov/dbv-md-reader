@@ -104,3 +104,31 @@ Native Markdown reader and editor for Windows: fast, lightweight, and 100% local
 ### Developed by
 
 David Bueno Vallejo
+
+---
+
+## Notes for certification
+*(Partner Center's "Additional Testing Info" screen — "Description" field. Not visible to end users, only to the certification team. No credentials required: leave the "Credentials" table empty.)*
+
+This application does not require an account, sign-in, or any kind of credentials — it works fully offline and does not collect any personal data.
+
+To test it:
+1. When opened with no file, it shows an empty screen with a button to open a file, or a `.md` file can be dragged and dropped directly onto the window.
+2. A test file with a `.md` extension and basic Markdown content can be created, for example:
+
+   ````markdown
+   # Test title
+
+   Text in **bold** and *italic*, a list:
+   - One
+   - Two
+
+   ```javascript
+   console.log('hello');
+   ```
+   ````
+
+3. Edit Mode: the pencil icon in the top toolbar (or Ctrl+E) opens a split panel with the code on the left and the rendered preview on the right; changes are saved with Ctrl+S.
+4. The app can also be associated with the `.md` extension from Windows' Settings > Default apps, then any `.md` file can be opened by double-clicking it in File Explorer.
+
+There is no functionality hidden behind a sign-in and no paid content — every feature is available from first use.

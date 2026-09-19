@@ -104,3 +104,31 @@ Lector y editor nativo de Markdown para Windows: rápido, ligero y 100% local. M
 ### Desarrollado por
 
 David Bueno Vallejo
+
+---
+
+## Notas para certificación
+*(pantalla "Additional Testing Info" de Partner Center — campo "Description". No lo ve el usuario final, solo el equipo de certificación. No requiere credenciales: dejar la tabla "Credentials" vacía.)*
+
+Esta aplicación no requiere cuenta, inicio de sesión ni credenciales de ningún tipo — funciona completamente sin conexión a internet y no recopila ningún dato personal.
+
+Para probarla:
+1. Al abrirla sin ningún archivo, se muestra una pantalla vacía con un botón para abrir un archivo, o se puede arrastrar y soltar directamente un archivo .md sobre la ventana.
+2. Se puede crear un archivo de prueba con extensión .md y contenido Markdown básico, por ejemplo:
+
+   ````markdown
+   # Título de prueba
+
+   Texto en **negrita** y *cursiva*, una lista:
+   - Uno
+   - Dos
+
+   ```javascript
+   console.log('hola');
+   ```
+   ````
+
+3. Modo Edición: el icono de lápiz de la barra superior (o Ctrl+E) abre un panel dividido con el código a la izquierda y la vista renderizada a la derecha; los cambios se guardan con Ctrl+S.
+4. También se puede asociar la app a la extensión .md desde Configuración > Aplicaciones predeterminadas de Windows, y abrir cualquier archivo .md haciendo doble clic en el Explorador de archivos.
+
+No hay ninguna funcionalidad oculta tras un inicio de sesión ni contenido de pago — todas las funciones están disponibles desde el primer uso.
