@@ -57,6 +57,15 @@ function main() {
     failures.push('HTML inline: "<module>" no aparece escapado (\\<module\\>) en la exportación — ¿ha vuelto el bug de descarte silencioso?');
   }
 
+  // Regresión 1b: "__init__" (Markdown lo convierte en negrita, "*init*")
+  // justo detrás de una "/" de ruta forma "/*", inicio de un comentario de
+  // bloque Typst sin cerrar — el "unclosed delimiter" real que reportó
+  // Johannes Rexx. Debe quedar roto con un espacio de ancho cero (U+200B)
+  // entre la "/" y el "*".
+  if (!typst.includes('xdg/​*init*.py')) {
+    failures.push('Adyacencia "/*": no se ha insertado el separador invisible entre "/" y "*" en ".../xdg/__init__.py" — ¿ha vuelto el bug del comentario Typst sin cerrar?');
+  }
+
   // Regresión 2: un bloque HTML suelto (`<div>...</div>` de la sección
   // "34. Block HTML") debe salir como código sin traducir, no desaparecer.
   if (!typst.includes('#raw("<div>", block: true)') || !typst.includes('#raw("</div>", block: true)')) {

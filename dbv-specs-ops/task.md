@@ -1,20 +1,23 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-22) — Fase 40: Fix de bug reportado en el foro de Typst (RF-27) — `/build` y `/test` completos, pendiente `/code-simplify` → `/ship`.**
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-22) — Fase 40: Fix de bug reportado en el foro de Typst (RF-27) — `/build`, `/test` y `/code-simplify` completos (2 commits), pendiente `/ship`.**
 >
-> **Origen:** Johannes Rexx reportó en el foro de Typst que exportar un documento real (una cita en bloque con una traza de Python) perdía contenido en silencio al exportar a `.typ` — una etiqueta suelta como `<module>` desaparecía por completo.
+> **Origen:** Johannes Rexx reportó en el foro de Typst que exportar un documento real (una cita en bloque con una traza de Python) perdía contenido en silencio al exportar a `.typ` — una etiqueta suelta como `<module>` desaparecía por completo — y que el `.typ` resultante daba "unclosed delimiter" al compilar.
 >
-> **`/build`:**
-> 1. **Bug real corregido:** `typstInline()` descartaba en silencio todo `html_inline` que no fuera el placeholder de fórmulas (RF-17); `markdownToTypst()` no tenía ninguna rama para `html_block`. Ahora ambos salen "sin traducir" (texto literal escapado / `#raw(..., block: true)`), coherente con la política ya documentada en RF-27.
-> 2. **Refactor pedido por el usuario junto con el fix:** las dos cadenas largas `if/else if` de `typstInline()`/`markdownToTypst()` en `src/app.js` se sustituyeron por tablas de despacho por tipo de token (`INLINE_FIXED`/`INLINE_HANDLERS`/`handlers`) — mismo comportamiento, más fácil de extender.
-> 3. **Crédito:** Johannes Rexx añadido a "🙏 Agradecimientos" en `README.md`/`README.en.md`.
-> 4. Regresión añadida a `testfiles/GFM_test.md` (sección 10, cita con traceback + `<module>`).
+> **`/build` — dos bugs reales, no uno (el segundo solo se encontró reproduciendo el ejemplo exacto del usuario con el compilador real, ver Lección 30):**
+> 1. **HTML embebido perdido en silencio:** `typstInline()` descartaba todo `html_inline` que no fuera el placeholder de fórmulas (RF-17); `markdownToTypst()` no tenía ninguna rama para `html_block`. Ahora ambos salen "sin traducir" (texto literal escapado / `#raw(..., block: true)`).
+> 2. **La causa real del "unclosed delimiter":** `.../xdg/__init__.py` se convierte en negrita como `.../xdg/*init*.py` — el "/" de la ruta seguido del "*" de negrita forma "/*", inicio de un comentario de bloque Typst sin cerrar, que se come en silencio el resto del documento (incluido el "]" de cierre de la cita). Mismo problema con "//" en prosa normal. `escapeTypstText()`/`typstInline()` ahora insertan un espacio de ancho cero entre "/" y "*"/"/" cuando quedan adyacentes, dentro de un mismo fragmento de texto o en la frontera entre dos tokens.
+> 3. **Refactor pedido por el usuario junto con el fix:** las dos cadenas largas `if/else if` de `typstInline()`/`markdownToTypst()` en `src/app.js` se sustituyeron por tablas de despacho por tipo de token, sin prototipo (`Object.create(null)`, tras el pase Seguridad de `/code-simplify`).
+> 4. **Crédito:** Johannes Rexx añadido a "🙏 Agradecimientos" en `README.md`/`README.en.md`.
+> 5. Regresión añadida a `testfiles/GFM_test.md` (sección 10, cita con traceback + `<module>` + `__init__.py`).
 >
-> **`/test`:** no existía framework de test JS en el proyecto (solo `cargo test` para Rust) — se creó `scripts/test-typst-export.mjs` (`npm run test:typst-export`), que extrae las funciones Typst de `src/app.js`, las ejecuta contra `testfiles/GFM_test.md` y compila el resultado con el compilador `typst` real si está disponible en el PATH. Verificado: `typst compile` sobre el `.typ` completo termina con código de salida 0 (sin "unclosed delimiter" ni otros errores) y `<module>` aparece ahora escapado (`\<module\>`) en la salida. `cargo test --lib`: 20/20 sin regresiones.
+> **`/test`:** no existía framework de test JS en el proyecto (solo `cargo test` para Rust) — se creó `scripts/test-typst-export.mjs` (`npm run test:typst-export`), que extrae las funciones Typst de `src/app.js`, las ejecuta contra `testfiles/GFM_test.md` y compila el resultado con el compilador `typst` real si está disponible en el PATH. Verificado explícitamente que el test detecta la regresión: revertido el fix de `src/app.js` solo (dejando fixture y test), confirmado que vuelve a fallar con el mismo "unclosed delimiter" del reporte original, y vuelto a aplicar el fix. `cargo test --lib`: 20/20 sin regresiones.
 >
-> **Documentación actualizada:** `dbv-specs-ops/CHANGELOG.md` (`[Sin publicar] → Corregido`), RF-27 en `dbv-specs-ops/docs/SPECIFICATIONS.md` (tercer bug documentado), `dbv-specs-ops/memory.md` (Lección 29 — una rama de `if/else if` totalmente ausente es un modo de fallo a auditar por tipo de token, no solo revisando la lógica de las ramas existentes).
+> **`/code-simplify`:** pase Bugs/Seguridad/Cumplimiento sin hallazgos Críticos ni Importantes — 2 Nits corregidos (tablas de despacho sin `hasOwnProperty` consistente entre sí → `Object.create(null)` en las tres; doble punto de salida en el script de test → `if/else`). 2 commits: `8a55b28` (fix + refactor + test) y `7307bb8` (endurecimiento del `/code-simplify`); un tercer commit pendiente para el fix de "/*"/"//" descrito arriba.
 >
-> **Siguiente paso:** `/code-simplify` (revisión Bugs/Seguridad/Cumplimiento) y `/ship` (versión — probablemente Patch, solo corrección de bug + refactor interno, a confirmar con el usuario). Nada de esto se ha commiteado todavía.
+> **Documentación actualizada:** `dbv-specs-ops/CHANGELOG.md`, RF-27 en `dbv-specs-ops/docs/SPECIFICATIONS.md` (bugs 3º y 4º documentados), `dbv-specs-ops/memory.md` (Lección 29 — rama de `if/else if` ausente; Lección 30 — "/*"/"//" como comentario Typst en cualquier contexto, y la importancia de reproducir el ejemplo exacto del usuario con el compilador real antes de dar un fix relacionado por bueno).
+>
+> **Siguiente paso:** commit del fix de "/*"/"//", y `/ship` (versión — probablemente Patch, a confirmar con el usuario).
 
 ---
 

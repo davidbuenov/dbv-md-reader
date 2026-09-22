@@ -182,7 +182,10 @@ Blockquote with embedded HTML-like text (regression test for a bug reported by J
 
 > Traceback (most recent call last): \
 > File "/usr/bin/gnome-activity-journal", line 119, in <module> \
-> from src import config
+> from src import config \
+> File "/usr/share/gnome-activity-journal/src/config.py", line 30, in <module> \
+> from xdg import BaseDirectory \
+> ImportError: cannot import name 'BaseDirectory' from 'xdg' (/home/johnb/.local/lib/python3.10/site-packages/xdg/__init__.py)
 
 ---
 

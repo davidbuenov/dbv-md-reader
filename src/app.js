@@ -1586,7 +1586,21 @@
     // un guion en residual de los dos caracteres restantes.
     escaped = escaped.replace(/-{2,}/g, function (m) { return '\\' + m; });
     escaped = escaped.replace(/\.{3,}/g, function (m) { return '\\' + m; });
-    return escaped.replace(/-\?/g, '\\-?');
+    escaped = escaped.replace(/-\?/g, '\\-?');
+    // "//" (comentario de línea) y "/*" (comentario de bloque) también son
+    // sintaxis con significado propio en Typst, en cualquier punto del
+    // documento — no solo en modo código. Un comentario de bloque sin cerrar
+    // se come en silencio todo lo que viene después (incluyendo corchetes de
+    // cierre `]`), y el error de compilación aparece lejos del carácter real
+    // que lo causó ("unclosed delimiter" al principio del bloque, no en la
+    // "/" o "*" concretas) — bug real reportado por Johannes Rexx en el foro
+    // de Typst con una ruta de archivo (`.../xdg/__init__.py`) que, tras
+    // convertir "__init__" a negrita, dejaba un "/" justo delante del "*" de
+    // apertura. Un backslash delante de la "/" no basta (verificado con el
+    // compilador real: Typst sigue reconociendo el comentario); hace falta
+    // un separador invisible — un espacio de ancho cero — entre la "/" y el
+    // "*"/"/" siguiente para romper la adyacencia sin alterar el texto visible.
+    return escaped.replace(/\/(?=[*/])/g, '/​');
   }
 
   // Escapa una cadena para pasarla como argumento de #raw("...") — solo hace
@@ -1673,9 +1687,24 @@
     var out = '';
     for (var i = 0; i < children.length; i++) {
       var tk = children[i];
-      if (INLINE_FIXED[tk.type]) { out += INLINE_FIXED[tk.type]; continue; }
-      if (INLINE_HANDLERS[tk.type]) { out += INLINE_HANDLERS[tk.type](tk, mathFormulas); continue; }
-      if (tk.content) out += escapeTypstText(tk.content);
+      var piece;
+      if (INLINE_FIXED[tk.type]) piece = INLINE_FIXED[tk.type];
+      else if (INLINE_HANDLERS[tk.type]) piece = INLINE_HANDLERS[tk.type](tk, mathFormulas);
+      else if (tk.content) piece = escapeTypstText(tk.content);
+      else continue;
+      // `escapeTypstText()` ya rompe un "//"/"/*" que caiga DENTRO de un
+      // mismo token de texto, pero no puede ver lo que viene del token
+      // ANTERIOR — y el propio "*" de negrita (`INLINE_FIXED.strong_open`,
+      // convertido de un "__" de Markdown) se emite sin escapar a propósito,
+      // para que siga funcionando como delimitador Typst real. Si el texto
+      // ya acumulado termina en "/" y esta pieza empieza por "*" o "/", la
+      // pareja peligrosa se forma igualmente en la frontera entre ambos
+      // tokens (p. ej. ".../xdg/" + "*" de "__init__" → "/*", un comentario
+      // de bloque sin cerrar — el bug real del foro de Typst). Mismo
+      // separador invisible que en `escapeTypstText()`, aplicado aquí entre
+      // piezas.
+      if (out.slice(-1) === '/' && (piece.charAt(0) === '*' || piece.charAt(0) === '/')) out += '​';
+      out += piece;
     }
     return out;
   }
