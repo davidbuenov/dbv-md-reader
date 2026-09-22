@@ -172,6 +172,7 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 ## ✨ Características Principales
 
 - **Modo Edición:** panel dividido con el Markdown en crudo a la izquierda (con números de línea) y la vista renderizada a la derecha, sincronizados por línea al hacer scroll en cualquiera de los dos — sin librería de editor de código, así que no penaliza el tamaño ni la RAM. Bordes arrastrables para redimensionar. Gestión de conflictos si el archivo cambia desde fuera mientras editas (igual que el Bloc de notas de Windows: silencioso si no tienes cambios propios, un aviso solo la primera vez si sí los tienes). Incluye una chuleta de sintaxis Markdown integrada (botón "?"), una barra de formato de 16 iconos (negrita, cursiva, encabezados, listas, enlaces, imágenes, tablas...) que envuelve la selección o inserta un esqueleto listo para rellenar, y `Tab`/`Shift+Tab` para indentar/desindentar listas sin salir del editor.
+- **Nuevo documento:** botón junto a "Abrir archivo" (`Ctrl/Cmd + N`) para crear un `.md` desde cero — abre el diálogo nativo de guardado, crea el fichero vacío donde elijas y entra directo en Modo Edición.
 - **Apertura CLI / Doble Clic:** Abre directamente cualquier archivo `.md` desde la línea de comandos o asociándolo en *"Abrir con..."* (ej. `dbv-md-reader.exe C:\notas\readme.md`).
 - **Instancia única:** abrir varios `.md` desde el Explorador de Windows no multiplica procesos — todas las ventanas viven bajo un único proceso (visible en el Administrador de Tareas), cada una con su propio documento, zoom y búsqueda.
 - **Archivos Recientes:** Panel con los últimos documentos abiertos explícitamente, para no tener que volver a buscarlos.
@@ -206,6 +207,7 @@ El repositorio incluye una carpeta [`templates/`](templates/) con **20 plantilla
 
 | Atajo | Acción |
 | --- | --- |
+| `Ctrl/Cmd + N` | Nuevo documento |
 | `Ctrl/Cmd + O` | Abrir archivo |
 | `Ctrl/Cmd + F` | Buscar en el documento |
 | `Ctrl/Cmd + K` | Quick Open — saltar a un archivo por nombre |

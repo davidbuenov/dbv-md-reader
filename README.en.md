@@ -171,6 +171,7 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 ## ✨ Key Features
 
 - **Edit Mode:** split pane with raw Markdown on the left (with line numbers) and the rendered view on the right, scroll-synced by line in either direction — no code-editor library, so it costs nothing in size or RAM. Draggable resize handles. Conflict handling if the file changes externally while you're editing (same model as Windows Notepad: silent if you have no unsaved changes, a one-time prompt if you do). Includes a built-in Markdown syntax cheat sheet ("?" button), a 16-icon formatting toolbar (bold, italic, headings, lists, links, images, tables...) that wraps the selection or inserts a ready-to-fill skeleton, and `Tab`/`Shift+Tab` to indent/outdent lists without leaving the editor.
+- **New document:** button next to "Open file" (`Ctrl/Cmd + N`) to create a `.md` file from scratch — opens the native save dialog, creates the empty file wherever you choose, and drops straight into Edit Mode.
 - **CLI / double-click opening:** Open any `.md` file directly from the command line or by associating it via *"Open with..."* (e.g. `dbv-md-reader.exe C:\notes\readme.md`).
 - **Single instance:** opening several `.md` files from Windows Explorer doesn't spawn multiple processes — every window lives under a single process (visible in Task Manager), each with its own document, zoom and search.
 - **Recent Files:** panel with the last documents you explicitly opened, so you don't have to hunt for them again.
@@ -205,6 +206,7 @@ The repository includes a [`templates/`](templates/) folder with **20 ready-to-u
 
 | Shortcut | Action |
 | --- | --- |
+| `Ctrl/Cmd + N` | New document |
 | `Ctrl/Cmd + O` | Open file |
 | `Ctrl/Cmd + F` | Search within the document |
 | `Ctrl/Cmd + K` | Quick Open — jump to a file by name |

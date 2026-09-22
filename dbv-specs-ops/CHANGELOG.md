@@ -7,6 +7,10 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+---
+
+## [0.17.0] - 2026-09-22
+
 ### Añadido
 - **Nuevo documento (RF-29)**: botón nuevo en la barra superior (junto a "Abrir archivo") y enlace en la pantalla vacía para crear un archivo `.md` desde cero, con atajo `Ctrl/Cmd+N`. Abre el diálogo nativo de guardado, crea el fichero vacío y entra directo en Modo Edición — hasta ahora solo se podía abrir y sobreescribir un archivo ya existente (RF-20). No disponible en Android, donde Modo Edición ya está fuera de alcance.
 

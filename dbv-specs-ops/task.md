@@ -1,6 +1,6 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-22) — Fase 40: Fix de bug reportado en el foro de Typst (RF-27) — `/build`, `/test` y `/code-simplify` completos (2 commits), pendiente `/ship`.**
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-22) — Fase 40: Fix de bug reportado en el foro de Typst (RF-27) + Nuevo documento (RF-29) — ciclo `/build` → `/test` → `/code-simplify` → `/ship` COMPLETO, versión `0.17.0`.**
 >
 > **Origen:** Johannes Rexx reportó en el foro de Typst que exportar un documento real (una cita en bloque con una traza de Python) perdía contenido en silencio al exportar a `.typ` — una etiqueta suelta como `<module>` desaparecía por completo — y que el `.typ` resultante daba "unclosed delimiter" al compilar.
 >
@@ -19,7 +19,9 @@
 >
 > **Añadido en la misma sesión — RF-29 "Nuevo documento":** hueco real detectado por el usuario ("no se puede crear un nuevo documento") — RF-20 solo permitía sobreescribir un archivo `.md` ya existente, estaba explícitamente listado como fuera de alcance. Implementado con el enfoque "Guardar como" primero (decisión explícita con el usuario, ver RF-29 en `SPECIFICATIONS.md`): nuevo comando Rust `save_new_file_dialog` (mismo patrón que `save_typst_dialog`), botón `#btn-new-file` + `#btn-empty-new` + `Ctrl/Cmd+N`, reutiliza `write_file`/`loadDocument()` sin comandos nuevos de escritura. Oculto en Android (Modo Edición ya fuera de alcance ahí). Verificado: `cargo check`/`cargo test --lib` (20/20) en el lado Rust; flujo JS completo verificado con el mismo banco de pruebas de Edge headless de la Lección 26 (mock de `window.__TAURI__`, click real en el botón, drenaje de promesas) — confirmado que la secuencia de invokes es la esperada (`save_new_file_dialog` → `write_file` con contenido vacío → `read_file` → resto del pipeline normal de `loadDocument`) y que el editor queda visible, vacío y en Modo Edición sin errores en el panel de errores.
 >
-> **Siguiente paso:** commit de RF-29, y `/ship` (versión — probablemente Minor por la nueva funcionalidad, a confirmar con el usuario).
+> **`/ship`:** versión subida a `0.17.0` (Minor, confirmado por el usuario) en `package.json`/`src-tauri/Cargo.toml`/`src-tauri/tauri.conf.json`; `CHANGELOG.md` con `[0.17.0] - 2026-09-22`; `README.md`/`README.en.md` con el agradecimiento a Johannes Rexx, el bullet de "Nuevo documento" y `Ctrl/Cmd+N` en atajos; `walkthrough.md` reescrito para esta fase. Commits: `8a55b28`, `7307bb8`, `d9877c2`, `de54b27` (RF-29), pendiente el commit de versión/documentación de `/ship` y el tag `v0.17.0` — propuestos, no ejecutados sin confirmación explícita del usuario (sin `git push`).
+>
+> **Siguiente paso:** confirmar el commit de `/ship` y el tag `v0.17.0` con el usuario. Fuera del alcance de Claude Code: `git push`, y decidir cuándo publicar esta versión en Microsoft Store/Google Play/Homebrew (los canales de distribución existentes ya publican solo al recibir un push de tag, vía CI).
 
 ---
 
