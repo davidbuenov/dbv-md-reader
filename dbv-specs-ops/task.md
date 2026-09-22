@@ -1,5 +1,23 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-22) — Fase 40: Fix de bug reportado en el foro de Typst (RF-27) — `/build` y `/test` completos, pendiente `/code-simplify` → `/ship`.**
+>
+> **Origen:** Johannes Rexx reportó en el foro de Typst que exportar un documento real (una cita en bloque con una traza de Python) perdía contenido en silencio al exportar a `.typ` — una etiqueta suelta como `<module>` desaparecía por completo.
+>
+> **`/build`:**
+> 1. **Bug real corregido:** `typstInline()` descartaba en silencio todo `html_inline` que no fuera el placeholder de fórmulas (RF-17); `markdownToTypst()` no tenía ninguna rama para `html_block`. Ahora ambos salen "sin traducir" (texto literal escapado / `#raw(..., block: true)`), coherente con la política ya documentada en RF-27.
+> 2. **Refactor pedido por el usuario junto con el fix:** las dos cadenas largas `if/else if` de `typstInline()`/`markdownToTypst()` en `src/app.js` se sustituyeron por tablas de despacho por tipo de token (`INLINE_FIXED`/`INLINE_HANDLERS`/`handlers`) — mismo comportamiento, más fácil de extender.
+> 3. **Crédito:** Johannes Rexx añadido a "🙏 Agradecimientos" en `README.md`/`README.en.md`.
+> 4. Regresión añadida a `testfiles/GFM_test.md` (sección 10, cita con traceback + `<module>`).
+>
+> **`/test`:** no existía framework de test JS en el proyecto (solo `cargo test` para Rust) — se creó `scripts/test-typst-export.mjs` (`npm run test:typst-export`), que extrae las funciones Typst de `src/app.js`, las ejecuta contra `testfiles/GFM_test.md` y compila el resultado con el compilador `typst` real si está disponible en el PATH. Verificado: `typst compile` sobre el `.typ` completo termina con código de salida 0 (sin "unclosed delimiter" ni otros errores) y `<module>` aparece ahora escapado (`\<module\>`) en la salida. `cargo test --lib`: 20/20 sin regresiones.
+>
+> **Documentación actualizada:** `dbv-specs-ops/CHANGELOG.md` (`[Sin publicar] → Corregido`), RF-27 en `dbv-specs-ops/docs/SPECIFICATIONS.md` (tercer bug documentado), `dbv-specs-ops/memory.md` (Lección 29 — una rama de `if/else if` totalmente ausente es un modo de fallo a auditar por tipo de token, no solo revisando la lógica de las ramas existentes).
+>
+> **Siguiente paso:** `/code-simplify` (revisión Bugs/Seguridad/Cumplimiento) y `/ship` (versión — probablemente Patch, solo corrección de bug + refactor interno, a confirmar con el usuario). Nada de esto se ha commiteado todavía.
+
+---
+
 > ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-19) — Fase 39: Ciclo v0.16.0 completo — `/spec` → `/plan` → `/build` → `/test` → `/code-simplify` → `/ship`. Publicado localmente (commit + tag), pendiente `git push` con confirmación del usuario.**
 >
 > **Origen:** 4 peticiones directas del usuario (Homebrew, numeración de línea desalineada, PDF en gris al imprimir, exportar a Typst). Resumen completo en `walkthrough.md` — aquí solo el estado final.

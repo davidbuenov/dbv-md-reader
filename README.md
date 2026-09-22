@@ -401,6 +401,7 @@ Gracias a quienes han colaborado probando la aplicación, encontrando errores y 
 - Julio Lorca
 - Juan Ignacio Caballero — propuso la idea del Explorador de árbol de directorios (RF-25/v0.13.0) en el [Issue #5](https://github.com/davidbuenov/dbv-md-reader/issues/5).
 - Jacinto Parga — corrigió la asociación de archivos `.md` en Linux en el [PR #9](https://github.com/davidbuenov/dbv-md-reader/pull/9).
+- Johannes Rexx — detectó, en el foro de Typst, que el HTML embebido en un documento (p. ej. `<module>` dentro de la traza de un error) desaparecía en silencio al exportar a Typst (RF-27).
 
 ### 💡 Inspiración
 

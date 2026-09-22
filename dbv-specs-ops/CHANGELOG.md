@@ -7,6 +7,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+### Corregido
+- **(reportado por Johannes Rexx en el foro de Typst) Exportar a Typst borraba el HTML embebido en el documento**: una etiqueta suelta como `<module>` (habitual en la traza de un error de Python citada en una cita en bloque) o un bloque `<div>...</div>` sin fence desaparecían del `.typ` sin dejar rastro, en vez de salir sin traducir como el resto de construcciones fuera de alcance de RF-27 (Mermaid, KaTeX, fórmulas matemáticas). Ahora el HTML inline sale como texto literal escapado y el HTML en bloque como código sin traducir (`#raw(...)`), igual que un fence.
+
 ---
 
 ## [0.16.0] - 2026-09-19

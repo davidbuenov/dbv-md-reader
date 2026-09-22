@@ -1625,38 +1625,49 @@
 
   // El placeholder de fórmulas (`mathPlaceholder()`, ver extractMath más arriba)
   // llega aquí como un `<span class="dbv-math" data-i="N" ...>` — un token
-  // `html_inline` de markdown-it. El resto del HTML embebido en el documento
-  // se descarta sin más al exportar (no tiene traducción razonable a Typst),
-  // pero descartar ESTE placeholder de la misma forma borraba la fórmula del
-  // usuario sin dejar rastro, en vez de "salir como código sin traducir" (el
-  // comportamiento documentado en SPECIFICATIONS.md RF-27 para RF-17/RF-15) —
-  // bug real encontrado en el pase Bugs de /code-simplify.
+  // `html_inline` de markdown-it que hay que reconocer antes de tratarlo como
+  // HTML genérico (ver `INLINE_HANDLERS.html_inline`).
   var MATH_PLACEHOLDER_RE = /data-i="(\d+)"/;
+
+  // Tokens inline sin lógica propia: mapean siempre a la misma cadena Typst.
+  var INLINE_FIXED = {
+    strong_open: '*', strong_close: '*',
+    em_open: '_', em_close: '_',
+    s_open: '#strike[',
+    s_close: ']', link_close: ']',
+    softbreak: '\n',
+    hardbreak: ' \\\n'
+  };
+
+  // Tokens inline que necesitan el token completo (o `mathFormulas`) para
+  // decidir qué emitir.
+  var INLINE_HANDLERS = {
+    text: function (tk) { return escapeTypstText(tk.content); },
+    code_inline: function (tk) { return typstInlineCode(tk.content); },
+    link_open: function (tk) { return '#link("' + escapeTypstString(tk.attrGet('href') || '') + '")['; },
+    image: function (tk) { return typstImage(tk); },
+    html_inline: function (tk, mathFormulas) {
+      var mathMatch = mathFormulas && MATH_PLACEHOLDER_RE.exec(tk.content);
+      if (mathMatch) return typstInlineCode(mathFormulas[Number(mathMatch[1])]);
+      // El resto de HTML inline (p. ej. `<module>` en la traza de un error,
+      // o una etiqueta real como `<br>`) no tiene traducción razonable a
+      // Typst, pero descartarlo sin más borraba texto del usuario en
+      // silencio (bug real reportado por Johannes Rexx en el foro de Typst:
+      // "<module>" desaparecía de una cita con un traceback de Python).
+      // RF-27 exige salir "sin traducir" antes que perderlo — se emite como
+      // texto literal escapado, igual que un token `text` normal.
+      return escapeTypstText(tk.content);
+    }
+  };
 
   function typstInline(children, mathFormulas) {
     if (!children) return '';
     var out = '';
     for (var i = 0; i < children.length; i++) {
       var tk = children[i];
-      if (tk.type === 'text')             { out += escapeTypstText(tk.content); continue; }
-      if (tk.type === 'code_inline')      { out += typstInlineCode(tk.content); continue; }
-      if (tk.type === 'strong_open' ||
-          tk.type === 'strong_close')     { out += '*'; continue; }
-      if (tk.type === 'em_open' ||
-          tk.type === 'em_close')         { out += '_'; continue; }
-      if (tk.type === 's_open')           { out += '#strike['; continue; }
-      if (tk.type === 'link_open')        { out += '#link("' + escapeTypstString(tk.attrGet('href') || '') + '")['; continue; }
-      if (tk.type === 's_close' ||
-          tk.type === 'link_close')       { out += ']'; continue; }
-      if (tk.type === 'image')            { out += typstImage(tk); continue; }
-      if (tk.type === 'softbreak')        { out += '\n'; continue; }
-      if (tk.type === 'hardbreak')        { out += ' \\\n'; continue; }
-      if (tk.type === 'html_inline') {
-        var mathMatch = mathFormulas && MATH_PLACEHOLDER_RE.exec(tk.content);
-        if (mathMatch) out += typstInlineCode(mathFormulas[Number(mathMatch[1])]);
-        continue;
-      }
-      if (tk.content)                     { out += escapeTypstText(tk.content); }
+      if (Object.prototype.hasOwnProperty.call(INLINE_FIXED, tk.type)) { out += INLINE_FIXED[tk.type]; continue; }
+      if (Object.prototype.hasOwnProperty.call(INLINE_HANDLERS, tk.type)) { out += INLINE_HANDLERS[tk.type](tk, mathFormulas); continue; }
+      if (tk.content) out += escapeTypstText(tk.content);
     }
     return out;
   }
@@ -1678,68 +1689,97 @@
       pendingPrefix = '';
     }
 
-    for (var i = 0; i < tokens.length; i++) {
-      var tk = tokens[i];
-      var inline = tokens[i + 1];
+    function pushCodeBlock(tk) {
+      var lang = (tk.info || '').trim().split(/\s+/)[0] || '';
+      var body = tk.content.replace(/\n$/, '');
+      // Bloque de código como cadena Typst (`#raw(..., block: true)`), no
+      // como fence de backticks: un bloque puede contener su propia racha de
+      // backticks (p. ej. un ejemplo de "código anidado" que muestra una
+      // fence dentro de otra, GFM_test.md §38) o el patrón inverso de menos
+      // backticks de los que haría falta contar — bug real encontrado
+      // compilando la exportación completa con el compilador de Typst (ver
+      // Lección en memory.md). `#raw()` no tiene ese problema: es una cadena
+      // normal, sin significado especial para las comillas internas.
+      push('#raw("' + escapeTypstString(body) + '"' + (lang ? ', lang: "' + lang + '"' : '') + ', block: true)');
+      out.push('');
+    }
 
-      if (tk.type === 'heading_open') {
+    function closeList(tk, tokens, i) {
+      listMarkers.pop();
+      if (!listMarkers.length) out.push('');
+      return i;
+    }
+
+    function pushCell(tk, tokens, i) {
+      var inline = tokens[i + 1];
+      tableCells.push('[' + typstInline(inline && inline.children, mathFormulas) + ']');
+      if (countingHeaderCols) tableCols++;
+      return i + 2;
+    }
+
+    // Un handler por tipo de token, en vez de una cadena de `if/else if`: dar
+    // de alta un tipo de token nuevo es añadir una entrada aquí, no alargar
+    // una lista de comparaciones cada vez más larga. Firma uniforme
+    // `(tk, tokens, i)` que devuelve el índice desde el que continuar — los
+    // casos que consumen el token `inline` siguiente (heading, paragraph,
+    // celdas de tabla) devuelven `i + 2`, el resto devuelve `i` sin más.
+    var handlers = {
+      heading_open: function (tk, tokens, i) {
+        var inline = tokens[i + 1];
         push(new Array(parseInt(tk.tag.slice(1), 10) + 1).join('=') + ' ' + typstInline(inline && inline.children, mathFormulas));
         out.push('');
-        i += 2;
-      } else if (tk.type === 'paragraph_open') {
+        return i + 2;
+      },
+      paragraph_open: function (tk, tokens, i) {
+        var inline = tokens[i + 1];
         var text = typstInline(inline && inline.children, mathFormulas);
         if (listMarkers.length) push(text);
         else { push(text); out.push(''); }
-        i += 2;
-      } else if (tk.type === 'fence' || tk.type === 'code_block') {
-        var lang = (tk.info || '').trim().split(/\s+/)[0] || '';
-        var body = tk.content.replace(/\n$/, '');
-        // Bloque de código como cadena Typst (`#raw(..., block: true)`), no
-        // como fence de backticks: un bloque puede contener su propia racha de
-        // backticks (p. ej. un ejemplo de "código anidado" que muestra una
-        // fence dentro de otra, GFM_test.md §38) o el patrón inverso de menos
-        // backticks de los que haría falta contar — bug real encontrado
-        // compilando la exportación completa con el compilador de Typst (ver
-        // Lección en memory.md). `#raw()` no tiene ese problema: es una cadena
-        // normal, sin significado especial para las comillas internas.
-        push('#raw("' + escapeTypstString(body) + '"' + (lang ? ', lang: "' + lang + '"' : '') + ', block: true)');
+        return i + 2;
+      },
+      fence: function (tk, tokens, i) { pushCodeBlock(tk); return i; },
+      code_block: function (tk, tokens, i) { pushCodeBlock(tk); return i; },
+      html_block: function (tk, tokens, i) {
+        // Un bloque de HTML crudo (p. ej. un `<div>...</div>` propio, sin
+        // fence) no tiene traducción razonable a Typst, y hasta ahora no
+        // había ninguna rama para este tipo de token: se descartaba en
+        // silencio, sin dejar rastro (bug real reportado por Johannes Rexx
+        // en el foro de Typst). Se muestra como bloque sin traducir, igual
+        // que un fence de código — mejor visible que perdido (RF-27).
+        push('#raw("' + escapeTypstString(tk.content.replace(/\n$/, '')) + '", block: true)');
         out.push('');
-      } else if (tk.type === 'bullet_list_open') {
-        listMarkers.push('-');
-      } else if (tk.type === 'ordered_list_open') {
-        listMarkers.push('+');
-      } else if (tk.type === 'bullet_list_close' || tk.type === 'ordered_list_close') {
-        listMarkers.pop();
-        if (!listMarkers.length) out.push('');
-      } else if (tk.type === 'list_item_open') {
+        return i;
+      },
+      bullet_list_open: function (tk, tokens, i) { listMarkers.push('-'); return i; },
+      ordered_list_open: function (tk, tokens, i) { listMarkers.push('+'); return i; },
+      bullet_list_close: closeList,
+      ordered_list_close: closeList,
+      list_item_open: function (tk, tokens, i) {
         // Typst anida por sangría, igual que Markdown.
         pendingPrefix = new Array(listMarkers.length).join('  ') + listMarkers[listMarkers.length - 1] + ' ';
-      } else if (tk.type === 'blockquote_open') {
-        push('#quote(block: true)[');
-      } else if (tk.type === 'blockquote_close') {
-        push(']');
-        out.push('');
-      } else if (tk.type === 'hr') {
-        push('#line(length: 100%)');
-        out.push('');
-      } else if (tk.type === 'table_open') {
-        tableCells = [];
-        tableCols = 0;
-        countingHeaderCols = true;
-      } else if (tk.type === 'th_open' || tk.type === 'td_open') {
-        tableCells.push('[' + typstInline(inline && inline.children, mathFormulas) + ']');
-        if (countingHeaderCols) tableCols++;
-        i += 2;
-      } else if (tk.type === 'thead_close') {
-        countingHeaderCols = false;
-      } else if (tk.type === 'table_close') {
+        return i;
+      },
+      blockquote_open: function (tk, tokens, i) { push('#quote(block: true)['); return i; },
+      blockquote_close: function (tk, tokens, i) { push(']'); out.push(''); return i; },
+      hr: function (tk, tokens, i) { push('#line(length: 100%)'); out.push(''); return i; },
+      table_open: function (tk, tokens, i) { tableCells = []; tableCols = 0; countingHeaderCols = true; return i; },
+      th_open: pushCell,
+      td_open: pushCell,
+      thead_close: function (tk, tokens, i) { countingHeaderCols = false; return i; },
+      table_close: function (tk, tokens, i) {
         push('#table(');
         out.push('  columns: ' + (tableCols || 1) + ',');
         out.push('  ' + tableCells.join(', '));
         out.push(')');
         out.push('');
         tableCells = null;
+        return i;
       }
+    };
+
+    for (var i = 0; i < tokens.length; i++) {
+      var handler = handlers[tokens[i].type];
+      if (handler) i = handler(tokens[i], tokens, i);
     }
 
     return out.join('\n').replace(/\n{3,}/g, '\n\n');

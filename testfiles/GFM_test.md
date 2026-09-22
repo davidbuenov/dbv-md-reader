@@ -178,6 +178,12 @@ Blockquote with formatting:
 >
 > `Code inside a blockquote`
 
+Blockquote with embedded HTML-like text (regression test for a bug reported by Johannes Rexx on the Typst forum — a traceback quoted verbatim used to silently lose the `<module>` part when exported to Typst):
+
+> Traceback (most recent call last): \
+> File "/usr/bin/gnome-activity-journal", line 119, in <module> \
+> from src import config
+
 ---
 
 ## 11. Fenced code blocks

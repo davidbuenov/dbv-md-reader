@@ -9,6 +9,7 @@
     "tauri": "tauri",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
     "test:all": "cargo test --manifest-path src-tauri/Cargo.toml --lib -- --include-ignored",
+    "test:typst-export": "node scripts/test-typst-export.mjs",
     "release:manifest": "node scripts/generate-latest-json.mjs",
     "tauri:windows:build": "tauri-windows-bundle build --runner npm"
   },
