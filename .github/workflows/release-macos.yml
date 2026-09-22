@@ -20,16 +20,33 @@ name: Release macOS
 # encuentra) — así que para una versión que ya se publicó a mano hay que
 # lanzarlo con `draft: false` explícitamente.
 #
-# Build sin firmar ni notarizar (no hay cuenta de Apple Developer de pago) y
-# sin auto-actualización en macOS (deuda técnica consciente, igual que Linux):
-# no se pasan las variables TAURI_SIGNING_*, así que no se genera .sig ni se
-# sube manifiesto de updater para esta plataforma. `createUpdaterArtifacts:
-# false` en tauri.macos.conf.json es imprescindible para esto — sin él,
-# `tauri build` termina en exit 1 aunque el .dmg/.app se generen bien (mismo
-# problema documentado en la Lección 16 de memory.md para Windows). El
-# archivo tauri.macos.conf.json (targets: dmg + app) se fusiona
-# automáticamente por convención de nombre de plataforma, sin necesidad de
-# pasar --config a mano.
+# Build sin firmar ni notarizar (no hay cuenta de Apple Developer de pago).
+# `tauri.macos.conf.json` (targets: dmg + app) se fusiona automáticamente
+# por convención de nombre de plataforma, sin necesidad de pasar --config
+# a mano.
+#
+# Auto-actualización en macOS: OPCIONAL, activada solo si el repo tiene
+# configurados los secrets TAURI_SIGNING_PRIVATE_KEY /
+# TAURI_SIGNING_PRIVATE_KEY_PASSWORD (Settings → Secrets and variables →
+# Actions), la misma clave que ya se usa para firmar Windows en local
+# (`npx tauri signer generate` si no existe todavía). Sin esos secrets, este
+# workflow se comporta exactamente igual que antes: `createUpdaterArtifacts`
+# se queda en `false` (el valor de `tauri.macos.conf.json`) y no se genera
+# ningún `.sig`, algo imprescindible, porque con `createUpdaterArtifacts:
+# true` y sin clave, `tauri build` termina en exit 1 aunque el .dmg/.app se
+# generen bien (mismo problema documentado en la Lección 16 de memory.md
+# para Windows). Por eso la activación es un `--config` inyectado solo
+# cuando el secret existe, no un cambio directo del archivo: ver el paso
+# "Comprobar si hay clave de firma configurada".
+#
+# Con la clave configurada, además del .dmg/.app de siempre se genera y
+# firma un .app.tar.gz (el artefacto que usa el updater de Tauri), y
+# scripts/generate-macos-updater-fragment.mjs sube sus entradas darwin-* como
+# un asset aparte de la Release (`latest-macos-fragment.json`). Luego
+# scripts/generate-latest-json.mjs (que el maintainer sigue ejecutando en
+# local para el resto de la Release, sin ningún cambio) lo recoge y lo
+# fusiona en el latest.json final. El flujo manual de Windows no cambia en
+# ningún caso, con o sin esta clave configurada.
 #
 # El .dmg resultante no está firmado: al abrirlo en un Mac, Gatekeeper avisa
 # de "desarrollador no verificado" (ver README.md, sección "🍎 macOS"). Es el
@@ -100,14 +117,36 @@ jobs:
       - name: Instalar dependencias de Node
         run: npm install
 
+      # No usar `${{ secrets.X }}` directamente dentro de `run:` (se interpola en el
+      # texto del script antes de ejecutarse, y una clave con comillas/saltos de
+      # línea lo rompería). Se pasa por `env:` y se lee como variable de entorno normal.
+      - name: Comprobar si hay clave de firma configurada
+        id: signing
+        env:
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$HAS_KEY" ]; then
+            echo 'extra_args=--config {"bundle":{"createUpdaterArtifacts":true}}' >> "$GITHUB_OUTPUT"
+          else
+            echo "extra_args=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build y Release (macOS)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          args: --target universal-apple-darwin
+          args: --target universal-apple-darwin ${{ steps.signing.outputs.extra_args }}
           tagName: ${{ steps.version.outputs.tag }}
           releaseName: ${{ steps.version.outputs.tag }}
           releaseDraft: ${{ steps.draft.outputs.value }}
           prerelease: false
           includeUpdaterJson: false
+
+      - name: Subir fragmento darwin-* del updater (solo si hay clave de firma)
+        if: steps.signing.outputs.extra_args != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/generate-macos-updater-fragment.mjs "${{ steps.version.outputs.tag }}"
