@@ -1629,19 +1629,27 @@
   // HTML genérico (ver `INLINE_HANDLERS.html_inline`).
   var MATH_PLACEHOLDER_RE = /data-i="(\d+)"/;
 
-  // Tokens inline sin lógica propia: mapean siempre a la misma cadena Typst.
-  var INLINE_FIXED = {
+  // `Object.create(null)` en vez de `{}` en las tres tablas de despacho de
+  // este fichero (aquí y en `handlers` de `markdownToTypst`): un tipo de
+  // token que coincidiera por nombre con un miembro heredado de
+  // `Object.prototype` (`toString`, `constructor`...) haría que `mapa[tipo]`
+  // devolviera esa función heredada en vez de `undefined` — markdown-it no
+  // genera hoy ningún tipo así, pero al ser estas tablas simples lookups por
+  // clave (sin invariante que lo impida en el futuro), no hace falta pagar
+  // con un `Object.prototype.hasOwnProperty.call(...)` en cada consulta
+  // cuando basta con que el propio objeto no tenga prototipo.
+  var INLINE_FIXED = Object.assign(Object.create(null), {
     strong_open: '*', strong_close: '*',
     em_open: '_', em_close: '_',
     s_open: '#strike[',
     s_close: ']', link_close: ']',
     softbreak: '\n',
     hardbreak: ' \\\n'
-  };
+  });
 
   // Tokens inline que necesitan el token completo (o `mathFormulas`) para
   // decidir qué emitir.
-  var INLINE_HANDLERS = {
+  var INLINE_HANDLERS = Object.assign(Object.create(null), {
     text: function (tk) { return escapeTypstText(tk.content); },
     code_inline: function (tk) { return typstInlineCode(tk.content); },
     link_open: function (tk) { return '#link("' + escapeTypstString(tk.attrGet('href') || '') + '")['; },
@@ -1658,15 +1666,15 @@
       // texto literal escapado, igual que un token `text` normal.
       return escapeTypstText(tk.content);
     }
-  };
+  });
 
   function typstInline(children, mathFormulas) {
     if (!children) return '';
     var out = '';
     for (var i = 0; i < children.length; i++) {
       var tk = children[i];
-      if (Object.prototype.hasOwnProperty.call(INLINE_FIXED, tk.type)) { out += INLINE_FIXED[tk.type]; continue; }
-      if (Object.prototype.hasOwnProperty.call(INLINE_HANDLERS, tk.type)) { out += INLINE_HANDLERS[tk.type](tk, mathFormulas); continue; }
+      if (INLINE_FIXED[tk.type]) { out += INLINE_FIXED[tk.type]; continue; }
+      if (INLINE_HANDLERS[tk.type]) { out += INLINE_HANDLERS[tk.type](tk, mathFormulas); continue; }
       if (tk.content) out += escapeTypstText(tk.content);
     }
     return out;
@@ -1723,7 +1731,11 @@
     // `(tk, tokens, i)` que devuelve el índice desde el que continuar — los
     // casos que consumen el token `inline` siguiente (heading, paragraph,
     // celdas de tabla) devuelven `i + 2`, el resto devuelve `i` sin más.
-    var handlers = {
+    // `Object.create(null)` (ver también `INLINE_FIXED`/`INLINE_HANDLERS`
+    // más arriba): sin prototipo, `handlers[tipo]` nunca puede devolver por
+    // accidente un método heredado de `Object.prototype` (`toString`,
+    // `constructor`...) para un tipo de token que coincidiera con ese nombre.
+    var handlers = Object.assign(Object.create(null), {
       heading_open: function (tk, tokens, i) {
         var inline = tokens[i + 1];
         push(new Array(parseInt(tk.tag.slice(1), 10) + 1).join('=') + ' ' + typstInline(inline && inline.children, mathFormulas));
@@ -1775,7 +1787,7 @@
         tableCells = null;
         return i;
       }
-    };
+    });
 
     for (var i = 0; i < tokens.length; i++) {
       var handler = handlers[tokens[i].type];

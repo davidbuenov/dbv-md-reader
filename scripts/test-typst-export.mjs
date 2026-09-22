@@ -92,9 +92,9 @@ function main() {
   if (failures.length) {
     console.error('✗ Test de exportación a Typst FALLIDO:\n- ' + failures.join('\n- '));
     process.exitCode = 1;
-    return;
+  } else {
+    console.log('✓ Test de exportación a Typst OK (' + typst.length + ' bytes generados desde GFM_test.md).');
   }
-  console.log('✓ Test de exportación a Typst OK (' + typst.length + ' bytes generados desde GFM_test.md).');
 }
 
 main();
