@@ -446,6 +446,19 @@ pub mod commands {
             .map(|p| p.to_string())
     }
 
+    /// Opens a native "save as" dialog to pick where to create a brand-new Markdown
+    /// document (RF-29). Writing the (empty) content is done by `write_file` — this
+    /// only picks where, same split as `save_typst_dialog`.
+    #[tauri::command]
+    pub async fn save_new_file_dialog(app: tauri::AppHandle, default_name: String) -> Option<String> {
+        app.dialog()
+            .file()
+            .add_filter("Markdown", &MARKDOWN_EXTENSIONS)
+            .set_file_name(default_name)
+            .blocking_save_file()
+            .map(|p| p.to_string())
+    }
+
     /// Resolves a relative Markdown/image link from the current document's directory (local or remote base)
     #[tauri::command]
     pub fn resolve_relative_path(base_dir: String, relative_path: String) -> Result<String, String> {
@@ -890,6 +903,7 @@ pub fn run() {
             commands::write_file,
             commands::open_file_dialog,
             commands::save_typst_dialog,
+            commands::save_new_file_dialog,
             commands::resolve_relative_path,
             commands::watch_file,
             commands::get_recent_files,

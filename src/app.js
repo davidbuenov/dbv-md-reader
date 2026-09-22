@@ -156,6 +156,10 @@
     document.body.classList.add('is-android');
     if (btnEditToggle) btnEditToggle.classList.add('hidden');
     if (btnSave) btnSave.classList.add('hidden');
+    var btnNewFile = document.getElementById('btn-new-file');
+    if (btnNewFile) btnNewFile.classList.add('hidden'); // RF-29: crea un documento para editarlo, fuera de alcance en Android
+    var btnEmptyNew = document.getElementById('btn-empty-new');
+    if (btnEmptyNew) btnEmptyNew.classList.add('hidden');
     var btnAlways = document.getElementById('btn-always-on-top');
     if (btnAlways) btnAlways.classList.add('hidden');
     var btnCheck = document.getElementById('btn-check-update');
@@ -385,7 +389,11 @@
         .then(function (doc) {
           currentDoc = doc;
           resolvedImageCache = {}; // documento nuevo: mismas rutas relativas podrían resolver distinto
-          setEditMode(false); // cada documento nuevo empieza en modo lectura (RF-20)
+          // Todo documento abierto empieza en modo lectura (RF-20) — salvo uno
+          // recién creado en blanco (RF-29, `createNewFile()`), donde no hay
+          // nada que "leer" y forzar al usuario a pulsar editar sería un paso
+          // extra sin sentido.
+          setEditMode(!!opts.startInEditMode);
           btnEditToggle.disabled = isRemoteDoc(doc); // sin guardado posible sobre una URL (RF-08A)
           if (isAndroid) {
             btnEditToggle.classList.add('hidden');
@@ -1552,6 +1560,25 @@
     }
   }
 
+  // ─── Nuevo documento (RF-29) ─────────────────────────────────────────────
+  // "Guardar como" primero, no un documento en blanco en memoria: el resto
+  // de la app asume en varios sitios que `currentDoc.path` nunca es nulo
+  // (breadcrumb, `write_file` de Ctrl+S...). Pedir la ruta antes de crear
+  // nada evita tocar esa suposición — se escribe un fichero vacío real y se
+  // reutiliza `loadDocument()` tal cual, igual que abrir un archivo existente.
+  function createNewFile() {
+    if (isAndroid) return; // edición fuera de alcance en Android (RF-20/RF-21)
+    invoke('save_new_file_dialog', { defaultName: t('editor.newFileDefaultName') })
+      .then(function (path) {
+        if (!path) return null;
+        return invoke('write_file', { path: path, content: '' })
+          .then(function () { loadDocument(path, { isPrimaryOpen: true, startInEditMode: true }); });
+      })
+      .catch(function (err) { showError('[save_new_file_dialog] ' + err); });
+  }
+
+  document.getElementById('btn-new-file').addEventListener('click', createNewFile);
+  document.getElementById('btn-empty-new').addEventListener('click', createNewFile);
   document.getElementById('btn-open-file').addEventListener('click', handleOpenAction);
   document.getElementById('btn-empty-open').addEventListener('click', handleOpenAction);
   // ─── Exportar a Typst (RF-27) ─────────────────────────────────────────────
@@ -2577,6 +2604,7 @@
     // Ctrl en Windows/Linux, Cmd en macOS: mismos atajos en las tres plataformas.
     var mod = e.ctrlKey || e.metaKey;
     if      (mod && e.key === 'f') { e.preventDefault(); searchPanel.open(); }
+    else if (mod && e.key === 'n') { e.preventDefault(); createNewFile(); }
     else if (mod && e.key === 'o') { e.preventDefault(); openFileDialog(); }
     else if (mod && e.key === 'p') { e.preventDefault(); window.print(); }
     else if (mod && e.key === 'e') { e.preventDefault(); toggleEditMode(); }

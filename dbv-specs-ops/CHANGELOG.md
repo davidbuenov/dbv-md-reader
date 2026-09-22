@@ -7,6 +7,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+### Añadido
+- **Nuevo documento (RF-29)**: botón nuevo en la barra superior (junto a "Abrir archivo") y enlace en la pantalla vacía para crear un archivo `.md` desde cero, con atajo `Ctrl/Cmd+N`. Abre el diálogo nativo de guardado, crea el fichero vacío y entra directo en Modo Edición — hasta ahora solo se podía abrir y sobreescribir un archivo ya existente (RF-20). No disponible en Android, donde Modo Edición ya está fuera de alcance.
+
 ### Corregido
 - **(reportado por Johannes Rexx en el foro de Typst) Exportar a Typst borraba el HTML embebido en el documento**: una etiqueta suelta como `<module>` (habitual en la traza de un error de Python citada en una cita en bloque) o un bloque `<div>...</div>` sin fence desaparecían del `.typ` sin dejar rastro, en vez de salir sin traducir como el resto de construcciones fuera de alcance de RF-27 (Mermaid, KaTeX, fórmulas matemáticas). Ahora el HTML inline sale como texto literal escapado y el HTML en bloque como código sin traducir (`#raw(...)`), igual que un fence.
 - **(mismo reporte — causa real del "unclosed delimiter" que veía el usuario) Una ruta de archivo terminada en "/" justo antes de una negrita abría un comentario de Typst sin cerrar**: por ejemplo, `.../xdg/__init__.py` se convierte en negrita como `.../xdg/*init*.py` — pero "/" seguido de "*" es también el inicio de un comentario de bloque en Typst (`/* ... */`), que se come en silencio todo el resto del documento (incluido el corchete de cierre de la cita), dando un error de compilación lejos del carácter real que lo causaba. Lo mismo aplica a "//" (comentario de línea) cuando aparece en prosa normal (p. ej. "y/o", una URL sin enlazar). Ahora se inserta un espacio de ancho cero (invisible) entre la "/" y el "*"/"/" siguiente para romper la sintaxis de comentario sin alterar el texto visible.
