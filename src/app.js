@@ -1917,8 +1917,10 @@
   // Rust (no hay DOM ahí), así que emite este evento a la ventana enfocada
   // en vez de reimplementar el diálogo.
   window.__TAURI__.event.listen('menu-open-file', openFileDialog);
-  // "Guardar" y "Alternar Modo Edición" del menú nativo de macOS (File/View):
-  // mismo patrón, el menú vive en Rust y avisa por evento a la ventana enfocada.
+  // "Nuevo documento", "Guardar" y "Alternar Modo Edición" del menú nativo de
+  // macOS (File/View): mismo patrón, el menú vive en Rust y avisa por evento
+  // a la ventana enfocada.
+  window.__TAURI__.event.listen('menu-new-file', createNewFile);
   window.__TAURI__.event.listen('menu-save', saveCurrentDocument);
   window.__TAURI__.event.listen('menu-toggle-edit-mode', toggleEditMode);
 
