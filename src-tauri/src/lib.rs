@@ -714,6 +714,13 @@ mod macos_menu {
             ],
         )?;
 
+        let new_file_item = MenuItem::with_id(
+            handle,
+            "new_file",
+            if es { "Nuevo documento" } else { "New Document" },
+            true,
+            Some("CmdOrCtrl+N"),
+        )?;
         let open_file_item = MenuItem::with_id(
             handle,
             "open_file",
@@ -733,6 +740,7 @@ mod macos_menu {
             "File",
             true,
             &[
+                &new_file_item,
                 &open_file_item,
                 &PredefinedMenuItem::separator(handle)?,
                 &save_item,
@@ -873,6 +881,7 @@ pub fn run() {
             // el frontend para el botón de la toolbar — sólo hace falta avisar
             // a la ventana enfocada, no reimplementar el diálogo en Rust.
             let event_name = match event.id().as_ref() {
+                "new_file" => Some("menu-new-file"),
                 "open_file" => Some("menu-open-file"),
                 "save" => Some("menu-save"),
                 "toggle_edit_mode" => Some("menu-toggle-edit-mode"),
