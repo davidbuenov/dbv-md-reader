@@ -6,6 +6,12 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-09-29] Lección 32: Homebrew 7 declara obsoletos los bloques `preflight` de los Cask — este tap no se ve afectado, pero hay que saberlo antes de añadir un comando de consola
+- **Qué pasó (en dbv-typst-editor):** un usuario de macOS vio al instalar `Calling preflight is deprecated! Use preflight_steps instead`. Aquel Cask creaba el comando `typs` con un bloque Ruby `preflight`. Al revisarlo apareció además un fallo silencioso en Linux: desde Homebrew 7, `app_image` **mueve** el AppImage a `~/Applications`, y el script apuntaba a `staged_path`, donde ya no estaba.
+- **Arreglo allí:** `command_wrapper "typs", content: <<~SH … SH` (escribe el script y lo enlaza como `binary`, sin `preflight`), y el CI del tap falla ante cualquier «deprecated» en la salida de `brew install` y comprueba con `test -x` el fichero que ejecuta el comando.
+- **Aquí:** el Cask de `homebrew-dbv-md-reader` (comprobado el 2026-09-29) solo tiene `app`, `zap` y `livecheck`, sin `preflight` ni `binary`, y solo publica el `.dmg`: no hay nada que cambiar. **Si algún día se añade un comando de consola** (o el AppImage de Linux al Cask), usar `command_wrapper` y copiar las dos comprobaciones del CI del tap de dbv-typst-editor. `update-homebrew-tap.yml` solo cambia `version` y `sha256` con `sed`, así que no le afecta.
+- **Referencia:** `NATIVE_APPS_RELEASE_CI.md` §6quinquies del framework dbv-specs-ops.
+
 ### [2026-09-28] Lección 31: El `.AppImage` no arrancaba si lo ejecutaba otro usuario — y ninguna prueba manual podía verlo
 - **Qué pasó:** el bot `discover-apps.yml` de AppImageHub abrió por su cuenta el PR AppImage/appimage.github.io#6058 para añadir la app a su catálogo. Su test falló con `AppRun.wrapped: Permission denied`.
 - **Causa:** linuxdeploy (dentro de `tauri build`) deja `AppRun.wrapped` en `0770`, y el squashfs es de root. Ejecutado normalmente, el runtime FUSE monta los ficheros con el uid del usuario y funciona; firejail lo ejecuta como "otros" y falla. Diagnosticado con `unsquashfs -lls` sobre el AppImage publicado, desde WSL.
