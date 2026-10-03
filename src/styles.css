@@ -648,9 +648,14 @@ body.is-android #btn-settings {
   background-color: var(--code-bg) !important;
   border: 1px solid var(--border);
   border-radius: 8px;
-  overflow-x: auto;
+  /* El scroll horizontal vive en el <code> interior (no en el <pre>): así los botones
+     flotantes (.code-actions, position:absolute respecto al <pre>) quedan fijos en la
+     esquina superior derecha en vez de desplazarse con el contenido. */
+  overflow: visible;
 }
 .markdown-body pre code {
+  display: block;
+  overflow-x: auto;
   padding: 0;
   background: transparent;
   border: none;
@@ -658,7 +663,8 @@ body.is-android #btn-settings {
 }
 
 /* Ajuste de línea opcional (botón de wrap) — sustituye el scroll horizontal */
-.markdown-body pre.wrapped {
+.markdown-body pre.wrapped,
+.markdown-body pre.wrapped code {
   overflow-x: hidden;
   white-space: pre-wrap;
   word-break: break-word;
@@ -671,8 +677,10 @@ body.is-android #btn-settings {
    paralela de números cuyas alturas había que sincronizar por JavaScript y se
    desajustaba con el ajuste de línea (ver applyLineNumbers para el detalle).
    Al envolver, la caja de la línea crece y el número la sigue sin más. */
-.markdown-body pre.line-numbers { padding-left: 3.8em; }
-.markdown-body pre.line-numbers > code { display: block; position: relative; }
+/* El gutter (3.8em) vive en el padding del <code> (que es quien hace scroll), no del <pre>:
+   si estuviera fuera del <code>, el overflow del <code> recortaría los números. */
+.markdown-body pre.line-numbers { padding-left: 0; }
+.markdown-body pre.line-numbers > code { display: block; position: relative; padding-left: 3.8em; }
 /* Separador vertical del gutter: se dibuja sobre el <code>, así que acompaña al
    contenido si el bloque se desplaza en horizontal, igual que los números. */
 .markdown-body pre.line-numbers > code::before {
@@ -680,7 +688,7 @@ body.is-android #btn-settings {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -0.8em;
+  left: 3em;
   width: 1px;
   background: var(--border);
 }
