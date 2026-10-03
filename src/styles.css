@@ -1315,6 +1315,18 @@ body.drag-over #reader-container {
      paleta de --code-* de más abajo y los fondos de tablas/alertas se
      impriman tal cual, no solo se vean así en la vista previa. */
   html, body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+  /* Nada debe quedar recortado ni desbordar el área imprimible: el código se ajusta a la línea
+     (en vez de un scroll interno que el papel recorta y cuya barra se imprime) y los diagramas
+     no recortan su contenido. */
+  .markdown-body pre,
+  .markdown-body pre code {
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    word-break: break-word;
+  }
+  .mermaid-container { overflow: visible !important; }
+  .markdown-body table { table-layout: auto; word-break: break-word; }
   body, #app-body, #reader-container {
     display: block !important;
     overflow: visible !important;
