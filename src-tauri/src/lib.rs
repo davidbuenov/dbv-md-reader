@@ -803,8 +803,41 @@ mod macos_menu {
     }
 }
 
+/// Descarta las variables de entorno de WebView2 que un proceso padre nos haya podido pasar.
+///
+/// Programas que embeben WebView2 (p. ej. PowerToys Peek, botón "Abrir con la app
+/// predeterminada") fijan `WEBVIEW2_USER_DATA_FOLDER` y `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`
+/// (`--block-new-web-contents`) en su propio entorno, y el proceso que lanzan los hereda. Como
+/// `WEBVIEW2_USER_DATA_FOLDER` tiene prioridad sobre la carpeta que indica la propia app, la
+/// ventana intentaba usar el perfil temporal del padre —ya en uso por su navegador, con otras
+/// opciones— y fallaba al crearse: el proceso quedaba vivo solo con la ventana oculta de
+/// instancia única y los siguientes "abrir" ya no mostraban nada.
+///
+/// Esta app siempre usa su propio perfil; de los argumentos se quita únicamente el que
+/// impone el padre y se conserva el resto (p. ej. un `--remote-debugging-port` de depuración).
+#[cfg(windows)]
+fn scrub_inherited_webview2_env() {
+    std::env::remove_var("WEBVIEW2_USER_DATA_FOLDER");
+    if let Ok(args) = std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS") {
+        let kept: Vec<&str> = args
+            .split_whitespace()
+            .filter(|a| *a != "--block-new-web-contents")
+            .collect();
+        if kept.is_empty() {
+            std::env::remove_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS");
+        } else {
+            std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", kept.join(" "));
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn scrub_inherited_webview2_env() {}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    scrub_inherited_webview2_env();
+
     // `builder` se construye en dos tramos: el plugin de instancia única (RF-14) y el
     // manejador de eventos de menú (macOS) no existen en Android — el modelo de una sola
     // Activity ya garantiza instancia única, y no hay menú nativo que emitir eventos. No se
