@@ -480,6 +480,11 @@ body.is-android #btn-settings {
   transition: border-color 0.2s;
 }
 #empty-state:hover { border-color: var(--accent); }
+/* Arranque: hasta saber si hay un documento que abrir (ruta por argumento / doble clic) no se
+   muestra la pantalla de bienvenida ni "sin documento", para que abrir un archivo no parpadee
+   con la pantalla inicial. app.js quita la clase 'booting' (ver endBoot). */
+body.booting #empty-state,
+body.booting #doc-breadcrumb { visibility: hidden; }
 
 .empty-icon {
   width: 64px;

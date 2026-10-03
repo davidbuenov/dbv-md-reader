@@ -126,6 +126,14 @@
   // ─── DOM ─────────────────────────────────────────────────────────────────
   var contentEl    = document.getElementById('content');
   var emptyEl      = document.getElementById('empty-state');
+
+  // Fin del arranque: muestra la pantalla de bienvenida si no hay documento que abrir. Hay un
+  // temporizador de seguridad por si algo falla antes de llegar a llamarla.
+  var bootTimer = setTimeout(endBoot, 4000);
+  function endBoot() {
+    clearTimeout(bootTimer);
+    document.body.classList.remove('booting');
+  }
   var breadcrumb   = document.getElementById('doc-breadcrumb');
   var readingTimeEl = document.getElementById('doc-reading-time');
   var readOnlyBadge = document.getElementById('doc-readonly-badge');
@@ -410,6 +418,7 @@
           updateNavButtons();
           renderMarkdown(doc.content);
           emptyEl.classList.add('hidden');
+          endBoot();
           contentEl.classList.remove('hidden');
           // Auto-abrir TOC si tiene encabezados en pantalla ancha (>768px); en móvil permanece cerrado hasta toggle explícito
           if (tocHeaders.length > 0 && window.innerWidth > 768) {
@@ -471,6 +480,7 @@
           if (window.DBVFileTree) window.DBVFileTree.onDocumentLoaded(doc);
         })
         .catch(function (err) {
+          endBoot();
           if (opts.isAutoRestore) {
             console.warn('[autoRestore]', err);
             try { localStorage.removeItem('dbv-md-last-doc'); } catch (_) {}
@@ -2654,10 +2664,15 @@
                 }
               }
             } catch (_) {}
+            endBoot();
+          } else {
+            // Sin documento que abrir: ahora sí se muestra la pantalla de bienvenida.
+            endBoot();
           }
         })
         .catch(function (err) {
           console.log('[init] no CLI arg:', err);
+          endBoot();
           if (isAndroid) {
             try {
               var savedDoc = localStorage.getItem('dbv-md-last-doc');
