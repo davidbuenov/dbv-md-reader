@@ -536,8 +536,9 @@ body.is-android #btn-settings {
 .markdown-body { color: var(--text-primary); line-height: 1.75; }
 
 /* Elementos de prosa: ancho de lectura cómodo (~800px, como GitHub), centrados
-   dentro del contenedor más ancho. Los bloques "anchos" (código, tablas, Mermaid)
-   no llevan este límite. */
+   dentro del contenedor más ancho. Las tablas, reglas horizontales, bloques de código
+   y diagramas Mermaid usan la misma columna (ver más abajo) para que sus bordes
+   izquierdo/derecho queden alineados con el texto. */
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6,
 .markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body blockquote, .markdown-body .markdown-alert {
   max-width: 800px;
@@ -599,11 +600,11 @@ body.is-android #btn-settings {
 .markdown-body .markdown-alert-warning   { --alert-color: var(--alert-warning); }
 .markdown-body .markdown-alert-caution   { --alert-color: var(--alert-caution); }
 
-.markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.markdown-body table { width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; border-collapse: collapse; margin-bottom: 20px; }
 .markdown-body th, .markdown-body td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
 .markdown-body th { background-color: var(--bg-secondary); font-weight: 600; }
 
-.markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 24px auto; max-width: 800px; }
 
 .markdown-body img { max-width: 100%; border-radius: 8px; vertical-align: middle; }
 
@@ -641,6 +642,9 @@ body.is-android #btn-settings {
    aspecto del bloque, solo se alinean los números. */
 .markdown-body pre {
   position: relative;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
   margin-bottom: 20px;
   padding: 16px;
   font-size: 0.875em;
@@ -774,6 +778,9 @@ body.is-android #btn-settings {
 .mermaid-container {
   display: flex;
   justify-content: center;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
   background-color: var(--bg-secondary);
   padding: 24px;
   border-radius: 8px;
@@ -790,6 +797,9 @@ body.is-android #btn-settings {
   border-left: 4px solid #ef4444;
   border-radius: 0 8px 8px 0;
   padding: 12px 16px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
   margin-bottom: 20px;
 }
 .mermaid-error strong {
