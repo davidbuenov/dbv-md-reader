@@ -24,8 +24,10 @@
   // ─── DOM ─────────────────────────────────────────────────────────────────
   var tabIndexBtn  = document.getElementById('tab-index');
   var tabFilesBtn  = document.getElementById('tab-files');
+  var tabAiBtn     = document.getElementById('tab-ai');
   var tocPanelEl   = document.getElementById('toc-panel');
   var filesPanelEl = document.getElementById('files-panel');
+  var aiPanelEl    = document.getElementById('ai-panel');
   var fileTreeEl   = document.getElementById('file-tree');
   var filterInput  = document.getElementById('file-tree-filter');
 
@@ -37,6 +39,7 @@
   var treeContextMenu    = document.getElementById('tree-context-menu');
   var treeRevealBtn      = document.getElementById('tree-reveal');
   var treeOpenNewWinBtn  = document.getElementById('tree-open-new-window');
+  var treeAskAiBtn       = document.getElementById('tree-ask-ai');
 
   // ─── Utilidades de ruta (JS puro, sin acceso a disco) ─────────────────────
   // Mismo criterio ya usado en la etiqueta de atajos de esta app (Ctrl en
@@ -51,16 +54,23 @@
     return idx >= 0 ? p.slice(0, idx) : p;
   }
 
-  // ─── Pestañas "Índice" / "Archivos" ────────────────────────────────────────
+  // ─── Pestañas "Índice" / "Archivos" / "Asistente" (RF-25, RF-33) ────────────
+  // La del Asistente (v0.18.0) comparte panel y ancho con las otras dos (ADR-029:
+  // nada de una cuarta columna). Su contenido lo pinta la IA al cargarse; aquí
+  // solo se enseña u oculta, y el clic avisa a app.js para que la cargue.
   function setActiveTab(tab) {
-    var filesActive = tab === 'files';
-    tabIndexBtn.classList.toggle('active', !filesActive);
-    tabFilesBtn.classList.toggle('active', filesActive);
-    tocPanelEl.classList.toggle('hidden', filesActive);
-    filesPanelEl.classList.toggle('hidden', !filesActive);
+    tabIndexBtn.classList.toggle('active', tab === 'index');
+    tabFilesBtn.classList.toggle('active', tab === 'files');
+    tabAiBtn.classList.toggle('active', tab === 'ai');
+    tocPanelEl.classList.toggle('hidden', tab !== 'index');
+    filesPanelEl.classList.toggle('hidden', tab !== 'files');
+    aiPanelEl.classList.toggle('hidden', tab !== 'ai');
   }
   tabIndexBtn.addEventListener('click', function () { setActiveTab('index'); });
   tabFilesBtn.addEventListener('click', function () { setActiveTab('files'); });
+  tabAiBtn.addEventListener('click', function () {
+    if (window.DBVApp && window.DBVApp.openAssistant) window.DBVApp.openAssistant();
+  });
 
   // ─── Árbol de directorios (RF-25) ──────────────────────────────────────────
   var currentRoot = null;
@@ -121,6 +131,8 @@
     treeContextMenu.dataset.path = path;
     treeOpenNewWinBtn.textContent = t('fileTree.openNewWindow', { mod: MOD_KEY_LABEL });
     treeOpenNewWinBtn.classList.toggle('hidden', !isMarkdown);
+    // RF-33.2: «Añadir a la conversación» — solo sobre un .md y con las funciones de IA a la vista.
+    treeAskAiBtn.classList.toggle('hidden', !isMarkdown || !(window.DBVApp && window.DBVApp.aiAvailable && window.DBVApp.aiAvailable()));
     treeContextMenu.style.left = x + 'px';
     treeContextMenu.style.top = y + 'px';
     treeContextMenu.classList.remove('hidden');
@@ -138,6 +150,11 @@
         console.warn('[reveal_in_file_manager]', err);
       });
     }
+    hideTreeContextMenu();
+  });
+  treeAskAiBtn.addEventListener('click', function () {
+    var path = treeContextMenu.dataset.path;
+    if (path && window.DBVApp && window.DBVApp.attachToAi) window.DBVApp.attachToAi(path);
     hideTreeContextMenu();
   });
   treeOpenNewWinBtn.addEventListener('click', function () {
@@ -350,7 +367,9 @@
         return ok;
       });
     },
-    toggleQuickOpen: toggleQuickOpen
+    toggleQuickOpen: toggleQuickOpen,
+    // Pestaña activa del panel lateral: 'index' | 'files' | 'ai' (RF-33.1).
+    setActiveTab: setActiveTab
   };
 
   resetTree();

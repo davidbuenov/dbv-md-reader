@@ -999,10 +999,9 @@ body.is-android #btn-settings {
 /* ─── Panel de Archivos Recientes ─────────────────────────────────────────── */
 .recent-wrap { position: relative; }
 
-/* Menú contextual fijo compartido por Mermaid ("Abrir en mermaid.live") y el
-   árbol de directorios (RF-25, "Revelar en el Explorador"/"Abrir en ventana
-   nueva") — mismo posicionamiento/tarjeta/botón para los dos. */
-#mermaid-context-menu, #tree-context-menu {
+/* Menú contextual del árbol de directorios (RF-25, "Revelar en el Explorador"/
+   "Abrir en ventana nueva"). */
+#tree-context-menu {
   position: fixed;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -1011,7 +1010,7 @@ body.is-android #btn-settings {
   padding: 4px;
   z-index: 200;
 }
-#mermaid-context-menu button, #tree-context-menu button {
+#tree-context-menu button {
   display: block;
   width: 100%;
   background: none;
@@ -1024,7 +1023,67 @@ body.is-android #btn-settings {
   cursor: pointer;
   white-space: nowrap;
 }
-#mermaid-context-menu button:hover, #tree-context-menu button:hover { background-color: var(--bg-primary); }
+#tree-context-menu button:hover { background-color: var(--bg-primary); }
+
+/* Menús contextuales de la previsualización y del editor (RF-30), construidos
+   por openContextMenu() en app.js — mismo aspecto que el del árbol. */
+.ctx-menu {
+  position: fixed;
+  min-width: 190px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--shadow);
+  padding: 4px;
+  z-index: 200;
+}
+.ctx-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ctx-item:hover:not(:disabled), .ctx-item:focus-visible { background-color: var(--bg-primary); outline: none; }
+.ctx-item:disabled { color: var(--text-muted); cursor: default; }
+.ctx-hint { color: var(--text-muted); font-size: 11px; }
+.ctx-sep { height: 1px; margin: 4px 6px; background-color: var(--border); }
+
+/* Destello del bloque al que acaba de saltar la sincronización (RF-30). */
+.sync-flash { animation: sync-flash 1.4s ease-out; }
+@keyframes sync-flash {
+  0%, 35% { background-color: var(--accent-soft, rgba(88, 166, 255, 0.28)); box-shadow: 0 0 0 4px var(--accent-soft, rgba(88, 166, 255, 0.28)); }
+  100% { background-color: transparent; box-shadow: 0 0 0 4px transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .sync-flash { animation-duration: 0.01s; } }
+
+/* Aviso breve y no bloqueante. */
+.app-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  max-width: min(520px, 90vw);
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px var(--shadow);
+  font-size: 13px;
+  z-index: 400;
+}
+.app-toast-error { border-color: #d1453b; }
+.app-toast.hidden { display: none; }
 
 /* ─── Quick Open (RF-26, Ctrl/Cmd+K) — reutiliza la cáscara .modal-* compartida ── */
 #quick-open-modal { z-index: 200; align-items: flex-start; }

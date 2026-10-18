@@ -96,6 +96,28 @@
 
 ---
 
+## 3b. IA integrada y sincronización edición↔preview (v0.18.0, ADR-048)
+
+```
+index.html / app.js (script clásico, IIFE)            src/ai/*.js (módulos ES, carga perezosa)
+  · botón ✨, pestaña «Asistente»,  ──import()──►   entry.js → aiApp.js → chatPanel, connectWizard,
+    modal «Conectar», overlay inline    solo al      tools, proposal, reviewView, applyProposal,
+  · window.DBVAiHost (documento,        usar la IA   inline, acpSession …  (sin bundler, sin npm)
+    editor, render saneado, toast)                       │ invoke / eventos (ai-stream, acp-message)
+                                                         ▼
+                                       src-tauri/src/ai/  (solo #[cfg(desktop)])
+                                         connections · secrets (keyring) · providers (HTTP/SSE)
+                                         acp (agentes por stdio) · files (confinado) · check · store
+```
+
+- **Cero huella (RNF-IA.1):** el arranque solo lee el fichero de conexiones (`ai_connections`); ni `entry.js`, ni `aiApp.js`, ni `ai.css`, ni los textos se piden hasta que el usuario abre la IA. Lo verifica `scripts/e2e/ai-connect.e2e.mjs`.
+- **La carpeta del documento es el «proyecto» (RNF-IA.3):** `ai_list_files/read_file/search_files/write_file/delete_created` pasan por `resolve_inside` (rechaza `..`, `/`, `C:`, `.git` y enlaces simbólicos que escapen; canonicaliza y comprueba que cuelga de la raíz), solo `.md/.markdown/.txt`.
+- **Nada se escribe sin revisión (RNF-IA.7):** el documento abierto se cambia en el `<textarea>` con `execCommand('insertText')` (deshacible con Ctrl+Z, queda «Modificado»); otros documentos, tras la revisión, con escritura atómica; un fichero nuevo se deshace solo si sigue igual.
+- **La salida de la IA es entrada no fiable:** se sanea con DOMPurify en modo `untrusted` antes de crear el DOM (sin medios ni `style`), porque un `<img>` remoto se pide en cuanto existe (Lección 34).
+- **Sincronización (RF-30):** regla `core` de `markdown-it` (`src/sourcesync.js`) que normaliza `token.map` a coordenadas del fichero (las fórmulas `$$` multilínea se sustituyen por un marcador de una línea antes de parsear) y anota cada bloque con `data-src-line`/`data-src-end`. Garantiza el bloque; la palabra es de mejor esfuerzo.
+- **Android:** el módulo de IA y sus dependencias (`keyring`, `tokio`, `walkdir`) no se compilan; el botón no existe. Los ficheros de `src/ai/` sí viajan en los assets (`frontendDist: ../src`), sin uso.
+- **Tests fuera de `src/`** (`tests/ai/`, `scripts/e2e/`): `frontendDist` embebe todo lo que haya en `src/`.
+
 ## 4. Decisiones de Seguridad y Rendimiento (ADRs)
 
 - **ADR-001:** Adopción de Tauri v2 sobre Electron (ejecutable < 8 MB, RAM < 64 MB).

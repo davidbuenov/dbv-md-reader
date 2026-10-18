@@ -70,10 +70,10 @@
   <main>
     <article class="legal">
       <h1>Política de Privacidad</h1>
-      <p class="legal-updated">Última actualización: 11 de agosto de 2026</p>
+      <p class="legal-updated">Última actualización: 18 de octubre de 2026</p>
 
       <div class="legal-summary">
-        <p><strong>Resumen:</strong> DBV Markdown Reader no recolecta, almacena en servidores propios, ni comparte con terceros ningún dato personal. No tiene cuentas de usuario, no incluye analítica ni publicidad, y no envía telemetría de ningún tipo. Todo el procesamiento de tus documentos ocurre en tu propio equipo.</p>
+        <p><strong>Resumen:</strong> DBV Markdown Reader no recolecta, almacena en servidores propios, ni comparte con terceros ningún dato personal. No tiene cuentas de usuario, no incluye analítica ni publicidad, y no envía telemetría de ningún tipo. Todo el procesamiento de tus documentos ocurre en tu propio equipo. La única excepción es la función opcional de asistente de IA (versión 0.18.0 en adelante, solo en escritorio): está apagada hasta que tú conectas una IA, y solo entonces puede enviarse texto de tus documentos al servicio que tú elijas (ver «Asistente de IA opcional» más abajo).</p>
       </div>
 
       <h2>Qué hace la aplicación en tu equipo</h2>
@@ -86,12 +86,23 @@
       </ul>
 
       <h2>Las únicas conexiones a internet que hace la aplicación</h2>
-      <p>DBV Markdown Reader no se conecta a internet salvo cuando tú lo pides explícitamente, en estos tres casos:</p>
+      <p>DBV Markdown Reader no se conecta a internet salvo cuando tú lo pides explícitamente, en estos casos:</p>
       <ul>
         <li><strong>Abrir un documento remoto:</strong> si escribes o haces clic en una URL de un archivo <code>.md</code> (por ejemplo, uno alojado en GitHub), la aplicación descarga ese archivo directamente desde esa dirección. No pasa por ningún servidor intermedio nuestro.</li>
         <li><strong>Buscar actualizaciones:</strong> solo al pulsar el botón "Buscar actualizaciones" del panel "Acerca de" — la aplicación nunca comprueba actualizaciones automáticamente al arrancar. Esta comprobación consulta la información pública de la última versión publicada en GitHub.</li>
         <li><strong>Abrir un diagrama en mermaid.live:</strong> si usas la opción "Abrir en mermaid.live" del menú contextual de un diagrama, se abre tu navegador predeterminado con el código del diagrama codificado directamente en la dirección web — no se envía a ningún servidor nuestro, mermaid.live lo interpreta en tu propio navegador.</li>
+        <li><strong>Usar el asistente de IA (opcional):</strong> solo si tú conectas una IA y le pides algo. Ver la sección siguiente.</li>
       </ul>
+
+      <h2>Asistente de IA opcional (versión 0.18.0 en adelante, solo escritorio)</h2>
+      <p>La aplicación incluye un asistente de IA que <strong>está desactivado por defecto</strong>: sin ninguna IA conectada no se carga, no abre ninguna conexión y no envía nada. Puedes ocultarlo por completo desde «Conectar una IA» y no existe en la versión de Android.</p>
+      <ul>
+        <li><strong>IA local</strong> (Ollama, LM Studio u otro servidor en tu propio equipo): la conversación no sale de tu equipo; la aplicación solo habla con la dirección de ese servidor (normalmente <code>localhost</code>). Si tú apuntas a un servidor de tu red, ve a ese servidor.</li>
+        <li><strong>IA en la nube con clave de API</strong> (Anthropic, OpenAI, Google, OpenRouter u otro servicio compatible): para responder, la aplicación envía a <em>ese proveedor que tú elegiste</em> el texto de la conversación y el contexto que tú ves en el panel (el documento abierto o la selección, y lo que adjuntes). <strong>Te lo pregunta la primera vez por carpeta y proveedor</strong>, antes de enviar nada. Ese tratamiento lo rige la política de privacidad de ese proveedor, no esta.</li>
+        <li><strong>Agente con tu suscripción</strong> (Claude Code, Gemini CLI, Codex, GitHub Copilot CLI): la aplicación lanza el programa que tú ya tienes instalado y este se comunica con su propio servicio; la aplicación no ve ni guarda tus credenciales.</li>
+      </ul>
+      <p>Qué se guarda en tu equipo: las conexiones (nombre, dirección, modelo) y las conversaciones, en la carpeta de datos de la aplicación — nunca junto a tus documentos. <strong>Las claves de API</strong> se guardan en el almacén de credenciales de tu sistema (Administrador de credenciales de Windows, Llavero de macOS o Secret Service de Linux), nunca en un fichero ni en el navegador integrado. La aplicación no incluye ningún modelo, no descarga ninguno y no tiene servidor propio al que enviar nada.</p>
+      <p>La IA solo lee y propone cambios <strong>dentro de la carpeta del documento que tienes abierto</strong>. Con un modelo directo, la aplicación no escribe nada sin que tú lo revises y lo aceptes; si usas un agente instalado, este puede editar ficheros de esa carpeta por su cuenta tras pedirte permiso, y la aplicación te enseña los cambios y te deja deshacerlos.</p>
 
       <h2>Instalación desde la Microsoft Store</h2>
       <p>Si instalas DBV Markdown Reader desde la Microsoft Store, Microsoft puede recopilar datos de instalación, uso y diagnóstico según sus propias políticas de privacidad, independientes de esta aplicación. Consulta la <a href="https://privacy.microsoft.com/es-es/privacystatement" target="_blank" rel="noopener">Declaración de privacidad de Microsoft</a> para más información sobre esos datos.</p>

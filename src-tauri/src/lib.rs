@@ -20,6 +20,11 @@ use tauri::{WebviewUrl, WebviewWindowBuilder};
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
+// v0.18.0 «AI Native»: IA integrada (RF-31 a RF-36). Solo de escritorio: en Android no hay Modo
+// Edición, ni `keyring`, ni procesos hijos para los agentes.
+#[cfg(desktop)]
+pub mod ai;
+
 /// Extensiones tratadas como documento abierto por la app — mismo criterio en el filtro
 /// del diálogo nativo (`open_file_dialog`), el Drag & Drop (RF-09) y el árbol de directorios
 /// (RF-25, campo `is_markdown` de `DirEntryInfo`), para no divergir en qué cuenta como ".md".
@@ -822,6 +827,9 @@ pub fn run() {
         // plugin).
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
+        // RNF-IA.1: estados vacíos hasta que el usuario conecta una IA; no arrancan nada.
+        builder = builder.manage(ai::AiState::default()).manage(ai::acp::AcpState::default());
+
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             // RF-14: un doble clic / "Abrir con" en un .md mientras la app ya está en
             // marcha no debe lanzar un proceso dbv-md-reader.exe nuevo — abre una
@@ -913,6 +921,56 @@ pub fn run() {
             commands::list_directory,
             #[cfg(desktop)]
             commands::reveal_in_file_manager,
+            #[cfg(desktop)]
+            ai::commands::ai_connections,
+            #[cfg(desktop)]
+            ai::commands::ai_save_connection,
+            #[cfg(desktop)]
+            ai::commands::ai_delete_connection,
+            #[cfg(desktop)]
+            ai::commands::ai_set_preferences,
+            #[cfg(desktop)]
+            ai::commands::ai_providers,
+            #[cfg(desktop)]
+            ai::commands::ai_detect,
+            #[cfg(desktop)]
+            ai::commands::ai_list_models,
+            #[cfg(desktop)]
+            ai::commands::ai_model_info,
+            #[cfg(desktop)]
+            ai::commands::ai_chat,
+            #[cfg(desktop)]
+            ai::commands::ai_cancel,
+            #[cfg(desktop)]
+            ai::commands::ai_check_proposal,
+            #[cfg(desktop)]
+            ai::commands::ai_project_state_load,
+            #[cfg(desktop)]
+            ai::commands::ai_project_state_save,
+            #[cfg(desktop)]
+            ai::files::ai_list_files,
+            #[cfg(desktop)]
+            ai::files::ai_read_file,
+            #[cfg(desktop)]
+            ai::files::ai_search_files,
+            #[cfg(desktop)]
+            ai::files::ai_write_file,
+            #[cfg(desktop)]
+            ai::files::ai_delete_created,
+            #[cfg(desktop)]
+            ai::acp::acp_start,
+            #[cfg(desktop)]
+            ai::acp::acp_request,
+            #[cfg(desktop)]
+            ai::acp::acp_notify,
+            #[cfg(desktop)]
+            ai::acp::acp_respond,
+            #[cfg(desktop)]
+            ai::acp::acp_stop,
+            #[cfg(desktop)]
+            ai::acp::acp_snapshot,
+            #[cfg(desktop)]
+            ai::acp::acp_changes,
             #[cfg(desktop)]
             commands::open_in_new_window
         ])

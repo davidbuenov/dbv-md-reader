@@ -22,7 +22,7 @@ tauri-plugin-process = "2.3.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 notify = "8.2.0"
-ureq = "3.4.0"
+ureq = { version = "3.4.0", features = ["json"] }
 tauri-plugin-os = "2.0.0"
 sys-locale = "0.3"
 # Instala el proveedor criptográfico por defecto de rustls (ver `install_rustls_provider` en
@@ -44,6 +44,15 @@ ctor = "0.8"
 # y ARCHITECTURA.md §5.
 [target.'cfg(not(target_os = "android"))'.dependencies]
 tauri-plugin-single-instance = "2.4.3"
+# v0.18.0 «AI Native» (RF-31 a RF-36): la IA integrada es solo de escritorio — en Android no hay
+# Modo Edición (RF-20), ni almacén de credenciales `keyring`, ni procesos hijos para los agentes
+# ACP. Ver SPECIFICATIONS.md RNF-IA.* y el módulo `src/ai/`.
+# `keyring`: claves de API en el almacén del SO (Credential Manager / Keychain / Secret Service).
+keyring = "4"
+# `tokio`: solo el canal `oneshot` y los temporizadores de la sesión ACP; sin runtime propio.
+tokio = { version = "1", features = ["sync", "time"] }
+# `walkdir`: listar/buscar documentos y la foto de restauración de los agentes, con tope de profundidad.
+walkdir = "2.5"
 
 # Slice 1 (versión Android, ver implementation_plan.md): capa mínima de Storage Access
 # Framework (SAF), primer código Kotlin del proyecto — sin equivalente de escritorio
@@ -57,3 +66,5 @@ custom-protocol = ["tauri/custom-protocol"]
 
 [dev-dependencies]
 tempfile = "3.27.0"
+# Los tests de la sesión ACP construyen un runtime mínimo.
+tokio = { version = "1", features = ["rt", "macros"] }

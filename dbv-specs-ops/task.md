@@ -1,5 +1,29 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-10-18) — Fase 41: v0.18.0 «AI Native» — `/spec` → `/plan` → `/build` → `/test` → `/code-simplify` HECHOS; FALTA `/ship`. Todo sin commit salvo el del framework.**
+>
+> **Orden del usuario (se fue y delegó):** actualizar el framework a 3.1.0 (hecho y **commiteado**, `75c8fdb`), y después, «confío en tus decisiones», `/plan`, `/build`, `/test` y `/code-simplify`. **No se ha hecho `/ship` ni commit del trabajo de la 0.18.0** (versionado, tag, README, fichas de tienda y push son suyos).
+>
+> **Qué hay (ADR-048, `memory.md`; requisitos RF-30..RF-36 y RNF-IA.1..9, RNF-02 en `SPECIFICATIONS.md`):**
+> 1. **Framework** 2.8.0 → 3.1.0 (commit aparte).
+> 2. **RF-30 sincronización:** `src/sourcesync.js` (puro) + cableado en `app.js`: doble clic en la preview → fuente (solo en edición), menú contextual unificado de la preview («Ir al código aquí»/«Editar aquí»/Copiar/mermaid.live), menú contextual propio del editor («Ir a la vista previa», `Ctrl+Alt+P`), destello del bloque. Corrige de paso el desfase de líneas tras fórmulas `$$` multilínea.
+> 3. **IA (RF-31..36):** `src-tauri/src/ai/` (copiado de typst + `files.rs` confinado + `check.rs` de Markdown; solo `cfg(desktop)`), `src/ai/` (módulos ES perezosos), botón ✨ + tercera pestaña «Asistente» + modal «Conectar una IA», IA en línea en el editor, `docs/IA.md`/`IA.en.md`, `docs/privacidad.html` actualizada.
+> 4. **Tests:** `npm run test:sync` (24), `npm run test:ai` (154, vitest+jsdom, en `tests/ai/`), `npm run test:e2e` (5 bancos de Edge headless en `scripts/e2e/`), `cargo test --lib` (86). Todo en verde. **Sin verificar:** prueba manual con Ollama y Claude Code reales, Linux/macOS, `import()` de módulos en WebKitGTK/WKWebView.
+> 5. **Revisión (`/code-simplify`):** 1 **Crítico** corregido (exfiltración por imagen markdown en la salida de la IA — Lección 34), 6 Importantes corregidos, 1 riesgo aceptado (ESM en Linux/macOS). Detalle en `CHANGELOG.md` → `[Sin publicar]`.
+> 6. **Medido:** release 17.476.096 → 18.847.744 bytes (+1,31 MB). Android compila sin el módulo de IA.
+>
+> **Pendiente para `/ship` (lo hace/aprueba el usuario):**
+> - Elegir versión (Minor → `0.18.0`) en `package.json`, `src-tauri/Cargo.toml`, `tauri.conf.json` y `package-lock.json`; publicar el CHANGELOG; README ES/EN (IA + sincronización + atajos `Ctrl+Mayús+I`, `Ctrl+Alt+I`, `Ctrl+Alt+P`); `walkthrough.md`.
+> - **RNF-IA.9:** actualizar las fichas de Microsoft Store, Uptodown y Homebrew (la IA, si se activa, puede enviar texto del documento al proveedor elegido) y publicar `docs/privacidad.html` **junto con** la versión, no antes. Google Play no cambia. Generar el `.msixbundle` y revisar el checklist de assets (`MARKETPLACE_PUBLISHING.md` §5.8bis).
+> - Sin `git push` desde aquí. Cambios del usuario sin commitear que **no** son de este ciclo: `descripcionStoreUptoDown_{es,en}.md`, `BENCHMARK_RESULTS.md`, `actualizacion_dbv_specs_ops.md`, `linkedin_post_v0.4.0.md`, `youtube_video_v0.8.0.md`.
+> - Completar `dbv-tauri-starter` con la IA real (su `aiApp.js` es un esqueleto, REJECTED-01) y subir a `dbv-specs-ops` la lección de exfiltración y la de «tests fuera de `frontendDist`».
+>
+> **Añadido el 2026-10-18 (sigue en la 0.18.0, aún sin `/ship`):** `/spec` de **RF-37** (pegar o soltar imágenes → `images/`, y se inserta `![](images/…)` si es sobre el editor; basado en `dbv-typst-editor` RF-39/RF-18). Pendiente: `/plan`, `/build`, `/test`, `/code-simplify`. Además, hoy se corrigió el bug de rutas `\\?\` del agente ACP en Windows y la escritura de la IA con CRLF (ver CHANGELOG, «Corregido»).
+>
+> **Siguiente paso:** el usuario revisa, prueba a mano con Ollama/Claude Code (`npm run tauri dev`), y decide `/ship`.
+
+---
+
 > ⏭️ **SNAPSHOT DE CONTEXTO (2026-09-28) — AppImage corregido para el catálogo de AppImageHub.**
 >
 > **Qué pasó:** AppImageHub abrió por su cuenta el PR AppImage/appimage.github.io#6058 para añadir la app a su catálogo, y su test falló con `AppRun.wrapped: Permission denied` (ver Lección 31 en `memory.md`). El usuario quiere estar en el catálogo.

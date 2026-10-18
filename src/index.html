@@ -85,6 +85,9 @@
       <button id="btn-toggle-toc" class="btn-icon" data-i18n-title="toolbar.toc">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"/></svg>
       </button>
+      <button id="btn-ai" class="btn-icon hidden" data-i18n-title="ai.button">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      </button>
       <div class="toolbar-divider"></div>
       <button id="btn-markdown-help" class="btn-icon" data-i18n-title="toolbar.markdownHelp">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.09 9a3 3 0 115.83 1c0 2-3 3-3 3m.08 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -125,6 +128,26 @@
     </div>
   </div>
 
+  <!-- ─── Conectar una IA (RF-31): el contenido lo pinta la IA al cargarse ─── -->
+  <div id="ai-connect-modal" class="modal-overlay hidden">
+    <div id="ai-connect-backdrop" class="modal-backdrop"></div>
+    <div id="ai-connect-card" class="modal-card ai-connect-card">
+      <button id="ai-connect-close" class="btn-icon-sm" data-i18n-title="action.close">✕</button>
+      <h2 data-i18n="ai.connectTitle">Conectar una IA</h2>
+      <div id="ai-connect-body" class="ai-form"></div>
+    </div>
+  </div>
+
+  <!-- ─── Confirmación de la IA (aviso de nube, borrar conversación) ─────── -->
+  <div id="ai-confirm-modal" class="modal-overlay hidden" style="z-index: 300">
+    <div id="ai-confirm-backdrop" class="modal-backdrop"></div>
+    <div id="ai-confirm-card" class="modal-card ai-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="ai-confirm-title">
+      <h2 id="ai-confirm-title"></h2>
+      <p id="ai-confirm-text"></p>
+      <div id="ai-confirm-actions" class="ai-confirm-card__actions"></div>
+    </div>
+  </div>
+
   <!-- ─── Ayuda de sintaxis Markdown (chuleta ES/EN según idioma activo) ─── -->
   <div id="help-modal" class="modal-overlay hidden">
     <div id="help-backdrop" class="modal-backdrop"></div>
@@ -132,11 +155,6 @@
       <button id="help-close" class="btn-icon-sm" data-i18n-title="help.close">✕</button>
       <div id="help-content" class="markdown-body"></div>
     </div>
-  </div>
-
-  <!-- ─── Menú contextual sobre un diagrama Mermaid ──────────────────────── -->
-  <div id="mermaid-context-menu" class="hidden">
-    <button id="mermaid-open-live" data-i18n="mermaid.openLive">🔗 Abrir en mermaid.live</button>
   </div>
 
   <!-- ─── Modal de conflicto de edición (RF-21) ───────────────────────────── -->
@@ -240,6 +258,8 @@
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M5 12h14"/></svg>
           </button>
         </div>
+        <!-- IA en línea (RF-36): barra de acciones y diferencia sobre la selección -->
+        <div id="editor-overlay"></div>
         <div id="editor-body">
           <div id="editor-line-numbers">1</div>
           <textarea id="editor-textarea" data-i18n-placeholder="editor.placeholder" placeholder="Markdown…" autocomplete="off" autocapitalize="off" spellcheck="false" wrap="off"></textarea>
@@ -256,6 +276,7 @@
       <div id="sidebar-tabs">
         <button id="tab-index" class="sidebar-tab active" data-i18n="sidebar.tabIndex" data-i18n-title="sidebar.tabIndex">Índice</button>
         <button id="tab-files" class="sidebar-tab" data-i18n="sidebar.tabFiles" data-i18n-title="sidebar.tabFiles">Archivos</button>
+        <button id="tab-ai" class="sidebar-tab hidden" data-i18n="ai.tab" data-i18n-title="ai.tab">Asistente</button>
       </div>
 
       <div id="toc-panel">
@@ -266,6 +287,9 @@
         <input id="file-tree-filter" class="floating-panel-input" type="text" data-i18n-placeholder="fileTree.filterPlaceholder" placeholder="Filtrar…" autocomplete="off" spellcheck="false" />
         <div id="file-tree"></div>
       </div>
+
+      <!-- Asistente de IA (RF-33): se rellena al cargar la IA, no antes (RNF-IA.1) -->
+      <div id="ai-panel" class="ai-panel hidden"></div>
     </aside>
 
   </div>
@@ -332,6 +356,7 @@
   <div id="tree-context-menu" class="hidden">
     <button id="tree-open-new-window">🗗 Abrir en ventana nueva</button>
     <button id="tree-reveal" data-i18n="fileTree.reveal">📂 Revelar en el Explorador</button>
+    <button id="tree-ask-ai" class="hidden" data-i18n="ai.addToChat">✨ Añadir a la conversación de la IA</button>
   </div>
 
   <!-- ─── Scripts ───────────────────────────────────────────────────────── -->
@@ -367,6 +392,7 @@
   <script src="vendor/katex.min.js"></script>
   <script src="vendor/pako_deflate.min.js"></script>
   <script src="i18n.js"></script>
+  <script src="sourcesync.js"></script>
   <script src="app.js"></script>
   <script src="filetree.js"></script>
 </body>

