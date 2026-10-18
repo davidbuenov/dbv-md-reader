@@ -6,7 +6,7 @@
 
 ## Description *
 
-DBV Markdown Reader is a native Markdown (.md) reader and editor for Windows: lightweight, fast, and 100% local — no accounts, no ads, no telemetry.
+DBV Markdown Reader is a native Markdown (.md) reader and editor for Windows: lightweight, fast, and local by default — no accounts, no ads, no telemetry.
 
 Open any .md document instantly (under 200 ms) using Windows' native rendering engine, with no heavyweight IDE required. When you need to edit, its Edit Mode shows a live split view with your raw Markdown and the rendered preview side by side, complete with a formatting toolbar and smart conflict handling if the file changes from another program. It uses just a few megabytes of memory — literally hundreds of times less than Electron-based alternatives.
 
@@ -15,6 +15,9 @@ Perfect for reading and editing technical documentation, notes, GitHub project R
 Key features:
 • Instant opening via double-click or "Open with..."
 • Create new documents from scratch (Ctrl+N) and start editing right away
+• Optional AI assistant (off by default): connect a local model, a cloud one with your own API key, or an agent you already have; you review every change before it is applied
+• Double-click the preview to jump to the exact spot in the code, and a context menu to go from the editor to the preview
+• Paste a screenshot or drop an image: it is saved to an images folder next to the document and its code is inserted
 • Edit Mode (Ctrl+E) with a live split view, a Markdown formatting toolbar, and Tab/Shift+Tab list indenting
 • Directory tree explorer and Quick Open file switcher (Ctrl+K)
 • Direct export to Typst (.typ) to keep editing the document with a Typst editor
@@ -31,15 +34,17 @@ Key features:
 • Interface available in English and Spanish
 • 100% safe: embedded HTML is automatically sanitized before being displayed
 
-No internet connection required to function, no personal data collected. Your documents never leave your computer.
+No internet connection required to function, and no personal data collected. The AI is optional and off by default: only if you connect it is the document text sent to the provider you chose (or it stays on your computer if you use a local model).
 
 ---
 
 ## What's new in this version
 
-v0.17.0: new "New document" button (Ctrl+N) to create a .md file from scratch and start writing straight away in Edit Mode. Typst export now keeps the HTML embedded in the document, and no longer produces a .typ file that fails to compile when a file path is followed by bold text.
+v0.18.0 "AI Native": optional AI assistant (off by default) with local models, cloud models with your own API key, or agents such as Claude Code or Gemini CLI — it sees the open document and its folder, and nothing is written until you review each change, which is applied in the editor and undone with Ctrl+Z; inline AI on the selected text (improve, fix, translate, shorten...). New editor ↔ preview sync: double-click the preview to jump to the code, plus a context menu in the editor. Paste a screenshot or drop an image and it is saved to an images folder next to the document, inserting its code at the cursor. The file tree now refreshes by itself and the context menu can no longer reload the window by accident.
 
-Also includes what was new in v0.16.0: direct export to Typst (.typ) to keep editing the document with a Typst editor, correct syntax colors when printing or exporting to PDF (they used to get lost when doing so from the Dark or Sepia theme), and always-aligned line numbers in code blocks. And from v0.13.1: GitHub-style alerts (Note, Tip, Important...), an unsaved-changes indicator in Edit Mode that confirms before discarding them, and several stability fixes (closing the window with unsaved changes, internal links with accented characters).
+Also includes what was new in v0.17.0: new "New document" button (Ctrl+N) to create a .md file from scratch and start writing straight away in Edit Mode. Typst export now keeps the HTML embedded in the document, and no longer produces a .typ file that fails to compile when a file path is followed by bold text.
+
+And from v0.16.0: direct export to Typst (.typ) to keep editing the document with a Typst editor, correct syntax colors when printing or exporting to PDF (they used to get lost when doing so from the Dark or Sepia theme), and always-aligned line numbers in code blocks. And from v0.13.1: GitHub-style alerts (Note, Tip, Important...), an unsaved-changes indicator in Edit Mode that confirms before discarding them, and several stability fixes (closing the window with unsaved changes, internal links with accented characters).
 
 ---
 
@@ -47,24 +52,24 @@ Also includes what was new in v0.16.0: direct export to Typst (.typ) to keep edi
 *(up to 20, short summaries — shown as a bulleted list)*
 
 1. Markdown reader and editor: create new documents (Ctrl+N) or edit and save existing ones
-2. Instant opening (under 200 ms) and 100% local: no accounts, no telemetry, no ads
-3. Edit Mode with a live split view (code + preview)
-4. Markdown formatting toolbar (16 actions) + Tab/Shift+Tab list indenting
-5. Directory tree explorer and Quick Open file switcher (Ctrl+K)
-6. Export to Typst (.typ) to keep editing with a Typst editor
-7. Conflict handling if the file changes from another program while editing
-8. Live auto-reload when editing the file from another tool
-9. Built-in Markdown syntax help (interactive cheat sheet)
-10. Mermaid diagrams rendered as interactive SVG
-11. Math equations in LaTeX, rendered with KaTeX
-12. Syntax highlighting for 24+ languages, correct colors even when printing/exporting to PDF
-13. Line numbers (always aligned) and a line-wrap toggle in code blocks
-14. GitHub-style alerts, task lists, and footnotes (GFM)
-15. Automatic table of contents that highlights the section you're reading
-16. Instant text search (Ctrl+F)
-17. Three reading themes: Light, Dark, and Sepia
-18. Navigation with history and remote Markdown documents by URL
-19. Recent files, proportional zoom (Ctrl+Wheel), and an Always on Top mode
+2. Instant opening (under 200 ms), no accounts, no telemetry, no ads
+3. Optional AI assistant (off by default): local model, cloud with your own API key, or your agent; you review every change
+4. Inline AI on the selected text: improve, fix, translate, shorten
+5. Edit Mode with a live split view (code + preview)
+6. Double-click the preview to jump to the code; context menu to go to the preview
+7. Paste a screenshot or drop an image: it is saved to images and its code is inserted
+8. Markdown formatting toolbar (16 actions) + Tab/Shift+Tab list indenting
+9. Directory tree explorer and Quick Open file switcher (Ctrl+K)
+10. Export to Typst (.typ) to keep editing with a Typst editor
+11. Conflict handling and auto-reload if the file changes from another program
+12. Built-in Markdown syntax help (interactive cheat sheet)
+13. Mermaid diagrams rendered as interactive SVG
+14. Math equations in LaTeX, rendered with KaTeX
+15. Syntax highlighting for 24+ languages, also when printing/exporting to PDF
+16. GitHub-style alerts, task lists, and footnotes (GFM)
+17. Automatic table of contents and instant text search (Ctrl+F)
+18. Three reading themes: Light, Dark, and Sepia
+19. Navigation with history, remote documents by URL, recent files, and zoom
 20. Interface available in English and Spanish
 
 ---
@@ -79,7 +84,7 @@ DBV Markdown Reader
 ### Short description
 *(recommended max. 270 characters)*
 
-Native Markdown reader and editor for Windows: fast, lightweight, and 100% local. Live Edit Mode, file explorer, Mermaid diagrams, KaTeX equations, export to Typst and PDF, and three visual themes. No telemetry, no accounts.
+Native Markdown reader and editor for Windows: fast, lightweight, and local. Live Edit Mode, optional AI assistant (local, cloud, or your own agent), Mermaid, KaTeX, export to Typst and PDF, and three themes. No telemetry, no accounts.
 
 ---
 
@@ -113,7 +118,7 @@ David Bueno Vallejo
 ## Notes for certification
 *(Partner Center's "Additional Testing Info" screen — "Description" field. Not visible to end users, only to the certification team. No credentials required: leave the "Credentials" table empty.)*
 
-This application does not require an account, sign-in, or any kind of credentials — it works fully offline and does not collect any personal data.
+This application does not require an account, sign-in, or any kind of credentials — it works fully offline and does not collect any personal data. The only feature that can use the network is the optional AI assistant, which is off by default and only acts if the user connects it.
 
 To test it:
 1. When opened with no file, it shows an empty screen with a button to open a file and another to create a new document (Ctrl+N), or a `.md` file can be dragged and dropped directly onto the window.
@@ -133,5 +138,8 @@ To test it:
 
 3. Edit Mode: the pencil icon in the top toolbar (or Ctrl+E) opens a split panel with the code on the left and the rendered preview on the right; changes are saved with Ctrl+S.
 4. The app can also be associated with the `.md` extension from Windows' Settings > Default apps, then any `.md` file can be opened by double-clicking it in File Explorer.
+
+5. AI assistant (optional): the sparkles button (✨) in the top bar opens an assistant that **does nothing until the user connects a model or an agent on their own** (a local server such as Ollama, their own API key, or an already installed agent). It is off by default and not needed to test any other feature: with no AI connected it loads nothing and opens no connection.
+6. Pasting images: in Edit Mode, pasting an image from the clipboard (for example a screenshot taken with Win+Shift+S) saves it to an "images" folder next to the document and inserts its code.
 
 There is no functionality hidden behind a sign-in and no paid content — every feature is available from first use.

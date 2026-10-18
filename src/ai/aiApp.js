@@ -307,6 +307,12 @@ export function createAiApp(deps) {
     renderContextPreview();
   }
 
+  /** Tras escribir en disco (aplicar una propuesta, un agente, deshacer): lista de la IA y árbol de Archivos. */
+  function diskChanged() {
+    refreshFiles();
+    host.filesChanged?.();
+  }
+
   // ─── Contexto (RF-33.2) ────────────────────────────────────────────────────
 
   function activeSource() {
@@ -421,7 +427,7 @@ export function createAiApp(deps) {
       check: () => check(proposal),
       apply: async () => {
         const applied = await applier.apply(proposal);
-        refreshFiles();
+        diskChanged();
         return applied;
       },
       openFile: (relative) => host.openDocument(relative),
@@ -741,7 +747,7 @@ export function createAiApp(deps) {
       ok = written.ok;
       if (!ok) host.toast(`${change.path}: ${written.error.message}`, 'error');
     }
-    if (ok) refreshFiles();
+    if (ok) diskChanged();
     return ok;
   }
 
@@ -792,7 +798,7 @@ export function createAiApp(deps) {
       if (agentTurn.proposal.files.size) showProposal(agentTurn.proposal, makeChecker());
       if (turn.changes.length) panel.addNode(createChangesCard(turn.changes, { undo: undoDiskChange, open: (relative) => host.openDocument(relative) }));
       if (turn.result.value?.stopReason === 'cancelled') panel.addNote(t('ai.stopped'));
-      refreshFiles();
+      diskChanged();
     } catch (error) {
       bubble.finish();
       const message = `${t(`ai.error.${error.kind ?? 'unknown'}`)} ${error.message}`;

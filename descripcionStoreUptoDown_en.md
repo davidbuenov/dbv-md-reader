@@ -4,7 +4,7 @@
 >
 > **Listing focused on Mac** (the platform Uptodown actually has published, in review since `v0.7.0`): the text no longer splits attention evenly across Windows/macOS/Linux — it leads with the native Mac experience (app menu, ⌘ shortcuts) and mentions the other platforms briefly at the end. If the Windows listing is published on Uptodown later, rewrite the body with the same approach but centered on Windows — don't reuse this text as-is.
 >
-> **File to upload in *Select File*:** `DBV.Markdown.Reader_0.12.0_universal.dmg` (macOS, Intel + Apple Silicon, no Apple code signing), downloaded from the `v0.12.0` GitHub Release — verified via `gh release view v0.12.0` that this is the real asset name (an earlier note in this file had a dot before the version, `.7.0`; the real name uses an underscore: `_0.12.0_`).
+> **File to upload in *Select File*:** `DBV.Markdown.Reader_0.18.0_universal.dmg` (macOS, Intel + Apple Silicon, no Apple code signing), downloaded from the `v0.18.0` GitHub Release (built by the `release-macos.yml` workflow when the tag is pushed; verify the real name with `gh release view v0.18.0`) that this is the real asset name (an earlier note in this file had a dot before the version, `.7.0`; the real name uses an underscore: `_0.12.0_`).
 
 ---
 
@@ -38,6 +38,9 @@ Perfect for reading and editing technical documentation, notes, GitHub project R
 • Instant opening via double-click or "Open with..."
 • Native macOS menu with ⌘ shortcuts (⌘O open, ⌘S save, ⌘E Edit Mode, ⌘P print, ⌘F search)
 • Edit Mode with a live split view, a Markdown formatting toolbar, and Tab/Shift+Tab list indenting
+• Optional AI assistant (off by default): connect a local model, a cloud one with your own API key, or an agent you already have (Claude Code, Gemini CLI...); you review every change before it is applied (⇧⌘I)
+• Double-click the preview to jump to the exact spot in the code, and a context menu to go from the editor to the preview
+• Paste a screenshot or drop an image: it is saved to an images folder next to the document and its code is inserted
 • Conflict handling if the file changes from another program while editing
 • Live auto-reload when you edit the file from another program, without losing your scroll position
 • Mermaid diagrams rendered as interactive SVG, with an option to open them in mermaid.live
@@ -51,7 +54,7 @@ Perfect for reading and editing technical documentation, notes, GitHub project R
 • Interface available in English and Spanish
 • 100% safe: embedded HTML is automatically sanitized before being displayed
 
-No internet connection required to function, no personal data collected. Your documents never leave your computer. Open source under the MIT license.
+No internet connection required to function, and no personal data collected. The AI is optional and off by default: only if you connect it is the document text sent to the provider you chose (or it stays on your computer if you use a local model). Open source under the MIT license.
 
 **A note on code signing:** this universal `.dmg` isn't signed by Apple (outside the paid Apple Developer program), so macOS will warn the first time you open it ("cannot verify the developer"). Fix: right-click the app → Open, or run `xattr -cr /Applications/DBV\ Markdown\ Reader.app` from Terminal.
 
@@ -59,10 +62,12 @@ No internet connection required to function, no personal data collected. Your do
 
 ---
 
-## What's new in this version (v0.12.0)
+## What's new in this version (v0.18.0)
 *(per-version changelog field)*
 
-Full Edit Mode (⌘E): live split view, resizable panels, scroll sync, a Markdown formatting toolbar (16 actions) with Tab/Shift+Tab list indenting, conflict handling if the file changes from another program while editing, and a built-in Markdown syntax cheat sheet. New native macOS menu (App/File/Edit/View/Window/Help) with ⌘ shortcuts, including the print permission WKWebView requires. Also: task lists and footnotes (GFM), syntax highlighting for 24+ languages matched to each theme.
+v0.18.0 "AI Native": optional AI assistant (off by default) with local models, cloud models with your own API key, or agents such as Claude Code or Gemini CLI — it sees the open document and its folder, and nothing is written until you review each change (applied in the editor and undone with ⌘Z); inline AI on the selected text (improve, fix, translate, shorten...). Editor ↔ preview sync (double-click the preview to jump to the code; context menu in the editor). Paste a screenshot or drop an image and it is saved to an images folder next to the document, inserting its code. The file tree now refreshes by itself.
+
+Since v0.12.0 (the last one published here) it also gained: export to Typst (.typ), "New document" (⌘N), GitHub-style alerts, an unsaved-changes warning, syntax highlighting with correct colors when printing, and aligned line numbers.
 
 ---
 

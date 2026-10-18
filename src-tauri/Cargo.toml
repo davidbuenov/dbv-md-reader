@@ -1,6 +1,6 @@
 [package]
 name = "dbv-md-reader"
-version = "0.17.0"
+version = "0.18.0"
 description = "Lector y editor nativo de Markdown (.md) ultra-ligero y seguro para Windows, Linux, macOS y Android"
 authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
 license = "MIT"
@@ -53,6 +53,8 @@ keyring = "4"
 tokio = { version = "1", features = ["sync", "time"] }
 # `walkdir`: listar/buscar documentos y la foto de restauración de los agentes, con tope de profundidad.
 walkdir = "2.5"
+# RF-37: las imágenes pegadas llegan al comando de Rust en base64 (ya está en el árbol vía `tauri`).
+base64 = "0.22"
 
 # Slice 1 (versión Android, ver implementation_plan.md): capa mínima de Storage Access
 # Framework (SAF), primer código Kotlin del proyecto — sin equivalente de escritorio

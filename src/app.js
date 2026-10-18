@@ -198,6 +198,7 @@
   // Anota cada bloque con su línea de origen (RF-30). Va la última de las reglas
   // `core`, después de las alertas GFM, para ver los tokens ya definitivos.
   if (!window.DBVSourceSync) { showError('[ERROR] sourcesync.js no cargado'); return; }
+  if (!window.DBVImagePaste) { showError('[ERROR] imagepaste.js no cargado'); return; }
   window.DBVSourceSync.annotate(md);
 
   // ─── Alertas GFM: > [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION] ──
@@ -2006,8 +2007,12 @@
     var paths = event.payload && event.payload.paths;
     if (paths && paths.length > 0) {
       var fp = paths[0];
+      var droppedImages = isAndroid ? [] : window.DBVImagePaste.imagePaths(paths);
       if (/\.(md|markdown|txt)$/i.test(fp)) {
         loadDocument(fp, { isPrimaryOpen: true });
+      } else if (droppedImages.length > 0) {
+        // RF-37: una imagen soltada en cualquier parte se guarda en images/; solo si cae sobre el editor se inserta.
+        dropImages(droppedImages, event.payload.position);
       } else if (window.DBVFileTree) {
         // RF-25: arrastrar una carpeta (no un .md) la fija como raíz del árbol.
         // setRootFromDrop() resuelve a false si `fp` no es una carpeta legible,
@@ -2021,6 +2026,135 @@
 
   window.addEventListener('dragover', function (e) { e.preventDefault(); e.stopPropagation(); });
   window.addEventListener('drop',     function (e) { e.preventDefault(); e.stopPropagation(); });
+
+  // =========================================================================
+  // Imágenes pegadas o soltadas (RF-37)
+  // =========================================================================
+  // Pegar un recorte o soltar un fichero de imagen lo guarda en `images/` junto al documento
+  // (comandos de `src-tauri/src/images.rs`) y, solo si se hace sobre el editor en Modo Edición,
+  // inserta `![](images/nombre.png)` en el cursor. Documento remoto o sin documento: se elige la
+  // carpeta con un cuadro nativo. Si guardar falla: cuadro «Guardar como». Lógica pura en imagepaste.js.
+
+  var ImagePaste = window.DBVImagePaste;
+
+  /** Dónde guardar: `images/` junto al documento local, o la carpeta que elija el usuario (remoto/sin documento). */
+  function resolveImageTarget() {
+    if (currentDoc && currentDoc.dir_path && !isRemoteDoc(currentDoc)) {
+      return Promise.resolve({ dir: currentDoc.dir_path, intoImages: true });
+    }
+    return invoke('pick_folder_dialog', { title: t('img.pickFolder') }).then(function (folder) {
+      return folder ? { dir: folder, intoImages: false } : null;
+    });
+  }
+
+  function saveImageTo(target, item) {
+    if (item.sourcePath) return invoke('copy_image', { baseDir: target.dir, intoImages: target.intoImages, sourcePath: item.sourcePath });
+    return invoke('save_image', { baseDir: target.dir, intoImages: target.intoImages, fileName: item.name, base64Data: item.base64 });
+  }
+
+  function saveImageAs(dest, item) {
+    if (item.sourcePath) return invoke('copy_image_as', { destPath: dest, sourcePath: item.sourcePath });
+    return invoke('save_image_as', { destPath: dest, base64Data: item.base64 });
+  }
+
+  /** RF-37.7: no se pudo guardar donde tocaba (carpeta de solo lectura, `images` es un fichero…): «Guardar como». */
+  function saveWithDialog(item, cause) {
+    return invoke('save_image_dialog', { defaultName: item.name, title: t('img.saveAsTitle') }).then(function (dest) {
+      if (!dest) return { saved: null, insertable: false, error: String(cause) };
+      return saveImageAs(dest, item).then(function (saved) {
+        var local = currentDoc && currentDoc.dir_path && !isRemoteDoc(currentDoc);
+        var inside = local ? ImagePaste.relativeInside(currentDoc.dir_path, saved.path) : null;
+        if (inside !== null) saved.relative = inside;
+        return { saved: saved, insertable: inside !== null, error: null };
+      });
+    });
+  }
+
+  /**
+   * Guarda una imagen. Resuelve `{ saved, insertable, error }`: `saved` es `null` si no se guardó
+   * (con `error` si falló); `insertable` indica que la ruta relativa sirve para el código Markdown.
+   */
+  function storeImage(target, item) {
+    return saveImageTo(target, item)
+      .then(function (saved) { return { saved: saved, insertable: target.intoImages, error: null }; })
+      .catch(function (cause) { return saveWithDialog(item, cause); })
+      .catch(function (error) { return { saved: null, insertable: false, error: String(error) }; });
+  }
+
+  /** Inserta `text` en el cursor del editor como una edición deshacible (Ctrl+Z) que deja el documento «Modificado». */
+  function insertInEditor(text) {
+    editorTextarea.focus({ preventScroll: true });
+    if (!document.execCommand('insertText', false, text)) {
+      editorTextarea.setRangeText(text, editorTextarea.selectionStart, editorTextarea.selectionEnd, 'end');
+      editorTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  /** Avisos de lo guardado (RF-37.5): dónde quedó y, si sirve, el código copiado al portapapeles. */
+  function announceImages(results, code) {
+    var saved = results.filter(function (r) { return r.saved; });
+    var failed = results.filter(function (r) { return !r.saved && r.error; });
+    if (failed.length) {
+      showToast(t('img.failed').replace('{error}', failed[0].error), 'error');
+    } else if (!saved.length) {
+      showToast(t('img.notSaved'), 'error');
+    } else {
+      var first = saved[0].saved;
+      var where = first.relative.indexOf('/') !== -1 ? first.relative : first.path;
+      var message = saved.length > 1
+        ? t('img.savedMany').replace('{n}', String(saved.length))
+        : t(first.reused ? 'img.reused' : 'img.saved').replace('{path}', where);
+      // El aviso solo dice «copiado» si el portapapeles lo aceptó (un soltado no es un gesto del usuario).
+      if (!code) showToast(message);
+      else navigator.clipboard.writeText(code).then(function () { showToast(message + t('img.codeCopied')); }, function () { showToast(message); });
+    }
+  }
+
+  /** El árbol de Archivos no se entera de lo que se escribe en disco: se relee (aparece `images/`). */
+  function refreshFileTree() {
+    if (window.DBVFileTree) window.DBVFileTree.refresh().catch(function () {});
+  }
+
+  /** @param {Array<{name: string, base64?: string, sourcePath?: string}>} items @param {boolean} insert */
+  function handleImages(items, insert) {
+    return resolveImageTarget().then(function (target) {
+      if (!target) { showToast(t('img.notSaved'), 'error'); return null; }
+      return items.reduce(function (chain, item) {
+        return chain.then(function (results) {
+          return storeImage(target, item).then(function (result) { return results.concat([result]); });
+        });
+      }, Promise.resolve([])).then(function (results) {
+        var codes = results.filter(function (r) { return r.saved && r.insertable; }).map(function (r) { return ImagePaste.imageMarkdown(r.saved.relative); });
+        var code = codes.join('\n');
+        if (insert && editMode && code) insertInEditor(code);
+        announceImages(results, insert && editMode ? '' : code);
+        if (results.some(function (r) { return r.saved; })) refreshFileTree();
+        return results;
+      });
+    }).catch(function (error) { showToast(t('img.failed').replace('{error}', String(error)), 'error'); });
+  }
+
+  /** Imágenes soltadas desde el explorador del sistema; `position` en píxeles físicos (Tauri). */
+  function dropImages(paths, position) {
+    var rect = editMode && !editorPane.classList.contains('hidden') ? editorPane.getBoundingClientRect() : null;
+    var over = ImagePaste.isOverEditor(position, rect, window.devicePixelRatio);
+    var items = paths.map(function (p) { return { name: p.split(/[\\/]/).pop(), sourcePath: p }; });
+    handleImages(items, over);
+  }
+
+  if (!isAndroid) {
+    document.addEventListener('paste', function (e) {
+      var target = e.target;
+      var foreignField = target && target !== editorTextarea && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+      var picked = foreignField ? null : ImagePaste.pickImageFromClipboard(e.clipboardData);
+      if (!picked) return;
+      e.preventDefault();
+      var insert = editMode && document.activeElement === editorTextarea;
+      ImagePaste.readFileAsBase64(picked.file)
+        .then(function (base64) { return handleImages([{ name: ImagePaste.captureName(new Date(), picked.extension), base64: base64 }], insert); })
+        .catch(function (error) { showToast(t('img.failed').replace('{error}', String(error)), 'error'); });
+    }, true);
+  }
 
   // =========================================================================
   // Zoom (Ctrl+Rueda, Ctrl++, Ctrl+-, Ctrl+0)
@@ -2544,6 +2678,17 @@
   contentEl.addEventListener('scroll', closeContextMenu);
   editorTextarea.addEventListener('scroll', closeContextMenu);
 
+  // Lo que no tiene menú propio no enseña el nativo del WebView: su «Actualizar» recarga TODA la página y se
+  // perdería el documento abierto, la edición y la conversación. Los campos de texto conservan el suyo.
+  // En Android no se toca: la pulsación larga del WebView usa ese evento para su selección de texto.
+  if (!isAndroid) {
+    document.addEventListener('contextmenu', function (e) {
+      var el = e.target;
+      var editable = el && (el.isContentEditable || /^(INPUT|TEXTAREA)$/.test(el.tagName));
+      if (!e.defaultPrevented && !editable) e.preventDefault();
+    });
+  }
+
   contentEl.addEventListener('contextmenu', function (e) {
     var items = [];
     // Lo que depende del punto pulsado se resuelve YA: al elegir la entrada, el
@@ -2928,6 +3073,27 @@
   var btnAi = document.getElementById('btn-ai');
   var tabAi = document.getElementById('tab-ai');
   var aiPanelEl = document.getElementById('ai-panel');
+
+  /** Copia texto al portapapeles; si el sistema no lo deja, lo avisa (no se queda en silencio). */
+  function copyText(text) {
+    navigator.clipboard.writeText(text).catch(function () { showToast(t('ctx.clipboardDenied'), 'error'); });
+  }
+
+  // Menú contextual del Asistente: sin él, el global de arriba taparía el nativo y no se podría copiar con
+  // el ratón. «Copiar» lleva la selección; «Copiar mensaje», todo el texto de la burbuja pulsada. El cuadro
+  // de escribir conserva su menú nativo (cortar/pegar).
+  aiPanelEl.addEventListener('contextmenu', function (e) {
+    if (e.target.isContentEditable || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    var selection = window.getSelection();
+    var selected = selection && !selection.isCollapsed && aiPanelEl.contains(selection.anchorNode) ? selection.toString() : '';
+    var bubble = e.target.closest('.ai-msg');
+    var items = [];
+    if (selected) items.push({ id: 'copy', label: t('ctx.copy'), run: function () { copyText(selected); } });
+    if (bubble) items.push({ id: 'copyMessage', label: t('ctx.copyMessage'), run: function () { copyText(bubble.innerText); } });
+    if (!items.length) return;
+    e.preventDefault();
+    openContextMenu(items, e.clientX, e.clientY);
+  });
   var aiState = { showAi: true, connected: false };
   var aiApp = null;
   var aiLoading = null;
@@ -3054,6 +3220,7 @@
   var aiHost = {
     elements: { panel: aiPanelEl, connectBody: document.getElementById('ai-connect-body'), editorOverlay: document.getElementById('editor-overlay') },
     toast: showToast,
+    filesChanged: refreshFileTree,
     confirm: aiConfirm,
     renderMarkdown: function (target, markdown) {
       target.classList.add('markdown-body');

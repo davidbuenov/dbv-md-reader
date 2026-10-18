@@ -24,6 +24,9 @@ use tauri_plugin_dialog::DialogExt;
 // Edición, ni `keyring`, ni procesos hijos para los agentes.
 #[cfg(desktop)]
 pub mod ai;
+// RF-37: guardar en `images/` las imágenes pegadas o soltadas. Solo escritorio (sin Modo Edición en Android).
+#[cfg(desktop)]
+pub mod images;
 
 /// Extensiones tratadas como documento abierto por la app — mismo criterio en el filtro
 /// del diálogo nativo (`open_file_dialog`), el Drag & Drop (RF-09) y el árbol de directorios
@@ -921,6 +924,18 @@ pub fn run() {
             commands::list_directory,
             #[cfg(desktop)]
             commands::reveal_in_file_manager,
+            #[cfg(desktop)]
+            images::save_image,
+            #[cfg(desktop)]
+            images::copy_image,
+            #[cfg(desktop)]
+            images::save_image_as,
+            #[cfg(desktop)]
+            images::copy_image_as,
+            #[cfg(desktop)]
+            images::pick_folder_dialog,
+            #[cfg(desktop)]
+            images::save_image_dialog,
             #[cfg(desktop)]
             ai::commands::ai_connections,
             #[cfg(desktop)]

@@ -4,7 +4,7 @@
 >
 > **Ficha centrada en Mac** (esta es la plataforma que Uptodown tiene publicada, en revisión desde `v0.7.0`): el texto ya no reparte el protagonismo a partes iguales entre Windows/macOS/Linux — describe primero la experiencia nativa en Mac (menú de aplicación, atajos ⌘) y menciona el resto de plataformas al final, como nota breve. Si más adelante se publica también la ficha de Windows en Uptodown, hay que reescribir el cuerpo con el mismo criterio pero centrado en Windows, no reutilizar este texto tal cual.
 >
-> **Qué archivo subir en *Select File*:** `DBV.Markdown.Reader_0.12.0_universal.dmg` (macOS, Intel + Apple Silicon, sin firma de Apple), descargado de la Release `v0.12.0` en GitHub — verificado con `gh release view v0.12.0` que ese es el nombre real del asset (el `.7.0` de una nota anterior de este fichero llevaba un punto antes de la versión; el nombre real usa guion bajo: `_0.12.0_`).
+> **Qué archivo subir en *Select File*:** `DBV.Markdown.Reader_0.18.0_universal.dmg` (macOS, Intel + Apple Silicon, sin firma de Apple), descargado de la Release `v0.18.0` en GitHub (la genera el workflow `release-macos.yml` al empujar el tag; verifica el nombre real con `gh release view v0.18.0`) que ese es el nombre real del asset (el `.7.0` de una nota anterior de este fichero llevaba un punto antes de la versión; el nombre real usa guion bajo: `_0.12.0_`).
 
 ---
 
@@ -38,6 +38,9 @@ Ideal para leer y editar documentación técnica, notas, README de proyectos de 
 • Apertura instantánea por doble clic o "Abrir con..."
 • Menú nativo de macOS con atajos ⌘ (⌘O abrir, ⌘S guardar, ⌘E Modo Edición, ⌘P imprimir, ⌘F buscar)
 • Modo Edición con vista dividida en vivo, barra de formato Markdown y Tab/Shift+Tab para indentar listas
+• Asistente de IA opcional (desactivado por defecto): conecta un modelo local, uno en la nube con tu clave de API o un agente que ya tengas (Claude Code, Gemini CLI...); revisas cada cambio antes de aplicarlo (⇧⌘I)
+• Doble clic en la vista previa para saltar al punto exacto del código, y menú contextual para ir de la edición a la vista previa
+• Pega un recorte de pantalla o suelta una imagen: se guarda en una carpeta images junto al documento y se inserta su código
 • Gestión de conflictos si el archivo cambia desde otro programa mientras editas
 • Auto-recarga en vivo cuando editas el archivo desde otro programa, sin perder el scroll
 • Diagramas Mermaid renderizados como SVG interactivo, con opción de abrirlos en mermaid.live
@@ -51,7 +54,7 @@ Ideal para leer y editar documentación técnica, notas, README de proyectos de 
 • Interfaz disponible en español e inglés
 • 100% seguro: el HTML embebido se sanitiza automáticamente antes de mostrarse
 
-Sin conexión a internet requerida para funcionar, sin recopilación de datos personales. Tus documentos nunca salen de tu equipo. Código abierto bajo licencia MIT.
+Sin conexión a internet requerida para funcionar y sin recopilación de datos personales. La IA es opcional y está desactivada por defecto: solo si tú la conectas, el texto del documento se envía al proveedor que hayas elegido (o se queda en tu equipo si usas un modelo local). Código abierto bajo licencia MIT.
 
 **Nota sobre la firma:** este `.dmg` universal no está firmado por Apple (fuera del programa de pago de Apple Developer), así que macOS avisará la primera vez que lo abras ("no se puede verificar el desarrollador"). Solución: clic derecho sobre la app → Abrir, o `xattr -cr /Applications/DBV\ Markdown\ Reader.app` desde Terminal.
 
@@ -59,10 +62,12 @@ Sin conexión a internet requerida para funcionar, sin recopilación de datos pe
 
 ---
 
-## Novedades de esta versión (v0.12.0)
+## Novedades de esta versión (v0.18.0)
 *(campo de changelog por versión)*
 
-Modo Edición completo (⌘E): vista dividida en vivo, paneles redimensionables, sincronización de scroll, barra de formato Markdown (16 acciones) con Tab/Shift+Tab para indentar listas, gestión de conflictos si el archivo cambia desde otro programa mientras editas, y una chuleta de ayuda de sintaxis integrada. Nuevo menú nativo de macOS (App/Archivo/Edición/Ver/Ventana/Ayuda) con atajos ⌘, incluido el permiso de impresión que exige WKWebView. Además: listas de tareas y notas al pie (GFM), resaltado de sintaxis en más de 24 lenguajes con colores adaptados a cada tema.
+v0.18.0 «AI Native»: asistente de IA opcional (desactivado por defecto) con modelos locales, en la nube con tu clave de API o con agentes como Claude Code o Gemini CLI — ve el documento abierto y su carpeta, y nada se escribe sin que revises cada cambio (se aplica en el editor y se deshace con ⌘Z); IA en línea sobre el texto seleccionado (mejorar, corregir, traducir, acortar...). Sincronización entre edición y vista previa (doble clic en la previsualización para saltar al código; menú contextual en el editor). Pega un recorte de pantalla o suelta una imagen y se guarda en una carpeta images junto al documento, insertando su código. El árbol de archivos se actualiza solo.
+
+Desde la v0.12.0 (la última publicada aquí) se añadieron también: exportación a Typst (.typ), «Nuevo documento» (⌘N), alertas al estilo GitHub, aviso de cambios sin guardar, resaltado de sintaxis con colores correctos al imprimir y numeración de línea alineada.
 
 ---
 

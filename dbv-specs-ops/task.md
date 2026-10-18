@@ -1,5 +1,54 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-10-19) — Fase 42: `v0.18.0` «AI Native» PUBLICADA (commit + tag + push) — `/spec` → `/plan` → `/build` → `/test` → `/code-simplify` → `/ship` HECHOS.**
+>
+> **Qué lleva (ver `walkthrough.md` y `CHANGELOG.md` `[0.18.0]`):** IA opcional de tres caminos (RF-31..36, solo escritorio), sincronización edición ↔ vista previa (RF-30), pegar o soltar imágenes en `images/` (RF-37), y los arreglos que el usuario encontró probando (ruta `\\?\` del agente ACP en Windows, CRLF y rename en la escritura de la IA, árbol de Archivos que no se refrescaba, menú nativo del WebView que recargaba la ventana, «Copiar» en el Asistente).
+>
+> **Cierre:** versión `0.18.0` en `package.json`, `package-lock.json`, `Cargo.toml`/`Cargo.lock` y `tauri.conf.json`; README ES/EN, `docs/IA*.md`, `docs/privacidad.html` (19-oct), landing ES/EN, fichas de Microsoft Store y Uptodown (Mac), `MICROSOFT_STORE.md`. **Paquete para la Store:** `src-tauri/target/msix/dbv-md-reader_0.18.0.0.msixbundle` (7,4 MB; identidad y `Version=0.18.0.0` verificadas; `internetClient`).
+>
+> **Pendiente del usuario:** (1) subir el `.msixbundle` a Partner Center con los textos de `descripcionStore_{es,en}.md` y enviar a certificación; (2) subir a Uptodown el `DBV.Markdown.Reader_0.18.0_universal.dmg` que genera `release-macos.yml` (ficha en `descripcionStoreUptoDown_{es,en}.md`); (3) publicar el borrador de la Release en GitHub cuando terminen los Actions de Linux y macOS; (4) probar a mano Linux y macOS (sobre todo el `import()` de módulos ES, ADR-048) y la IA dentro del MSIX instalado (agentes como procesos hijos y almacén de credenciales); (5) LinkedIn: reutilizar la publicación con actualización fechada (memoria `linkedin_strategy`).
+>
+> **Siguiente paso acordado:** actualizar `dbv-tauri-starter` con lo aprendido (su IA era un esqueleto, REJECTED-01; los módulos Rust de `src-tauri/src/ai/` ya están copiados sin generalizar) y subir a `dbv-specs-ops` las Lecciones 33, 34 y 35 y la de «tests fuera de `frontendDist`».
+
+---
+
+## 🧭 Plan de RF-37 — Pegar o soltar imágenes (2026-10-18, ciclo 0.18.0)
+
+```yaml
+modo: Orquestador            # Rust nuevo + módulo JS puro + cableado en app.js + i18n + tests + docs
+requisito: RF-37
+dependencies: [base64 0.22 (ya en el árbol vía tauri; sin red ni binario nuevo)]
+risks:
+  - "El evento `paste` de WebView2 sin foco editable (modo lectura) no está verificado: se mide a mano con un recorte real"
+  - "La posición del soltado llega en píxeles físicos; hay que dividir por devicePixelRatio (error clásico, lo cubre un test)"
+  - "Pegar sustituye lo que había en el portapapeles al copiar `![](…)` (decisión del usuario, fácil de quitar)"
+rollback_strategy: "Todo es aditivo: quitar el listener de `paste`, el ramal de imágenes de `tauri://drag-drop` y los comandos de `images.rs`; el resto de la app no cambia"
+```
+
+**Decisiones de `/plan` (cierran las dudas del spec):**
+- **Nombres sin espacios.** Lo soltado se guarda con el nombre **saneado** a `[A-Za-z0-9._-]` (acentos transliterados, el resto `-`, nombres reservados de Windows con sufijo), así el código insertado nunca necesita `<…>` ni `%20` (el resolvedor `resolve_relative_path` no decodifica `%20`). Lo pegado ya es `captura-AAAAMMDD-HHMMSS.ext`.
+- **Rust (`src-tauri/src/images.rs`, solo escritorio):** `save_image` (bytes en base64 → `images/` o carpeta elegida), `copy_image` (fichero soltado), `save_image_as` / `copy_image_as` (destino elegido en el cuadro «Guardar como»), `pick_folder_dialog` y `save_image_dialog`. Núcleo testeable: `sanitize_name`, `unique_destination`, `find_existing_copy_of_bytes` (dedup por contenido), `store_bytes`. Rechaza `images` si es un enlace simbólico o un fichero, extensión fuera de lista, vacío y > 25 MB.
+- **Frontend puro (`src/imagepaste.js`, UMD como `sourcesync.js`):** `pickImageFromClipboard`, `captureName(fecha, ext)`, `imageMarkdown(ruta)`, `decideImageDrop(posición, rect, dpr)`, `imagePaths`, `relativeInside(base, abs)` (ignora `\\?\`), `readFileAsBase64`. Orquestación en `app.js` (sección «Imágenes pegadas o soltadas, RF-37»).
+- **Flujo único** `storeImage(item, {insert})`: documento local → `images/` junto al fichero; remoto o sin documento → `pick_folder_dialog`; si falla → `save_image_dialog` + `*_as`; éxito → insertar con `execCommand('insertText')` (deshacible) solo si `insert && editMode`, si no aviso con la ruta y código copiado al portapapeles.
+
+**Architect Review (adversarial):**
+<architect_review>
+<evidence>Se copia el diseño de `dbv-typst-editor` (`assets.rs`, `clipboardImage.js`, `dropTarget.js`), que ya pasó uso real; lo nuevo es el modo lectura, el remoto y el «Guardar como» de rescate. `lib.rs` ya registra diálogos nativos (`save_new_file_dialog`) y `write_file`; `showToast` y `execCommand('insertText')` ya existen (RF-30, `aiReplaceEditorText`). `resolveImages` ya resuelve `images/x.png` relativo al documento.</evidence>
+<adversary>Ataca la carpeta `images/`: un `.md` de un tercero no puede escribir nada (solo lo dispara el usuario al pegar/soltar), pero un `images` que sea enlace simbólico a otra ruta o un nombre soltado con `..` podrían sacar la escritura de la carpeta; y el pegado global podría «comerse» texto. Defensa: el nombre se sanea a su último componente y a una lista blanca, `images` se rechaza si es enlace o fichero (cae al «Guardar como»), y solo se intercepta el pegado sin `text/plain` y fuera de campos de texto ajenos.</adversary>
+<confidence_score>diseño: high · seguridad de escritura: high · pegado en modo lectura bajo WebView2: medium (se verifica a mano) · Linux/macOS: medium (sin probar)</confidence_score>
+</architect_review>
+
+**Pasos (cada uno ≤ 50 líneas netas, citan RF-37):**
+- [x] P1 · `images.rs` + tests Rust (sanear, único, dedup, rechazos, carpeta/enlace) y registro en `lib.rs` (`cfg(desktop)`) + `Cargo.toml` (`base64`).
+- [x] P2 · `src/imagepaste.js` + `tests/imagepaste.test.js` (puros).
+- [x] P3 · Cableado en `app.js`: listener `paste`, ramal de imágenes en `tauri://drag-drop`, `storeImage`, inserción, avisos; `index.html` (script) y `i18n.js` (ES/EN).
+- [x] P4 · Banco e2e `scripts/e2e/image-paste.e2e.mjs` (pegar en edición, en lectura, remoto, fallo → «Guardar como», soltar sobre/fuera del editor, texto+imagen).
+- [x] P5 · `/test` completo (vitest, e2e, cargo test/clippy, Android `cargo check`), `/code-simplify`, CHANGELOG, ARCHITECTURE, memory (ADR), `docs`.
+
+**Aprobación:** el usuario pidió seguir con `/build`, `/test` y `/code-simplify` sin parar (2026-10-18); se toma como aprobado.
+
+---
+
 > ⏭️ **SNAPSHOT DE CONTEXTO (2026-10-18) — Fase 41: v0.18.0 «AI Native» — `/spec` → `/plan` → `/build` → `/test` → `/code-simplify` HECHOS; FALTA `/ship`. Todo sin commit salvo el del framework.**
 >
 > **Orden del usuario (se fue y delegó):** actualizar el framework a 3.1.0 (hecho y **commiteado**, `75c8fdb`), y después, «confío en tus decisiones», `/plan`, `/build`, `/test` y `/code-simplify`. **No se ha hecho `/ship` ni commit del trabajo de la 0.18.0** (versionado, tag, README, fichas de tienda y push son suyos).

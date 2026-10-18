@@ -173,6 +173,9 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 
 - **Modo Edición:** panel dividido con el Markdown en crudo a la izquierda (con números de línea) y la vista renderizada a la derecha, sincronizados por línea al hacer scroll en cualquiera de los dos — sin librería de editor de código, así que no penaliza el tamaño ni la RAM. Bordes arrastrables para redimensionar. Gestión de conflictos si el archivo cambia desde fuera mientras editas (igual que el Bloc de notas de Windows: silencioso si no tienes cambios propios, un aviso solo la primera vez si sí los tienes). Incluye una chuleta de sintaxis Markdown integrada (botón "?"), una barra de formato de 16 iconos (negrita, cursiva, encabezados, listas, enlaces, imágenes, tablas...) que envuelve la selección o inserta un esqueleto listo para rellenar, y `Tab`/`Shift+Tab` para indentar/desindentar listas sin salir del editor.
 - **Nuevo documento:** botón junto a "Abrir archivo" (`Ctrl/Cmd + N`) para crear un `.md` desde cero — abre el diálogo nativo de guardado, crea el fichero vacío donde elijas y entra directo en Modo Edición.
+- **IA integrada y opcional (solo escritorio, desde la 0.18.0):** botón ✨ (`Ctrl/Cmd + Mayús + I`) y pestaña **«Asistente»** en el panel lateral. Conecta un modelo **local** (Ollama, LM Studio), uno **en la nube con tu clave de API** (Anthropic, OpenAI, Google, OpenRouter) o un **agente que ya tengas** (Claude Code, Gemini CLI, Codex, GitHub Copilot CLI). La IA ve el documento abierto y su carpeta, y **nada se escribe sin que lo revises** trozo a trozo (se aplica en el editor y se deshace con `Ctrl+Z`). IA en línea sobre la selección (mejorar, corregir, traducir, acortar…) con `Ctrl/Cmd + Alt + I`. **Cero huella** si no la usas: no se carga nada ni se conecta a ningún sitio. Guía: [`docs/IA.md`](docs/IA.md).
+- **Sincronización edición ↔ vista previa:** en Modo Edición, **doble clic en la previsualización** lleva el cursor al fuente (a la palabra o al bloque) y el menú contextual del editor ofrece **«Ir a la vista previa»** (`Ctrl/Cmd + Alt + P`). En lectura, el menú de la vista previa ofrece «Editar aquí».
+- **Pegar o soltar imágenes:** pega un recorte de pantalla (o suelta un fichero de imagen) y se guarda en `images/` junto al documento como `captura-AAAAMMDD-HHMMSS.png`. Sobre el editor además inserta `![](images/…)` en el cursor; en lectura solo guarda y avisa con la ruta (deja el código copiado). Con un documento remoto o si no se puede guardar, te pide la carpeta.
 - **Apertura CLI / Doble Clic:** Abre directamente cualquier archivo `.md` desde la línea de comandos o asociándolo en *"Abrir con..."* (ej. `dbv-md-reader.exe C:\notas\readme.md`).
 - **Instancia única:** abrir varios `.md` desde el Explorador de Windows no multiplica procesos — todas las ventanas viven bajo un único proceso (visible en el Administrador de Tareas), cada una con su propio documento, zoom y búsqueda.
 - **Archivos Recientes:** Panel con los últimos documentos abiertos explícitamente, para no tener que volver a buscarlos.
@@ -212,6 +215,9 @@ El repositorio incluye una carpeta [`templates/`](templates/) con **20 plantilla
 | `Ctrl/Cmd + F` | Buscar en el documento |
 | `Ctrl/Cmd + K` | Quick Open — saltar a un archivo por nombre |
 | `Ctrl/Cmd + E` | Alternar Modo Edición |
+| `Ctrl/Cmd + Mayús + I` | Abrir el Asistente de IA (o conectar una IA) |
+| `Ctrl/Cmd + Alt + I` | IA en línea sobre la selección (en el editor) |
+| `Ctrl/Cmd + Alt + P` | Ir a la vista previa desde el cursor (en el editor) |
 | `Ctrl/Cmd + S` | Guardar (en Modo Edición) |
 | `Ctrl/Cmd + B` / `Ctrl/Cmd + I` | Negrita / cursiva (con el cursor en el editor) |
 | `Tab` / `Shift + Tab` | Indentar / desindentar la línea o selección (en el editor) |
@@ -265,6 +271,9 @@ Para detenerlo: `stop.cmd` (Windows) o `./stop.sh` (macOS/Linux).
 ```bash
 npm test          # Tests unitarios (rápidos, sin red)
 npm run test:all  # Incluye el test de integración que descarga un .md real (RF-08A)
+npm run test:ai   # Tests del frontend de la IA y las imágenes pegadas (Vitest + jsdom)
+npm run test:sync # Sincronización edición ↔ vista previa sobre los .md reales del repo
+npm run test:e2e  # Bancos de interfaz en Edge/Chromium headless (el motor de WebView2)
 ```
 
 ### Publicar una nueva versión de Windows (solo Microsoft Store, desde `v0.16.0`)
@@ -310,6 +319,8 @@ Igual que Linux, el `.dmg` y el `.app` de macOS **no se compilan a mano**: `.git
 dbv-md-reader/
 ├── src-tauri/             # Código fuente Rust y configuración Tauri v2
 │   ├── src/main.rs        # Punto de entrada Rust, CLI args y mando Tauri
+│   ├── src/ai/            # Backend de la IA (conexiones, ACP, ficheros confinados)
+│   ├── src/images.rs      # Guardar imágenes pegadas o soltadas en images/
 │   ├── nsis/              # Imágenes de marca y hooks del instalador Windows (NSIS)
 │   ├── tauri.conf.json    # Config base + tauri.windows/linux/macos.conf.json (fusión por plataforma)
 │   └── Cargo.toml         # Dependencias Rust (tauri, notify, ureq, etc.)
@@ -317,6 +328,9 @@ dbv-md-reader/
 ├── src/                   # Interfaz de usuario Web (HTML/CSS/JS)
 │   ├── index.html         # Maquetación principal y sidebar TOC
 │   ├── app.js             # Lógica de renderizado (markdown-it, mermaid, Prism)
+│   ├── ai/                # IA opcional (módulos ES cargados bajo demanda)
+│   ├── sourcesync.js      # Sincronización edición ↔ vista previa (lógica pura)
+│   ├── imagepaste.js      # Pegar o soltar imágenes (lógica pura)
 │   └── styles.css         # Estilos y tokens de color
 ├── dbv-specs-ops/         # Especificaciones SDD y marco de ingeniería
 │   ├── project.config.md  # Identidad del proyecto y cabeceras

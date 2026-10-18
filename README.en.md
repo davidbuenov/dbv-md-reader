@@ -172,6 +172,9 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 
 - **Edit Mode:** split pane with raw Markdown on the left (with line numbers) and the rendered view on the right, scroll-synced by line in either direction — no code-editor library, so it costs nothing in size or RAM. Draggable resize handles. Conflict handling if the file changes externally while you're editing (same model as Windows Notepad: silent if you have no unsaved changes, a one-time prompt if you do). Includes a built-in Markdown syntax cheat sheet ("?" button), a 16-icon formatting toolbar (bold, italic, headings, lists, links, images, tables...) that wraps the selection or inserts a ready-to-fill skeleton, and `Tab`/`Shift+Tab` to indent/outdent lists without leaving the editor.
 - **New document:** button next to "Open file" (`Ctrl/Cmd + N`) to create a `.md` file from scratch — opens the native save dialog, creates the empty file wherever you choose, and drops straight into Edit Mode.
+- **Built-in, optional AI (desktop only, since 0.18.0):** ✨ button (`Ctrl/Cmd + Shift + I`) and an **«Assistant»** tab in the side panel. Connect a **local** model (Ollama, LM Studio), a **cloud** one with **your own API key** (Anthropic, OpenAI, Google, OpenRouter) or an **agent you already have** (Claude Code, Gemini CLI, Codex, GitHub Copilot CLI). The AI sees the open document and its folder, and **nothing is written until you review it** hunk by hunk (it is applied in the editor and undone with `Ctrl+Z`). Inline AI on the selection (improve, fix, translate, shorten…) with `Ctrl/Cmd + Alt + I`. **Zero footprint** if you don't use it: nothing is loaded and nothing connects anywhere. Guide: [`docs/IA.en.md`](docs/IA.en.md).
+- **Editor ↔ preview sync:** in Edit Mode, **double-click the preview** to put the cursor at the source (the word or the block), and the editor context menu offers **«Go to preview»** (`Ctrl/Cmd + Alt + P`). In reading mode, the preview menu offers «Edit here».
+- **Paste or drop images:** paste a screenshot (or drop an image file) and it is saved to `images/` next to the document as `captura-YYYYMMDD-HHMMSS.png`. Over the editor it also inserts `![](images/…)` at the cursor; in reading mode it only saves and tells you the path (with the code copied). With a remote document, or if saving fails, it asks you for the folder.
 - **CLI / double-click opening:** Open any `.md` file directly from the command line or by associating it via *"Open with..."* (e.g. `dbv-md-reader.exe C:\notes\readme.md`).
 - **Single instance:** opening several `.md` files from Windows Explorer doesn't spawn multiple processes — every window lives under a single process (visible in Task Manager), each with its own document, zoom and search.
 - **Recent Files:** panel with the last documents you explicitly opened, so you don't have to hunt for them again.
@@ -211,6 +214,9 @@ The repository includes a [`templates/`](templates/) folder with **20 ready-to-u
 | `Ctrl/Cmd + F` | Search within the document |
 | `Ctrl/Cmd + K` | Quick Open — jump to a file by name |
 | `Ctrl/Cmd + E` | Toggle Edit Mode |
+| `Ctrl/Cmd + Shift + I` | Open the AI Assistant (or connect an AI) |
+| `Ctrl/Cmd + Alt + I` | Inline AI on the selection (in the editor) |
+| `Ctrl/Cmd + Alt + P` | Go to the preview from the cursor (in the editor) |
 | `Ctrl/Cmd + S` | Save (in Edit Mode) |
 | `Ctrl/Cmd + B` / `Ctrl/Cmd + I` | Bold / italic (with the cursor in the editor) |
 | `Tab` / `Shift + Tab` | Indent / outdent the line or selection (in the editor) |
@@ -264,6 +270,9 @@ To stop it: `stop.cmd` (Windows) or `./stop.sh` (macOS/Linux).
 ```bash
 npm test          # Unit tests (fast, no network)
 npm run test:all  # Includes the integration test that downloads a real .md file (RF-08A)
+npm run test:ai   # Frontend tests for the AI and pasted images (Vitest + jsdom)
+npm run test:sync # Editor ↔ preview sync over the repo's real .md files
+npm run test:e2e  # UI benches in headless Edge/Chromium (the WebView2 engine)
 ```
 
 ### Publishing a new Windows version (Microsoft Store only, as of `v0.16.0`)
@@ -309,6 +318,8 @@ Same as Linux, the `.dmg` and `.app` for macOS are **not built by hand**: `.gith
 dbv-md-reader/
 ├── src-tauri/             # Rust source code and Tauri v2 configuration
 │   ├── src/main.rs        # Rust entry point, CLI args and Tauri commands
+│   ├── src/ai/            # AI backend (connections, ACP, confined files)
+│   ├── src/images.rs      # Save pasted or dropped images into images/
 │   ├── nsis/               # Branding assets and hooks for the Windows installer (NSIS)
 │   ├── tauri.conf.json    # Base config + tauri.windows/linux/macos.conf.json (merged per platform)
 │   └── Cargo.toml         # Rust dependencies (tauri, notify, ureq, etc.)
@@ -316,6 +327,9 @@ dbv-md-reader/
 ├── src/                   # Web UI (HTML/CSS/JS)
 │   ├── index.html         # Main layout and TOC sidebar
 │   ├── app.js             # Rendering logic (markdown-it, mermaid, Prism)
+│   ├── ai/                # Optional AI (ES modules loaded on demand)
+│   ├── sourcesync.js      # Editor ↔ preview sync (pure logic)
+│   ├── imagepaste.js      # Paste or drop images (pure logic)
 │   └── styles.css         # Styles and color tokens
 ├── dbv-specs-ops/         # SDD specifications and engineering framework
 │   ├── project.config.md  # Project identity and file headers

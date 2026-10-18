@@ -110,6 +110,34 @@ try {
   ok('hubo 2 llamadas al modelo (propuesta + respuesta final)', conv.chatCalls === 2, String(conv.chatCalls));
   ok('la respuesta final del asistente se muestra', /He corregido/.test(conv.assistant));
 
+  // ── Copiar con el botón derecho (el menú nativo está tapado en toda la app) ─────────────────────
+  const copyMenu = await h.eval(`
+    window.__copied = []; navigator.clipboard.writeText = (t) => { window.__copied.push(t); return Promise.resolve(); };
+    const bubble = [...document.querySelectorAll('.ai-msg--assistant')].pop();
+    const range = document.createRange(); range.selectNodeContents(bubble.querySelector('p') || bubble);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 900, clientY: 300 });
+    bubble.dispatchEvent(ev);
+    const items = [...document.querySelectorAll('.ctx-menu .ctx-item')].map((b) => b.dataset.action);
+    document.querySelector('.ctx-menu [data-action="copyMessage"]')?.click();
+    await new Promise((r) => setTimeout(r, 100));
+    return { prevented: ev.defaultPrevented, items, copied: window.__copied };`);
+  ok('clic derecho en un mensaje del asistente abre un menú propio con Copiar y Copiar mensaje', copyMenu.prevented && copyMenu.items.includes('copy') && copyMenu.items.includes('copyMessage'), JSON.stringify(copyMenu.items));
+  ok('«Copiar mensaje» copia el texto del mensaje', copyMenu.copied.length === 1 && /He corregido/.test(copyMenu.copied[0]), JSON.stringify(copyMenu.copied));
+  const copySel = await h.eval(`
+    const bubble = [...document.querySelectorAll('.ai-msg--assistant')].pop();
+    const range = document.createRange(); range.selectNodeContents(bubble.querySelector('p') || bubble);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    bubble.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 900, clientY: 300 }));
+    window.__copied.length = 0;
+    document.querySelector('.ctx-menu [data-action="copy"]')?.click();
+    await new Promise((r) => setTimeout(r, 100));
+    return window.__copied;`);
+  ok('«Copiar» copia justo la selección', copySel.length === 1 && /He corregido/.test(copySel[0]), JSON.stringify(copySel));
+  const nativeInput = await h.eval(`const i = document.querySelector('.ai-panel__input'); const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true }); i.dispatchEvent(ev); return ev.defaultPrevented;`);
+  ok('el cuadro de escribir conserva su menú nativo (cortar/pegar)', nativeInput === false);
+  await h.eval(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));`);
+
   // ── Exfiltración por imagen markdown: la salida de la IA no carga medios remotos ──
   const leak = await h.eval(`
     const bubble = [...document.querySelectorAll('.ai-msg--assistant')].pop();

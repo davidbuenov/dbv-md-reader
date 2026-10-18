@@ -40,6 +40,7 @@
   var treeRevealBtn      = document.getElementById('tree-reveal');
   var treeOpenNewWinBtn  = document.getElementById('tree-open-new-window');
   var treeAskAiBtn       = document.getElementById('tree-ask-ai');
+  var treeRefreshBtn     = document.getElementById('tree-refresh');
 
   // ─── Utilidades de ruta (JS puro, sin acceso a disco) ─────────────────────
   // Mismo criterio ya usado en la etiqueta de atajos de esta app (Ctrl en
@@ -128,7 +129,9 @@
   // completamente fuera de alcance (no hay multi-ventana ni explorador de archivos de escritorio).
   function showTreeContextMenu(x, y, path, isMarkdown) {
     if (isAndroidPlatform()) return;
-    treeContextMenu.dataset.path = path;
+    if (path) treeContextMenu.dataset.path = path;
+    else delete treeContextMenu.dataset.path;
+    treeRevealBtn.classList.toggle('hidden', !path);
     treeOpenNewWinBtn.textContent = t('fileTree.openNewWindow', { mod: MOD_KEY_LABEL });
     treeOpenNewWinBtn.classList.toggle('hidden', !isMarkdown);
     // RF-33.2: «Añadir a la conversación» — solo sobre un .md y con las funciones de IA a la vista.
@@ -152,6 +155,12 @@
     }
     hideTreeContextMenu();
   });
+  // «Actualizar» del menú: relee el árbol sin recargar la ventana (el «Actualizar» nativo del WebView
+  // recargaría toda la página y se perdería el documento, la edición y la conversación).
+  treeRefreshBtn.addEventListener('click', function () {
+    hideTreeContextMenu();
+    refresh().catch(function () {});
+  });
   treeAskAiBtn.addEventListener('click', function () {
     var path = treeContextMenu.dataset.path;
     if (path && window.DBVApp && window.DBVApp.attachToAi) window.DBVApp.attachToAi(path);
@@ -167,6 +176,14 @@
     hideTreeContextMenu();
   });
 
+  // Clic derecho sobre el hueco del panel (no sobre una fila ni el filtro): el mismo menú, solo con «Actualizar».
+  filesPanelEl.addEventListener('contextmenu', function (e) {
+    var onRow = e.target.closest && e.target.closest('.tree-row');
+    if (isAndroidPlatform() || onRow || e.target === filterInput) return;
+    e.preventDefault();
+    showTreeContextMenu(e.clientX, e.clientY, null, false);
+  });
+
   // Una fila por entrada (carpeta o archivo) + su propio contenedor de hijos
   // (carpetas), leído bajo demanda la primera vez que se expande — nunca
   // recursivo de golpe (RF-25).
@@ -178,6 +195,7 @@
     row.className = 'tree-row ' + (entry.is_dir ? 'is-dir' : entry.is_markdown ? 'is-file' : 'is-dimmed');
     row.style.paddingLeft = (8 + depth * 16) + 'px';
     row.dataset.name = entry.name;
+    row.dataset.path = entry.path;
 
     var toggle = document.createElement('span');
     toggle.className = 'tree-toggle';
@@ -203,7 +221,7 @@
         children.classList.toggle('hidden', !expanded);
         if (expanded && !children.dataset.loaded) {
           children.dataset.loaded = '1';
-          renderLevel(children, entry.path, depth + 1);
+          children._loading = renderLevel(children, entry.path, depth + 1);
         }
       });
     } else if (entry.is_markdown) {
@@ -254,6 +272,44 @@
     currentRoot = dirPath;
     resetTree();
     return renderLevel(fileTreeEl, dirPath, 0);
+  }
+
+  // Vuelve a leer el árbol conservando las carpetas expandidas y el filtro. El árbol se lee bajo
+  // demanda y no se entera de lo que se escribe en disco: sin esto, la carpeta `images/` que crea
+  // una imagen pegada (RF-37), o un fichero que crea la IA (RF-34), no aparecería hasta reabrir.
+  // Las llamadas se encadenan: dos refrescos a la vez expandirían las carpetas dos veces.
+  var refreshChain = Promise.resolve();
+
+  function folderRow(path) {
+    var rows = [].slice.call(fileTreeEl.querySelectorAll('.tree-row.is-dir'));
+    return rows.filter(function (row) { return row.dataset.path === path; })[0] || null;
+  }
+
+  function refreshNow() {
+    if (!currentRoot) return Promise.resolve(false);
+    var expanded = [].slice.call(fileTreeEl.querySelectorAll('.tree-row.is-dir'))
+      .filter(function (row) { return row.querySelector('.tree-toggle').classList.contains('expanded'); })
+      .map(function (row) { return row.dataset.path; });
+    resetTree();
+    return renderLevel(fileTreeEl, currentRoot, 0).then(function () {
+      // Las rutas vienen en orden del DOM: cada carpeta se reabre después de su padre.
+      return expanded.reduce(function (chain, path) {
+        return chain.then(function () {
+          var row = folderRow(path);
+          if (!row) return null;
+          row.click();
+          return row.nextSibling._loading;
+        });
+      }, Promise.resolve());
+    }).then(function () {
+      if (filterInput.value) filterInput.dispatchEvent(new Event('input'));
+      return true;
+    });
+  }
+
+  function refresh() {
+    refreshChain = refreshChain.then(refreshNow, refreshNow);
+    return refreshChain;
   }
 
   // ─── Filtro de texto sobre los nodos ya cargados ───────────────────────────
@@ -367,6 +423,8 @@
         return ok;
       });
     },
+    // Relee el árbol tras escribir ficheros o carpetas desde la app (RF-37, RF-34).
+    refresh: refresh,
     toggleQuickOpen: toggleQuickOpen,
     // Pestaña activa del panel lateral: 'index' | 'files' | 'ai' (RF-33.1).
     setActiveTab: setActiveTab
