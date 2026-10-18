@@ -14,6 +14,7 @@ Regla general: **una instrucción en `MASTER_PROMPT.md` es una skill (recomendac
 | **Branch protection / required checks** (GitHub, GitLab) | Impide el merge si el pipeline de CI no ha pasado `/test` | Bajo (config de plataforma) |
 | **CI job dedicado** | Ejecuta lint/test/build en cada push y falla el pipeline si algo no pasa | Medio |
 | **`.gitattributes` / CODEOWNERS** | Exige revisión humana en rutas protegidas (migraciones, infra) | Bajo |
+| **`scripts/dbv-lint.py`** (en pre-commit o CI) | Aplica por AST la regla de un solo `return` en Python; opcionalmente comprueba Frontmatter del plan, trazabilidad `@spec` y que el grafo de fases sea válido y esté sincronizado con `.claude/commands/` | Bajo (solo Python 3.8+) |
 
 ## Notas específicas por plataforma (opcional, no obligatorio)
 
@@ -43,15 +44,33 @@ Si en la práctica la IA sigue sin respetar de forma consistente `<coding_standa
 justo la señal de que ya no basta con un pase de revisión advisory (`docs/REVIEW.md`) — hace falta
 un control que no dependa de que el modelo se acuerde.
 
-**Heurística rápida (pre-commit, agnóstica de lenguaje — JS/TS/Python):**
+**Python — linter por AST (recomendado): `scripts/dbv-lint.py`.** Parsea el AST real de cada función
+y permite las Guard Clauses legítimas del inicio (también tras una asignación o un `elif`) sin falsos
+positivos; solo usa la librería estándar (Python 3.8+):
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit — regla de un solo return en los .py preparados para el commit
+PY=$(command -v python3 || command -v python) || exit 0   # sin Python no bloquea
+"$PY" dbv-specs-ops/scripts/dbv-lint.py --staged || exit 1
+```
+
+`--staged` analiza solo los `.py` del commit, así que una base de código anterior a v3.0.0 no bloquea
+nada que no toques. En CI puedes usar `python dbv-specs-ops/scripts/dbv-lint.py --strict`, que además
+convierte en fallo los avisos de trazabilidad `@spec` y del Frontmatter del plan.
+
+**Rust:** `#![deny(clippy::unwrap_used, clippy::expect_used)]` en `lib.rs`/`main.rs` más
+`cargo clippy -- -D warnings` en CI prohíbe `.unwrap()`/`.expect()` (`<coding_standards>` §2).
+
+**JavaScript/TypeScript (heurística, no AST — `dbv-lint.py` solo cubre Python):**
 
 ```bash
 #!/bin/bash
 # .git/hooks/pre-commit — cuenta 'return' por función en los ficheros staged (heurística, no AST)
-for f in $(git diff --cached --name-only -- '*.js' '*.ts' '*.py'); do
+for f in $(git diff --cached --name-only -- '*.js' '*.ts'); do
   [ -f "$f" ] || continue
   returns=$(grep -c '^\s*return\b' "$f")
-  funcs=$(grep -cE '^\s*(function |def |async function |export function )' "$f")
+  funcs=$(grep -cE '^\s*(function |async function |export function )' "$f")
   if [ "$funcs" -gt 0 ] && [ "$returns" -gt "$funcs" ]; then
     echo "⚠️  $f: más 'return' ($returns) que funciones detectadas ($funcs) — revisa la regla de un solo return + guard clauses."
   fi
@@ -60,9 +79,9 @@ done
 
 Es un conteo por fichero, no un parser: puede dar falsos positivos en ficheros con muchas funciones
 cortas legítimas, y falsos negativos si varias funciones comparten el exceso. Si el equipo necesita
-precisión real, la alternativa correcta es una regla de lint por AST (un plugin de ESLint a medida, o
-un script sobre `ast`/`libcst` en Python) que cuente los `return` de cada función individualmente y
-falle solo si hay más de uno fuera de guard clauses tempranas.
+precisión real en JS/TS, la alternativa correcta es una regla de lint por AST (un plugin de ESLint a
+medida) que cuente los `return` de cada función individualmente y falle solo si hay más de uno fuera
+de guard clauses tempranas.
 
 ## Dónde declararlo
 
@@ -71,6 +90,7 @@ Añade en `project.config.md`:
 ```markdown
 ## Guardarraíles activos
 - Pre-commit: sí/no
+- Linter dbv-lint.py (en /code-simplify): sí/no
 - Branch protection en CI: sí/no
 - Hooks nativos de plataforma (si aplica): <cuál y qué bloquea>
 ```

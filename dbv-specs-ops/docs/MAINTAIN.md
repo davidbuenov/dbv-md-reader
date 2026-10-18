@@ -37,6 +37,20 @@ Añade este bloque al fichero existente:
 - Umbral banda 3: <ej. 3 sigma>
 ```
 
+## Preparar el contexto del diagnóstico
+
+Dos reglas, tomadas de *Procedural Graphs* ([arXiv:2609.09153](https://arxiv.org/abs/2609.09153), Algoritmo 1), para que el diagnóstico en solo lectura no se equivoque por falta de contexto:
+
+1. **Si el log no cabe, conserva el final.** El fallo, el stack trace y el estado de cierre suelen estar al final; si recortas por el principio de la traza (`head`), la IA diagnostica sobre la parte que funcionó. El detector pasa a la IA solo la cola, con un presupuesto fijo:
+
+   ```bash
+   tail -n 300 ci_failure.log > diagnostico_contexto.log
+   ```
+
+2. **Consulta la Rejection Memory antes de proponer una causa o un arreglo.** La sección `## 🚫 Rejection Memory` de `memory.md` recoge los arreglos que ya se probaron y se revirtieron. Si el diagnóstico apunta a uno de ellos, el hallazgo lo dice y explica qué ha cambiado.
+
+> El paper usa además un bucle que modifica su propio grafo y solo conserva un cambio si la puntuación en un conjunto de validación no baja. Maintain **no** lo hace, porque no hay ese conjunto de validación y cada ejecución es una llamada no determinista al CLI. El motivo está en `docs/PROCEDURAL_GRAPHS.md` §6.
+
 ## Qué NO hace Maintain
 
 - No despliega nada a producción.

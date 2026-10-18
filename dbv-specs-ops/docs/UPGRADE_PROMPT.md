@@ -5,8 +5,10 @@
 > You already have a project using **dbv-specs-ops** and want to upgrade the framework to the latest version.
 >
 > **Cómo usarlo / How to use it:**
-> 1. Guarda este fichero como `docs/UPGRADE_PROMPT.md` en la raíz de tu proyecto.
-> 2. Dile a tu IA: **"Lee `docs/UPGRADE_PROMPT.md` y actualiza mi proyecto."**
+> 1. Guarda este fichero como `dbv-specs-ops/docs/UPGRADE_PROMPT.md` en tu proyecto.
+> 2. Dile a tu IA: **"Lee `dbv-specs-ops/docs/UPGRADE_PROMPT.md` y actualiza mi proyecto."**
+>
+> **Rutas / Paths:** con el framework aislado en la subcarpeta `dbv-specs-ops/` (el esquema recomendado), todas las rutas de este documento — protegidas, manifiestos y descargas — son relativas a esa subcarpeta. Las únicas excepciones son los **activadores** (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `ANTIGRAVITY.md`, `.windsurfrules`, `.github/copilot-instructions.md`) y `.claude/commands/`, que viven en la **raíz** del proyecto.
 
 ---
 
@@ -20,6 +22,7 @@ Estos ficheros pertenecen al proyecto del usuario. **No los toques bajo ninguna 
 | `docs/SPECIFICATIONS.md` | Requisitos del proyecto |
 | `docs/ARCHITECTURE.md` | Decisiones técnicas del proyecto |
 | `task.md` | Backlog y estado del proyecto |
+| `memory.md` | Decisiones, lecciones y contexto del proyecto |
 | `CHANGELOG.md` | Historial de versiones del proyecto |
 | `README.md` | Documentación del proyecto |
 | `walkthrough.md` | Historial de entregas |
@@ -27,6 +30,8 @@ Estos ficheros pertenecen al proyecto del usuario. **No los toques bajo ninguna 
 | Todo el código fuente | La aplicación del usuario |
 
 Solo puedes modificar o añadir los **ficheros de framework** listados en este documento.
+
+**Compatibilidad hacia atrás:** actualizar un proyecto existente NUNCA exige modificar los ficheros protegidos. Los requisitos de su `SPECIFICATIONS.md` que no tengan ID siguen siendo válidos (los IDs `REQ-NN` son obligatorios solo para lo que se escriba a partir de la actualización) y sus scripts, tests y código no se tocan. Si el usuario quiere asignar IDs a los requisitos antiguos, ofrécelo y hazlo solo con su consentimiento explícito.
 </upgrade_rules>
 
 ---
@@ -40,9 +45,11 @@ Lee el fichero `project.config.md`:
 - Si **no existe** ese campo → pregunta al usuario:
   > *"¿Qué versión de dbv-specs-ops estás usando? Puedes encontrarla buscando en tu `CHANGELOG.md` el primer commit del proyecto, o mirando qué ficheros de plataforma tienes (`.windsurfrules` fue añadido en v1.1.0, `project.config.md` en v1.2.0)."*
 
-La versión más reciente del framework es: **2.8.0**
- 
-Si el usuario ya tiene la **v2.8.0**, informa de que el proyecto está al día. No hay nada que hacer.
+La versión más reciente del framework es: **3.1.0**
+
+> Esta es la **única** línea de este documento donde se escribe la versión actual. Las Fases 4 y 6 se refieren a ella como «la versión más reciente de la Fase 1» — no copies el número en otros sitios.
+
+Si el usuario ya tiene la **v3.1.0**, informa de que el proyecto está al día. No hay nada que hacer.
 </version_detection_phase>
 
 ---
@@ -248,12 +255,69 @@ Usa esta tabla para calcular qué hay que actualizar según la versión actual d
 | MODIFICADO | `project.config.md` | Versión incrementada a `2.8.0`. |
 | MODIFICADO | `CHANGELOG.md` | Entrada v2.8.0 añadida. |
 | MODIFICADO | `docs/UPGRADE_PROMPT.md` | Este archivo actualizado con la versión v2.8.0. |
+
+### v2.9.0 (cambios desde v2.8.0)
+| Acción | Fichero | Nota |
+|---|---|---|
+| NUEVO | `docs/AI_DESKTOP_ARCHITECTURE.md` | Arquitectura canónica de IA híbrida (Local, Nube con API key y Agentes de suscripción vía ACP). Custodia segura de secretos en llavero nativo del SO (keyring), zero-footprint lazy loading y ciclo atómico de propuestas con diffs y revisión. |
+| NUEVO | `docs/templates/AI_SPECIFICATIONS.template.md` | Catálogo estándar de Requisitos No Funcionales (RNF-IA.1 a RNF-IA.4) y Funcionales (RF-IA-01 a RF-IA-04) para proyectos con IA. |
+| NUEVO | `docs/templates/IA.template.md` | Plantilla española de ayuda/documentación de cara al usuario final para apps con IA (diferencia suscripción vs API key, local, privacidad). |
+| NUEVO | `docs/templates/IA.en.template.md` | Plantilla inglesa de ayuda/documentación de cara al usuario final para apps con IA. |
+| MODIFICADO | `docs/README.md` | Añadido `AI_DESKTOP_ARCHITECTURE.md` al índice de documentos y al diagrama de flujo de arquitectura. |
+| MODIFICADO | `docs/MASTER_PROMPT.md` | Cabecera v2.9.0. |
+| MODIFICADO | `README.md` / `README.en.md` | Badge v2.9.0, referencias a la arquitectura de IA y catálogo de plantillas. |
+| MODIFICADO | `project.config.md` | Versión incrementada a `2.9.0`. |
+| MODIFICADO | `CHANGELOG.md` | Entrada v2.9.0 añadida. |
+| MODIFICADO | `docs/UPGRADE_PROMPT.md` | Este archivo actualizado con la versión v2.9.0. |
+
+### v3.0.0 (cambios desde v2.9.0)
+| Acción | Fichero | Nota |
+|---|---|---|
+| NUEVO | `scripts/dbv-lint.py` | Linter determinista (Python 3.8+, sin dependencias): regla de un solo `return` por AST, Frontmatter de `implementation_plan.md` y trazabilidad `@spec`. Opcional: solo se ejecuta si el usuario lo pide o desde `/code-simplify`. |
+| NUEVO | `docs/templates/task.template.md`, `docs/templates/memory.template.md` | Plantillas limpias que usa el bootstrap para restablecer `task.md`/`memory.md` en proyectos nuevos. No afectan a los ficheros del usuario. |
+| MODIFICADO | `docs/MASTER_PROMPT.md` | Trazabilidad Spec-to-Test (IDs `REQ-NN` ↔ `@spec`, solo para requisitos nuevos), Architect Review con `<evidence>` y `<confidence_score>`, compresión de contexto Hot/Warm/Cold, bootstrap con `Desktop AI Assistant` y restablecimiento confirmado de `task.md`/`memory.md`, `uv` para Python, estándares de Rust/Tauri e IIFE, scripts `start`/`stop` solo para servidores y APIs, `dbv-lint.py` en `/code-simplify`. |
+| MODIFICADO | `docs/REVIEW.md`, `docs/GUARDRAILS.md`, `docs/PARALLEL_WORK.md`, `docs/ADOPTION_PROMPT.md`, `docs/README.md` | Auditoría de llavero/Tauri/trazabilidad, hook pre-commit con `dbv-lint.py`, contratos de subagente (`scope_contract`), creación de `memory.md` y detección de Tauri en la adopción, índice actualizado. |
+| NUEVO (opcional) | `AGENTS.md` | Activador del estándar abierto AGENTS.md (Codex, Cursor, Copilot, Windsurf, Jules, Zed…), un puntero fino con las mismas reglas que `CLAUDE.md`. Vive en la **raíz**. Solo si el usuario usa esos agentes. **Si el proyecto ya tiene un `AGENTS.md` propio, no lo sobrescribas**: añade al principio solo las líneas de redirección a `dbv-specs-ops/`. Claude Code (≥ 2.1.277) lo ignora si existe un `CLAUDE.md`. |
+| MODIFICADO | `GEMINI.md`, `CLAUDE.md`, `ANTIGRAVITY.md`, `.windsurfrules`, `.github/copilot-instructions.md` | Nota de rutas para proyectos con el framework en `dbv-specs-ops/`; `ANTIGRAVITY.md` añade `project.config.md` y los artefactos de planificación van a `dbv-specs-ops/`. Viven en la **raíz** del proyecto. |
+| MODIFICADO | `.claude/commands/{spec,plan,build,test,code-simplify}.md` | Rutas con prefijo `dbv-specs-ops/`, `memory.md` en `/spec`, referencias a IDs, `@spec` y `dbv-lint.py`. Viven en `.claude/commands/` de la **raíz**. |
+| MODIFICADO | `scripts/run-evals.sh`, `evals/README.md` | **Actualízalos siempre** (son del framework). El script resuelve su ruta dinámicamente (funciona en el repo del framework y en `dbv-specs-ops/`), solo acepta un CLI de IA de una lista blanca, avisa si falta `jq` y marca como `INCONCLUSO` un eval cuyo patrón ya existía antes de ejecutar; el README documenta el formato real de los evals y los permisos de escritura. |
+| MODIFICADO | `evals/example-spec-eval.json` | Eval de ejemplo (deja de ser vacuo). Reemplázalo si el que hay es el de v2.8.0/v2.9.0 sin cambios. Cualquier otro `.json` que el usuario haya añadido a `evals/` es suyo: no lo toques. |
+| MODIFICADO | `README.template.md` | Instalación con `uv`, secciones Rust/Tauri v2, árbol con `dbv-specs-ops/` y enlace a `dbv-specs-ops/CHANGELOG.md`. Solo se usa al generar un README nuevo. |
+| MODIFICADO | `docs/UPGRADE_PROMPT.md` | Este archivo actualizado con la versión v3.0.0. |
+| CAMPO AÑADIDO | `project.config.md` | ⚠️ No sobrescribir. Ver Fase 4: solo `Framework Version` y, si el proyecto es de escritorio, `Desktop AI Assistant`. |
+| PLANTILLA (no sobrescribir) | `docs/SPECIFICATIONS.md`, `docs/ARCHITECTURE.md` | La plantilla incorpora IDs `REQ-NN` y los apartados de IA de escritorio, pero **el proyecto del usuario conserva los suyos intactos**. No los descargues; si el usuario lo pide, enséñale el apartado nuevo para que decida si lo copia. |
+### v3.1.0 (cambios desde v3.0.0)
+| Acción | Fichero | Nota |
+|---|---|---|
+| NUEVO | `docs/PROCEDURAL_GRAPH.json` | Grafo de fases: el ciclo SDD como transiciones con `condition`, `guidance` y `pitfalls`. Es la fuente de los bloques de `.claude/commands/`. |
+| NUEVO | `docs/PROCEDURAL_GRAPHS.md` | Guía del grafo de fases y de la Rejection Memory (inspirada en *Procedural Graphs*, arXiv:2609.09153). |
+| NUEVO | `scripts/pg-guide.py` | Valida el grafo, imprime el contexto de una fase y regenera los bloques de los comandos (Python 3.8+, sin dependencias). |
+| MODIFICADO | `docs/MASTER_PROMPT.md` | Bloque `<procedural_graph>` (grafo de fases y Rejection Memory) y disparadores de Rejection Memory en `/plan`, `/test`, `/code-simplify` y Maintain. |
+| MODIFICADO | `scripts/dbv-lint.py` | Comprueba también el grafo de fases y que los comandos estén sincronizados con él. |
+| MODIFICADO | `scripts/run-evals.sh`, `evals/README.md` | **Actualízalos siempre** (son del framework). Resumen `📊 Resultado: P/T pasan` y regla de no regresión. Los `.json` que el usuario haya añadido a `evals/` son suyos: no los toques. |
+| MODIFICADO | `docs/MAINTAIN.md`, `docs/AGENTIC_ENGINEERING.md`, `docs/README.md`, `docs/GUARDRAILS.md` | Truncado de logs por la cola y Rejection Memory en Maintain; sección 6 (memoria procedimental); índice; `dbv-lint.py` también comprueba el grafo. |
+| MODIFICADO | `docs/templates/memory.template.md` | Sección `🚫 Rejection Memory`. Solo se usa al crear un `memory.md` nuevo. |
+| MODIFICADO | `.claude/commands/{spec,plan,build,test,code-simplify,ship,maintain}.md` | Cada comando lleva el contexto de su fase entre `<!-- pg-guide:begin` y `<!-- pg-guide:end -->`. Viven en `.claude/commands/` de la **raíz**. |
+| EXCEPCIÓN | `.claude/commands/*.md` de la raíz con texto propio del usuario | No los sobrescribas: conserva su texto y sustituye o añade solo el bloque entre los marcadores. Puedes hacerlo con `python dbv-specs-ops/scripts/pg-guide.py --write-commands --commands-dir .claude/commands`, que no toca lo que hay fuera de los marcadores. |
+| NUEVO | `scripts/release-notes.py` | Extrae las notas de un `## [X.Y.Z]` del CHANGELOG y crea el Release de GitHub con `gh` (Python 3.8+, sin dependencias). |
+| NUEVO | `docs/templates/release.workflow.yml` | Plantilla del workflow que crea el Release al subir un tag. **Es una plantilla: no la instales durante la actualización.** `/ship` la copia a `.github/workflows/release.yml` solo si el usuario acepta. |
+| MODIFICADO | `docs/MASTER_PROMPT.md`, `.claude/commands/ship.md` | `/ship` ofrece, una vez, el Release de GitHub (automático / manual / no) y guarda la respuesta en `project.config.md`. |
+| CAMPO AÑADIDO | `project.config.md` | ⚠️ No sobrescribir. Opcional: bloque `## Release de GitHub` (`GitHub Release: automático \| manual \| no`). Si falta, `/ship` pregunta la primera vez. |
+| SIN CAMBIOS (protegido) | `memory.md` | **No añadas la sección `🚫 Rejection Memory` durante la actualización.** La IA la crea en el trabajo normal la primera vez que tenga algo que registrar (`<procedural_graph>` de `MASTER_PROMPT.md`). |
+| MODIFICADO | `docs/UPGRADE_PROMPT.md` | Este archivo actualizado con la versión v3.1.0. |
+| CAMPO AÑADIDO | `project.config.md` | ⚠️ No sobrescribir. Ver Fase 4: solo `Framework Version`. |
 </upgrade_manifest_phase>
 
 ---
 
 <apply_changes_phase>
 ## Fase 3 — Aplicación de cambios
+
+> ⚠️ **Importante — dónde se guarda cada fichero (proyectos con el framework en `dbv-specs-ops/`):**
+> - Los ficheros del framework (`docs/…`, `scripts/…`, `evals/…`, `README.template.md`) se guardan **dentro de `dbv-specs-ops/`**: p. ej. `dbv-specs-ops/docs/MASTER_PROMPT.md`.
+> - Los **activadores** (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `ANTIGRAVITY.md`, `.windsurfrules`, `.github/copilot-instructions.md`) y `.claude/commands/*.md` se actualizan en la **raíz** del proyecto. Si el usuario ha añadido contenido propio a un activador, **conserva ese contenido**: basta con que el activador apunte a `dbv-specs-ops/docs/MASTER_PROMPT.md` o incluya la «nota de rutas» de la versión nueva.
+> - Si el usuario copió el repositorio completo a `dbv-specs-ops/` (lo que indica el README), dentro de esa carpeta hay además **copias inertes** de los activadores (`CLAUDE.md`, `GEMINI.md`, `ANTIGRAVITY.md`, `.windsurfrules`, `.github/copilot-instructions.md`) y de `.claude/commands/`: ningún asistente las lee. No es una instalación rara: actualízalas como cualquier otro fichero del framework. Las que cuentan son las de la **raíz** (se actualizan conservando el contenido del usuario). Si el usuario usa Claude Code y no tiene `.claude/commands/` en la raíz, dilo en el resumen final.
+> - En macOS/Linux, tras descargar los scripts ejecuta `chmod +x dbv-specs-ops/scripts/dbv-lint.py dbv-specs-ops/scripts/pg-guide.py dbv-specs-ops/scripts/release-notes.py dbv-specs-ops/scripts/run-evals.sh`.
 
 ### Opción A: Descarga automática (si tienes acceso a red)
 
@@ -265,6 +329,7 @@ Para cada fichero marcado como NUEVO o MODIFICADO, descarga el contenido desde e
 | `CLAUDE.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/CLAUDE.md` |
 | `ANTIGRAVITY.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/ANTIGRAVITY.md` |
 | `.windsurfrules` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/.windsurfrules` |
+| `AGENTS.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/AGENTS.md` *(NUEVO v3.0.0, opcional; no sobrescribas un `AGENTS.md` propio)* |
 | `.github/copilot-instructions.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/.github/copilot-instructions.md` |
 | `README.template.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/README.template.md` |
 | `docs/MASTER_PROMPT.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/MASTER_PROMPT.md` |
@@ -295,6 +360,19 @@ Para cada fichero marcado como NUEVO o MODIFICADO, descarga el contenido desde e
 | `.claude/commands/code-simplify.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/.claude/commands/code-simplify.md` *(NUEVO v2.8.0, opcional Claude Code)* |
 | `.claude/commands/ship.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/.claude/commands/ship.md` *(NUEVO v2.8.0, opcional Claude Code)* |
 | `.claude/commands/maintain.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/.claude/commands/maintain.md` *(NUEVO v2.8.0, opcional Claude Code)* |
+| `docs/AI_DESKTOP_ARCHITECTURE.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/AI_DESKTOP_ARCHITECTURE.md` *(NUEVO v2.9.0)* |
+| `docs/templates/AI_SPECIFICATIONS.template.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/templates/AI_SPECIFICATIONS.template.md` *(NUEVO v2.9.0)* |
+| `docs/templates/IA.template.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/templates/IA.template.md` *(NUEVO v2.9.0)* |
+| `docs/templates/IA.en.template.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/templates/IA.en.template.md` *(NUEVO v2.9.0)* |
+| `scripts/dbv-lint.py` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/scripts/dbv-lint.py` *(NUEVO v3.0.0)* |
+| `docs/templates/task.template.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/templates/task.template.md` *(NUEVO v3.0.0)* |
+| `docs/templates/memory.template.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/templates/memory.template.md` *(NUEVO v3.0.0)* |
+| `docs/PROCEDURAL_GRAPH.json` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/PROCEDURAL_GRAPH.json` *(NUEVO v3.1.0)* |
+| `docs/PROCEDURAL_GRAPHS.md` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/PROCEDURAL_GRAPHS.md` *(NUEVO v3.1.0)* |
+| `scripts/pg-guide.py` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/scripts/pg-guide.py` *(NUEVO v3.1.0)* |
+| `scripts/release-notes.py` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/scripts/release-notes.py` *(NUEVO v3.1.0)* |
+| `docs/templates/release.workflow.yml` | `https://raw.githubusercontent.com/davidbuenov/dbv-specs-ops/master/docs/templates/release.workflow.yml` *(NUEVO v3.1.0 · plantilla, no instalar)* |
+| `CHANGELOG.en.md` | *(solo framework: no lo descargues en proyectos de usuario)* |
 
 > **Nota:** Si alguna descarga falla, muestra el link al usuario para que lo descargue manualmente.
 
@@ -318,13 +396,15 @@ Si no puedes descargar ficheros automáticamente, muestra al usuario este mensaj
 
 Algunos ficheros requieren cambios puntuales, no sobreescritura completa:
 
-### `project.config.md` — Añadir campo `framework_version`
+### `project.config.md` — Añadir o actualizar `Framework Version`
 
-En la sección `## Project Identity`, añade esta línea al final de la lista de campos, si no existe ya:
+En la sección `## Project Identity`, añade esta línea al final de la lista de campos si no existe, o actualiza su valor si ya existe. Escribe ahí **la versión más reciente indicada en la Fase 1** (no copies un número de este ejemplo):
 
 ```markdown
-- **Framework Version:** 1.4.0
+- **Framework Version:** <versión más reciente de la Fase 1>
 ```
+
+Si el proyecto es una **aplicación de escritorio**, pregunta al usuario si quiere un asistente de IA integrado y añade, junto a ese campo, `- **Desktop AI Assistant (Local/Cloud/ACP):** Yes` o `No`. En el resto de proyectos no añadas nada: si el campo falta, el framework asume `No`.
 
 ### `docs/SPECIFICATIONS.md` — Añadir referencia a DESIGN.md
 
@@ -376,11 +456,11 @@ Si el proyecto contiene implementaciones antiguas de habilidades (ej: carpetas `
 
 Cuando todos los cambios estén aplicados:
 
-1. Actualiza el campo `Framework Version` en `project.config.md` a `2.8.0`.
-2. Muestra al usuario un resumen claro:
- 
+1. Actualiza el campo `Framework Version` en `project.config.md` a la versión más reciente indicada en la Fase 1.
+2. Muestra al usuario un resumen claro (sustituye `v<última>` por la versión de la Fase 1):
+
 ```
-✅ Framework actualizado de vX.X.X → v2.8.0
+✅ Framework actualizado de vX.X.X → v<última>
 
 Ficheros actualizados:
   • [lista de ficheros modificados/añadidos]
@@ -389,6 +469,7 @@ Ficheros de proyecto no modificados (protegidos):
   • docs/SPECIFICATIONS.md ✓
   • docs/ARCHITECTURE.md ✓
   • task.md ✓
+  • memory.md ✓
   • CHANGELOG.md ✓
   • README.md ✓
 
@@ -398,9 +479,13 @@ Próximos pasos:
   [Si se creó DESIGN_ENRICHMENT.md] → Lee docs/DESIGN_ENRICHMENT.md para ver cómo auditar y pulir tu UI con Impeccable y SkillUI.
   [Si se creó AGENT_PLUGINS.md] → Lee docs/AGENT_PLUGINS.md para ver cómo estructurar tus herramientas y skills bajo el estándar Agent Plugins 1.0.0.
   [Si se creó WEB_TO_DESKTOP_MIGRATION.md / NATIVE_DESKTOP_APPS.md / NATIVE_APPS_RELEASE_CI.md / MARKETPLACE_PUBLISHING.md] → Lee estas guías si tu proyecto es una app de escritorio nativa compilada o migrada (Tauri/Electron).
+  [Si se creó AI_DESKTOP_ARCHITECTURE.md / plantillas de IA] → Consulta docs/AI_DESKTOP_ARCHITECTURE.md y docs/templates/ para integrar un subsistema de IA generativa (Ollama/LM Studio, claves API en llavero seguro, suscripciones Claude/ChatGPT vía ACP).
   [Si se creó .claude/commands/] → Si usas Claude Code, ya tienes /spec /plan /build /test /code-simplify /ship /maintain como comandos nativos con autocompletado.
   [Si quieres activar la Fase 7] → Lee docs/MAINTAIN.md y añade el bloque "Maintain (Fase 7)" a project.config.md. Sigue desactivada por defecto.
   [Si quieres guardarraíles deterministas] → Lee docs/GUARDRAILS.md (pre-commit hooks, branch protection).
+  [Si se creó scripts/dbv-lint.py] → Puedes validar tu código con `python dbv-specs-ops/scripts/dbv-lint.py --changed` (solo lo que tocas; tu código anterior no se reprocha). Desde ahora los requisitos NUEVOS de SPECIFICATIONS.md llevan un ID (`REQ-01`…) que el código y los tests citan con `@spec REQ-01`; tus requisitos actuales siguen valiendo tal cual (si quieres asignarles IDs, pídemelo).
+  [Si se creó scripts/release-notes.py] → Si tu repositorio está en GitHub, la próxima vez que ejecutes `/ship` te preguntaré (una sola vez) si quieres que cada versión tenga su Release con las notas del CHANGELOG, de forma automática o manual. No he instalado ningún workflow.
+  [Si se creó scripts/pg-guide.py] → Los comandos de fase llevan ahora el contexto de su fase (grafo de fases, docs/PROCEDURAL_GRAPHS.md). La IA registrará los enfoques descartados en una sección «🚫 Rejection Memory» de memory.md la primera vez que tenga algo que anotar; tu memory.md actual no se ha tocado.
   → Continúa con tu proyecto normalmente. El framework ya está al día.
 ```
 </closing_phase>

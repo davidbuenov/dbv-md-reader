@@ -26,12 +26,14 @@ Antes de hacer ninguna pregunta, explora el proyecto de forma autónoma:
 4. Busca archivos de tests para entender qué está cubierto y qué no
 5. Revisa el historial git reciente si está disponible: `git log --oneline -20`
 6. Identifica si hay documentación técnica existente (wikis, docs/, comentarios en código)
+7. Detecta el tipo de aplicación: si existe `src-tauri/` (o un `Cargo.toml` con `tauri`) es una app de escritorio nativa — lee `dbv-specs-ops/docs/NATIVE_DESKTOP_APPS.md`; si es una app web que podría empaquetarse como escritorio, lee `dbv-specs-ops/docs/WEB_TO_DESKTOP_MIGRATION.md`. Anota también si ya integra un asistente de IA (consulta `dbv-specs-ops/docs/AI_DESKTOP_ARCHITECTURE.md`)
 
 Cuando termines, presénta un resumen con este formato exacto antes de pasar a la Fase B:
 
 ```
 ## Análisis inicial
 - **Stack detectado:** [tecnologías y versiones]
+- **Tipo de aplicación:** [web / API / escritorio nativo (Tauri) / librería-CLI / candidata web→escritorio] — IA integrada: [sí / no]
 - **Estado del proyecto:** [prototipo / desarrollo activo / producción / mantenimiento]
 - **Tests:** [ninguno / parciales (~X%) / cobertura razonable]
 - **Documentación existente:** [ninguna / README básico / docs parciales / bien documentado]
@@ -69,7 +71,7 @@ A continuación, NO me hagas preguntas de una en una. Redacta un borrador inicia
 <documentation_phase>
 ## Fase C — Generación de Documentos SDD
 
-Con el análisis y mis respuestas, crea o actualiza estos tres archivos **estrictamente dentro de la subcarpeta `dbv-specs-ops/`** (por ejemplo: `dbv-specs-ops/docs/SPECIFICATIONS.md`, `dbv-specs-ops/docs/ARCHITECTURE.md` y `dbv-specs-ops/task.md`):
+Con el análisis y mis respuestas, crea o actualiza estos cuatro archivos **estrictamente dentro de la subcarpeta `dbv-specs-ops/`** (por ejemplo: `dbv-specs-ops/docs/SPECIFICATIONS.md`, `dbv-specs-ops/docs/ARCHITECTURE.md`, `dbv-specs-ops/task.md` y `dbv-specs-ops/memory.md`):
 
 ⚠️ **Diferenciación Crítica de Contexto**: La documentación de especificaciones y arquitectura debe centrarse única y exclusivamente en el código, lógica de negocio y stack de la aplicación del usuario. **Bajo ningún concepto debes documentar la estructura o lógica del propio framework de `dbv-specs-ops`** en estos ficheros.
 
@@ -79,6 +81,8 @@ Rellénalo con lo que has entendido del proyecto del usuario. Usa estas marcas p
 - `[CONFIRMADO]` — confirmado explícitamente por el usuario en la Fase B
 - `[PENDIENTE]` — información del negocio/aplicación que falta y que habrá que resolver
 
+Asigna a cada requisito que documentes un ID único al inicio de su línea (`REQ-01`, `REQ-02`…; `RNF-01`… para los no funcionales), seguido de su marca. Así los tests y el código nuevos podrán citarlo con `@spec REQ-01`.
+
 ### `dbv-specs-ops/docs/ARCHITECTURE.md`
 Documenta el stack, componentes y la estructura de la aplicación del usuario tal como **están ahora**, no como deberían ser.
 
@@ -87,6 +91,12 @@ Crea el backlog de la aplicación con:
 - Las tareas en curso que identifiques en el código de la aplicación (ramas, TODOs, tests fallidos…)
 - Las tareas pendientes que el usuario indicó en la Fase B
 - Un **Snapshot de Contexto** que capture el estado real de la aplicación en este momento
+
+### `dbv-specs-ops/memory.md`
+Créalo a partir de `dbv-specs-ops/docs/templates/memory.template.md` (si el `memory.md` actual describe el propio framework en vez de la aplicación, sustitúyelo) y rellénalo con lo que has entendido:
+- **Contexto Activo**: estado actual de la aplicación y foco inmediato.
+- **ADRs inferidos**: las decisiones técnicas que se deducen del código y de las respuestas de la Fase B, marcadas `[INFERIDO]` hasta que el usuario las confirme.
+- **Mapa de Relaciones**: cómo interactúan los módulos principales de la aplicación.
 </documentation_phase>
 
 ---
@@ -94,9 +104,9 @@ Crea el backlog de la aplicación con:
 <kickoff_phase>
 ## Fase D — Arranque
 
-Cuando los tres documentos estén listos, presenta el resumen del estado del proyecto y pregunta:
+Cuando los cuatro documentos estén listos, presenta el resumen del estado del proyecto y pregunta:
 
-> "He reconstruido el contexto. El estado actual está en `task.md`. ¿Empezamos con [tarea más urgente identificada] o hay algo que quieras corregir primero en las especificaciones?"
+> "He reconstruido el contexto. El estado actual está en `dbv-specs-ops/task.md`. ¿Empezamos con [tarea más urgente identificada] o hay algo que quieras corregir primero en las especificaciones?"
 
-A partir de aquí, sigue el workflow estándar definido en `docs/MASTER_PROMPT.md`.
+A partir de aquí, sigue el workflow estándar definido en `dbv-specs-ops/docs/MASTER_PROMPT.md`.
 </kickoff_phase>

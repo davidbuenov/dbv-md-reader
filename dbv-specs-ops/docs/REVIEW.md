@@ -8,7 +8,11 @@ Cada revisión de código debe recorrer estos tres pases y etiquetar cada hallaz
 
 1. **Bugs** — errores de lógica, edge cases rotos, regresiones silenciosas.
 2. **Seguridad** — inyección, fugas de credenciales, validación de entrada ausente, dependencias alucinadas o de origen dudoso (*slopsquatting* — ya cubierto por el gate de seguridad existente del framework).
+   - *Apps con IA integrada (`Desktop AI Assistant: Yes`)*: las claves de API se custodian solo en el llavero nativo del SO (`keyring`), nunca en el frontend, en disco ni en logs; las herramientas de IA confinan sus rutas al espacio de trabajo (rechazan `..` y enlaces simbólicos no controlados).
 3. **Cumplimiento** — el cambio respeta `SPECIFICATIONS.md`, `implementation_plan.md`, `ARCHITECTURE.md` **y** los `<coding_standards>` de `MASTER_PROMPT.md` (un solo `return` + guard clauses, patrón Result en operaciones que pueden fallar, tipado estricto en fronteras, excepciones específicas, ESM/tipado moderno). Repasa este último punto función por función en el diff — es una comprobación explícita porque declarar la regla como "obligatoria" en el prompt no basta para que se aplique de forma consistente; ver `docs/GUARDRAILS.md` si además quieres blindarla con un guardarraíl determinista.
+   - *Verificación determinista*: ejecuta `python dbv-specs-ops/scripts/dbv-lint.py --changed` (solo lo que toca el cambio) y trata sus errores como hallazgos de Cumplimiento.
+   - *Trazabilidad (solo requisitos con ID)*: los tests nuevos que validan un requisito llevan la etiqueta `@spec REQ-XX`.
+   - *Apps Tauri*: ningún `.unwrap()`/`.expect()` en comandos `#[tauri::command]` ni en código de runtime (salvo arranque y tests); se respetan las trampas de `docs/NATIVE_DESKTOP_APPS.md` §6; la detección de entorno vive solo en `api.js` (`runningInTauri`, ver `docs/WEB_TO_DESKTOP_MIGRATION.md` §3.1).
 
 ## Niveles de severidad
 
@@ -22,6 +26,7 @@ Cada revisión de código debe recorrer estos tres pases y etiquetar cada hallaz
 
 - Ficheros generados automáticamente.
 - Cualquier cosa que ya valide el linter/formatter del proyecto (evita duplicar el trabajo determinista).
+- Incumplimientos preexistentes en ficheros que el cambio no toca (el código anterior a v3.0.0 no se reprocha; `dbv-lint.py --changed` ya lo excluye).
 
 ## Cómo se integra en el flujo existente
 

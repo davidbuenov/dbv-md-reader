@@ -35,6 +35,25 @@ solo informa.
 
 Cada plataforma decide cómo invocarlo (subagente nativo si lo soporta, o simplemente pegar la plantilla como un prompt nuevo dentro de la sesión). El fichero markdown es la parte portable; el mecanismo de invocación no lo es, y no hace falta que lo sea.
 
+## Contratos de delegación y Scope Lock (evitar colisiones)
+
+Cada sesión paralela o subagente recibe al empezar un contrato que acota qué puede tocar. Pégalo (o inyéctalo) como primer mensaje de la sesión:
+
+```yaml
+scope_contract:
+  worktree: "../proyecto-feature-auth"
+  allowed_files: ["src/auth/**", "tests/auth/**"]
+  forbidden_files: ["src/core/**", "dbv-specs-ops/docs/MASTER_PROMPT.md"]
+  req_id_range: "REQ-20..REQ-29"
+  max_tool_calls_budget: 40
+```
+
+- `allowed_files` / `forbidden_files`: si la tarea exige tocar algo fuera de `allowed_files`, la sesión se detiene y lo consulta en vez de ampliar el alcance por su cuenta.
+- `req_id_range`: los IDs nuevos que esta sesión puede crear en `SPECIFICATIONS.md`. Evita que dos ramas inventen el mismo `REQ-NN`; si aun así ocurre, `dbv-lint.py` avisa de IDs duplicados al hacer el merge.
+- `max_tool_calls_budget`: tope de llamadas a herramientas antes de reportar y pedir instrucciones.
+
+El contrato es *advisory*: lo cumple la IA si recuerda hacerlo. Para que `forbidden_files` sea difícil de saltar, respáldalo con `CODEOWNERS` o con un pre-commit que rechace esas rutas (ver `docs/GUARDRAILS.md`).
+
 ## Gobernanza
 
-Registra en `task.md` qué worktrees están activos y a qué tarea corresponden, para que cualquier persona (o IA) que retome el proyecto sepa qué hay en vuelo.
+Registra en `task.md` qué worktrees están activos, a qué tarea corresponden y su `scope_contract`, para que cualquier persona (o IA) que retome el proyecto sepa qué hay en vuelo.

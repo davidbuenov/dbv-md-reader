@@ -1,0 +1,24 @@
+# Plantilla de dbv-specs-ops — Release de GitHub automático al subir un tag vX.Y.Z.
+# La fase Ship (/ship) la copia a .github/workflows/release.yml SOLO si el usuario lo acepta.
+# No la instales si el proyecto ya tiene su propio CI de releases (p. ej. apps nativas):
+# ver docs/NATIVE_APPS_RELEASE_CI.md.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Crear el Release con las notas del CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 dbv-specs-ops/scripts/release-notes.py "${GITHUB_REF_NAME}" --create --changelog dbv-specs-ops/CHANGELOG.md

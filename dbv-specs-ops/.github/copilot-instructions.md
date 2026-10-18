@@ -13,6 +13,8 @@ Este proyecto usa **Spec-Driven Development (SDD)**. Aplica estas instrucciones 
 
 El workflow completo y las normas de desarrollo están en `docs/MASTER_PROMPT.md`.
 
+> **Nota de rutas (aislamiento en subcarpeta):** En proyectos consumidores donde este framework vive dentro de la subcarpeta `dbv-specs-ops/`, antepón `dbv-specs-ops/` a todas las rutas anteriores (p. ej. `dbv-specs-ops/docs/MASTER_PROMPT.md`, `dbv-specs-ops/task.md`). Si `docs/MASTER_PROMPT.md` existe en la raíz del workspace, estás en el repositorio del propio framework y las rutas son las indicadas arriba.
+
 ## ⚠️ Reglas Core (Puntero Fuerte)
 
 **Lee `docs/MASTER_PROMPT.md` y sigue su flujo de trabajo estrictamente. Si detectas contradicciones entre el prompt y las especificaciones del proyecto, detente e informa antes de proceder.**

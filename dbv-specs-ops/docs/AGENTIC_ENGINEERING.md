@@ -78,3 +78,21 @@ Verifican el comportamiento clásico del sistema:
 Verifican el comportamiento inteligente y probabilístico de la IA o pipelines generativos:
 *   **Evaluación del Output**: Evaluar la calidad, el tono, la ausencia de alucinaciones y la conformidad de formato JSON/XML de una respuesta de IA mediante rúbricas automáticas o "Model Judges" (modelos evaluadores).
 *   **Evaluación de la Trayectoria (Trajectory Eval)**: Auditar la secuencia de pasos que tomó el agente. No basta con que el código final sea correcto si para llegar a él la IA realizó 100 llamadas ineficientes a herramientas o consumió tokens excesivos en un bucle repetitivo.
+
+---
+
+## 🕸️ 6. Memoria Procedimental: Grafo de Fases y Rejection Memory
+
+La taxonomía **CoALA** (*Cognitive Architectures for Language Agents*, Sumers et al., 2023) distingue tres memorias de largo plazo en un agente. *Procedural Graphs* ([Lu et al., Google, arXiv:2609.09153](https://arxiv.org/abs/2609.09153), 2026) propone estructurar la tercera como un grafo. En `dbv-specs-ops` (v3.1.0) cada una tiene su sitio:
+
+| Memoria (CoALA) | Qué guarda | En `dbv-specs-ops` |
+| --- | --- | --- |
+| **Semántica** | Hechos y requisitos: *qué es y qué debe hacer el sistema* | `SPECIFICATIONS.md`, `ARCHITECTURE.md`, `DESIGN.md` |
+| **Episódica** | Lo que pasó y por qué, incluidos los caminos descartados | `memory.md` (ADRs, Lecciones y **Rejection Memory**), `walkthrough.md` |
+| **Procedimental** | Qué hacer a continuación, cuándo y qué evitar | `MASTER_PROMPT.md` (`<workflow>`) y su resumen como grafo, `docs/PROCEDURAL_GRAPH.json` |
+
+**Contexto local en vez de reglas globales.** Dar al agente las reglas de todas las fases a la vez reparte su atención entre instrucciones que no aplican. Por eso cada comando de fase lleva solo su vecindario del grafo: cómo ejecutar la fase, sus salidas con sus condiciones y lo que revisará el paso siguiente. En la ablación del paper, el subgrafo local superó al grafo completo, aunque allí con un LLM intermedio que reescribe la guía.
+
+**Memoria de rechazo.** Un agente que se corrige a sí mismo tiende a volver a proponer lo que ya falló. Registrar los enfoques descartados y leerlos antes de proponer corta ese bucle entre sesiones.
+
+Qué se adoptó del paper, qué no y por qué: [`docs/PROCEDURAL_GRAPHS.md`](./PROCEDURAL_GRAPHS.md).

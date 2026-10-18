@@ -11,6 +11,7 @@
 | **Tienda curada con auto-firma** | Microsoft Store (vía MSIX) | **La tienda firma el paquete automáticamente** tras certificación — no hace falta comprar certificado | Gratis (cuenta de desarrollador individual) | Automatizada + manual, días | Gestionadas por la tienda/SO |
 | **Tienda curada con firma propia** | Mac App Store, listado "EXE/MSI" de Microsoft Store | Certificado propio obligatorio (Apple Developer 99$/año, o Authenticode de una CA del Trusted Root Program) | Recurrente | Manual, revisión estricta | Gestionadas por la tienda |
 | **Catálogo de terceros** | Uptodown y similares | Normalmente **no exige firma de plataforma** | Gratis | Editorial, manual, sin plazo garantizado | No integradas — el usuario reinstala la nueva versión |
+| **Catálogo que te descubre solo** | [AppImageHub](https://appimage.github.io) (Linux, `.AppImage`) | No | Gratis | **Automática**: su bot abre el PR de alta sin que lo pidas, ejecuta la app con firejail y comenta el resultado mencionándote. Un fallo bloquea el merge (ver `NATIVE_APPS_RELEASE_CI.md` §6ter) | Enlaza a tus GitHub Releases |
 
 **Decisión clave a no dar por hecha:** antes de asumir que hace falta comprar un certificado de firma de
 código, comprobar si la tienda ofrece una vía de **auto-firma tras certificación** (como el MSIX de

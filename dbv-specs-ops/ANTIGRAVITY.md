@@ -10,12 +10,15 @@ This project follows **Spec-Driven Development (SDD)**. Read these files at the 
 
 | File | Purpose |
 |---|---|
+| `project.config.md` | Project identity: name, author, license and file header template |
 | `docs/MASTER_PROMPT.md` | Mandatory workflow, rules and boundaries |
 | `docs/SPECIFICATIONS.md` | Current project requirements |
 | `docs/ARCHITECTURE.md` | Stack and technical decisions |
 | `docs/DESIGN.md` | Visual design system: color tokens, typography, components and philosophy *(if it exists)* |
 | `memory.md` | **Context and Decisions:** Qualitative knowledge (ADRs, lessons learned, active context) |
 | `task.md` | Current state + Context Snapshot |
+
+> **Path note (subfolder isolation):** In consumer projects where this framework lives inside the `dbv-specs-ops/` subfolder, prefix every path in the table above with `dbv-specs-ops/` (e.g. `dbv-specs-ops/docs/MASTER_PROMPT.md`, `dbv-specs-ops/task.md`). If `docs/MASTER_PROMPT.md` exists at the workspace root, you are inside the framework repository itself and the paths are those in the table.
 
 ## ⚠️ Core Rules (Strong Pointer)
 
@@ -24,7 +27,7 @@ All initialization logic (Bootstrap), state checking (Specs Check), lifecycle (W
 
 ## Antigravity-Specific Behavior
 
-- **Planning Mode**: When creating a plan, activate Antigravity's native Planning Mode. Create the artifacts (`implementation_plan.md`, `task.md`, `walkthrough.md`) **inside the project workspace root** — not only in the conversation brain directory — so they are versioned with the project and accessible to other AI platforms and team members.
+- **Planning Mode**: When creating a plan, activate Antigravity's native Planning Mode. Create and maintain the artifacts (`implementation_plan.md`, `task.md`, `walkthrough.md`) **inside the `dbv-specs-ops/` directory** of the project workspace (or in the workspace root only when maintaining the framework repository itself) — not only in the conversation brain directory — so they stay with the project and are accessible to other AI platforms and team members.
 - **Knowledge Items (KIs)**: After completing a significant milestone, offer to create a Knowledge Item summarizing the project context. This enables seamless context recovery in future sessions without rereading all docs.
 - **Context Snapshot**: At the end of each session or before a conversation limit, write a Context Snapshot to `task.md` with the exact next step so the work can be resumed instantly.
 

@@ -4,5 +4,5 @@
   "prompt": "Ejecuta /spec para: 'Los usuarios olvidan tareas importantes'. Debe generar o actualizar docs/SPECIFICATIONS.md con Problema, Objetivo y al menos 2 criterios de aceptacion.",
   "check_type": "grep",
   "check_target": "docs/SPECIFICATIONS.md",
-  "check_pattern": "Problema|Objetivo|Criterios"
+  "check_pattern": "[Oo]lvid"
 }

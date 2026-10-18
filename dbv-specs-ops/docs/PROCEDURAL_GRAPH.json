@@ -1,0 +1,199 @@
+{
+  "graph_version": "1",
+  "framework_version": "3.1.0",
+  "description": "Grafo de fases del ciclo SDD de dbv-specs-ops. Inspirado en Procedural Graphs (Lu et al., arXiv:2609.09153). Fuente única de los bloques generados en .claude/commands/ (python scripts/pg-guide.py --write-commands). Documentación: docs/PROCEDURAL_GRAPHS.md.",
+  "semantics": "Una arista (origen, relación, destino) dice que el destino es admisible tras el origen. condition = cuándo se puede tomar (la puerta); guidance = cómo ejecutar el paso destino; pitfalls = qué evitar al ejecutarlo. Las rutas son relativas a la carpeta del framework (dbv-specs-ops/ en un proyecto consumidor).",
+  "start_node": "Start",
+  "end_node": "End",
+  "relations": ["LEADS_TO", "TRIGGERS", "PROVIDES_INPUT_FOR", "CONVERGES_TO"],
+  "node_types": ["STATE", "PHASE"],
+  "nodes": [
+    {
+      "id": "Start",
+      "type": "STATE",
+      "description": "Inicio de sesión: llega una petición del usuario o un aviso del detector de Maintain."
+    },
+    {
+      "id": "Bootstrap",
+      "type": "PHASE",
+      "description": "Configuración inicial: project.config.md, activadores, git, LICENSE y README."
+    },
+    {
+      "id": "Spec",
+      "type": "PHASE",
+      "command": "/spec",
+      "description": "Fase 1: el qué y el por qué en SPECIFICATIONS.md, con IDs REQ-NN (y DESIGN.md si hay UI)."
+    },
+    {
+      "id": "Plan",
+      "type": "PHASE",
+      "command": "/plan",
+      "description": "Fase 2: modo Conductor/Orquestador, Adversarial Architect Review y desglose en task.md (o implementation_plan.md)."
+    },
+    {
+      "id": "Build",
+      "type": "PHASE",
+      "command": "/build",
+      "description": "Fase 3: implementación incremental, una porción cada vez, con cabeceras y etiquetas @spec."
+    },
+    {
+      "id": "Test",
+      "type": "PHASE",
+      "command": "/test",
+      "description": "Fase 4: tests deterministas etiquetados con @spec y Evals si hay IA no determinista."
+    },
+    {
+      "id": "Simplify",
+      "type": "PHASE",
+      "command": "/code-simplify",
+      "description": "Fase 5: revisión en tres pases (docs/REVIEW.md), dbv-lint.py y refactor de claridad."
+    },
+    {
+      "id": "Ship",
+      "type": "PHASE",
+      "command": "/ship",
+      "description": "Fase 6: Memory Gate, documentación, versión semántica, CHANGELOG y tag de git."
+    },
+    {
+      "id": "Maintain",
+      "type": "PHASE",
+      "command": "/maintain",
+      "description": "Fase 7 (opcional): diagnóstico en solo lectura de una desviación detectada por CI/cron."
+    },
+    {
+      "id": "End",
+      "type": "STATE",
+      "description": "Ciclo cerrado: entrega hecha o hallazgo redactado, y Snapshot de Contexto guardado en task.md."
+    }
+  ],
+  "edges": [
+    {
+      "source": "Start",
+      "relation": "TRIGGERS",
+      "target": "Bootstrap",
+      "condition": "project.config.md contiene placeholders como [Project Name] (y no estás en el repo fuente del framework).",
+      "guidance": "Propón las 8 configuraciones en un único borrador con asunciones marcadas [ASSUMPTION: ...] y pide confirmación en un solo mensaje.",
+      "pitfalls": "No preguntes una a una. No ejecutes git init, ni restablezcas task.md/memory.md, ni borres un .git anidado sin confirmación explícita."
+    },
+    {
+      "source": "Start",
+      "relation": "LEADS_TO",
+      "target": "Spec",
+      "condition": "project.config.md ya está configurado y el usuario pide una funcionalidad o un cambio de requisitos.",
+      "guidance": "Lee project.config.md, SPECIFICATIONS.md, memory.md (incluida la Rejection Memory) y task.md. Da a cada requisito nuevo o modificado el siguiente ID libre (máximo + 1).",
+      "pitfalls": "No escribas código en esta fase. No inventes requisitos ambiguos: pregunta. No renumeres ni reutilices IDs."
+    },
+    {
+      "source": "Start",
+      "relation": "TRIGGERS",
+      "target": "Maintain",
+      "condition": "Maintain está habilitado en project.config.md y el detector determinista (CI/cron) reporta una desviación de banda 2 o superior.",
+      "guidance": "Diagnostica en solo lectura. Si el log supera el presupuesto de contexto, conserva su FINAL (tail), no su principio: el fallo está al final. Consulta la Rejection Memory antes de proponer una causa o un arreglo.",
+      "pitfalls": "No despliegues, no hagas merge y no cambies código. No te quedes con el principio del log (head): el fallo suele estar al final."
+    },
+    {
+      "source": "Bootstrap",
+      "relation": "PROVIDES_INPUT_FOR",
+      "target": "Spec",
+      "condition": "El usuario ha confirmado la configuración y project.config.md está guardado.",
+      "guidance": "Si SPECIFICATIONS.md solo tiene placeholders y ya hay código, sigue ADOPTION_PROMPT.md; si no, define los requisitos con IDs y DESIGN.md si hay UI.",
+      "pitfalls": "No pases a /plan con placeholders sin resolver en SPECIFICATIONS.md."
+    },
+    {
+      "source": "Spec",
+      "relation": "PROVIDES_INPUT_FOR",
+      "target": "Plan",
+      "condition": "Los requisitos de la tarea tienen ID y criterios de aceptación verificables, sin preguntas abiertas críticas.",
+      "guidance": "Clasifica el modo (Conductor <= 2 archivos y < 50 líneas; Orquestador si no). Imprime <architect_review> con <evidence> y <confidence_score>; el <adversary> cita un sustantivo concreto de SPECIFICATIONS.md. Desglosa en pasos de <= 50 líneas que citen su ID.",
+      "pitfalls": "No propongas un enfoque que figure como vigente en la Rejection Memory sin decir por qué ya no aplica. No avances a /build con un eje de confianza en low sin validación humana. Si el plan es complejo, no omitas el Frontmatter YAML (dependencies, risks, rollback_strategy)."
+    },
+    {
+      "source": "Plan",
+      "relation": "LEADS_TO",
+      "target": "Spec",
+      "condition": "El Architect Review revela que la especificación es ambigua o contradictoria, o el usuario rechaza el plan.",
+      "guidance": "Corrige solo la parte de SPECIFICATIONS.md afectada y vuelve a /plan. Registra el enfoque descartado y su motivo en la Rejection Memory de memory.md (REJECTED-NN).",
+      "pitfalls": "No reescribas requisitos que no estaban en cuestión. No borres un enfoque rechazado: se registra para no volver a proponerlo."
+    },
+    {
+      "source": "Plan",
+      "relation": "PROVIDES_INPUT_FOR",
+      "target": "Build",
+      "condition": "El plan ha superado el Architect Review y el usuario lo ha aprobado explícitamente.",
+      "guidance": "Implementa una porción cada vez. Cabecera de project.config.md en cada fichero nuevo, @spec REQ-NN en las funciones que implementan un requisito y entrada en CHANGELOG.md [Sin publicar]. Si contradices ARCHITECTURE.md, regístralo ya en memory.md.",
+      "pitfalls": "Varios return fuera de las Guard Clauses iniciales (un solo return final); excepciones o None donde toca el patrón Result; any en TypeScript; .unwrap()/.expect() en comandos IPC de Rust; todo el React en App.tsx; en Tauri sin bundler, ES modules o una constante isTauri (usa IIFE y runningInTauri)."
+    },
+    {
+      "source": "Build",
+      "relation": "LEADS_TO",
+      "target": "Test",
+      "condition": "La porción está implementada, compila o se ejecuta sin errores y está anotada en CHANGELOG.md.",
+      "guidance": "Escribe y ejecuta tests deterministas que citen @spec REQ-NN para cada requisito tocado. Con componentes de IA, añade Evals; con un Agent Plugin, valida plugin.json y mcp.json.",
+      "pitfalls": "No marques una tarea como hecha sin un test en verde. Si un enfoque falla y lo reviertes, regístralo en la Rejection Memory antes de probar otro."
+    },
+    {
+      "source": "Test",
+      "relation": "TRIGGERS",
+      "target": "Build",
+      "condition": "Algún test o Eval falla.",
+      "guidance": "Corrige la causa en el código y anótalo como Fixed en CHANGELOG.md. Si el fallo desmiente un supuesto de SPECIFICATIONS.md, regístralo en Lecciones Aprendidas de memory.md.",
+      "pitfalls": "No relajes ni borres una aserción para poner el test en verde. No repitas un arreglo que ya se revirtió (míralo en la Rejection Memory)."
+    },
+    {
+      "source": "Test",
+      "relation": "PROVIDES_INPUT_FOR",
+      "target": "Simplify",
+      "condition": "Todos los tests y Evals pasan, y ningún requisito con ID de la tarea se queda sin test.",
+      "guidance": "Haz los tres pases de docs/REVIEW.md (Bugs, Seguridad, Cumplimiento con <coding_standards>) y, si hay Python, ejecuta dbv-lint.py --changed. Después refactoriza para dar claridad sin cambiar el comportamiento.",
+      "pitfalls": "No añadas funcionalidad nueva. Si un refactor rompe tests y lo reviertes, regístralo en la Rejection Memory."
+    },
+    {
+      "source": "Simplify",
+      "relation": "TRIGGERS",
+      "target": "Build",
+      "condition": "La revisión deja un hallazgo Crítico que exige cambiar el comportamiento del código, o un refactor rompe los tests.",
+      "guidance": "Vuelve a Build solo para ese hallazgo y repasa Test antes de regresar a Simplify.",
+      "pitfalls": "No mezcles la corrección con funcionalidad nueva. No ocultes el hallazgo rebajando su severidad."
+    },
+    {
+      "source": "Simplify",
+      "relation": "CONVERGES_TO",
+      "target": "Ship",
+      "condition": "Cero hallazgos Crítico, dbv-lint.py sin errores (si aplica) y tests en verde tras el refactor.",
+      "guidance": "Imprime <memory_update_proposal>. Actualiza README.md de la raíz, sincroniza DESIGN.md derivado si existe, completa walkthrough.md, pregunta el tipo de versión, publica CHANGELOG.md y propone commit + tag.",
+      "pitfalls": "No ejecutes git push (solo sugiérelo). No cierres sin <memory_update_proposal>. No generes start/stop en apps de escritorio, librerías o CLIs."
+    },
+    {
+      "source": "Ship",
+      "relation": "TRIGGERS",
+      "target": "Simplify",
+      "condition": "El gate de /ship encuentra un hallazgo Crítico sin resolver o la documentación contradice el código.",
+      "guidance": "Vuelve a la revisión por pases solo para resolver lo que bloquea la entrega.",
+      "pitfalls": "No publiques una versión con un Crítico abierto."
+    },
+    {
+      "source": "Ship",
+      "relation": "LEADS_TO",
+      "target": "End",
+      "condition": "Versión elegida por el usuario, CHANGELOG.md publicado, commit y tag propuestos.",
+      "guidance": "Guarda el Snapshot de Contexto en task.md y resume al usuario lo entregado.",
+      "pitfalls": "No dejes ficheros temporales ni cambios sin reflejar en task.md."
+    },
+    {
+      "source": "Maintain",
+      "relation": "LEADS_TO",
+      "target": "End",
+      "condition": "El hallazgo está redactado como ## [Detectado automáticamente] <fecha> en SPECIFICATIONS.md.",
+      "guidance": "Deja la decisión al humano: el hallazgo reentra por /plan solo si alguien decide abordarlo.",
+      "pitfalls": "No empieces a construir el arreglo en la misma sesión."
+    },
+    {
+      "source": "Maintain",
+      "relation": "PROVIDES_INPUT_FOR",
+      "target": "Plan",
+      "condition": "Un humano ha revisado el hallazgo [Detectado automáticamente] y decide abordarlo.",
+      "guidance": "Trata el hallazgo como un requisito más: asígnale un ID y pásalo por el Architect Review.",
+      "pitfalls": "No saltes de Maintain a Build sin plan aprobado."
+    }
+  ]
+}
