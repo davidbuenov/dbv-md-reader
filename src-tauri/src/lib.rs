@@ -27,6 +27,11 @@ pub mod ai;
 // RF-37: guardar en `images/` las imágenes pegadas o soltadas. Solo escritorio (sin Modo Edición en Android).
 #[cfg(desktop)]
 pub mod images;
+// RF-42 (0.19.0): recordar posición, tamaño y maximizado de la ventana principal. Solo escritorio.
+#[cfg(desktop)]
+pub mod window_state;
+// RF-14 (0.19.0): entorno de WebView2 heredado de un proceso padre (PowerToys Peek). Función pura; solo actúa en Windows.
+pub mod webview_env;
 
 /// Extensiones tratadas como documento abierto por la app — mismo criterio en el filtro
 /// del diálogo nativo (`open_file_dialog`), el Drag & Drop (RF-09) y el árbol de directorios
@@ -313,6 +318,28 @@ fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
     ("xdg-open", vec![target])
 }
 
+/// Carpeta inicial de un diálogo nativo de archivo (RF-46): la primera candidata que existe de verdad y es una
+/// ruta absoluta o, si ninguna sirve, `documents` (Documentos del usuario). Nunca el directorio de trabajo del
+/// proceso: en AppImage es el punto de montaje (`/tmp/.mount_…`) y en MSIX la carpeta del paquete, de ahí que una
+/// ruta relativa (que apuntaría al directorio de trabajo) no valga como candidata. `None` deja que decida el SO.
+///
+/// @spec RF-46
+pub fn pick_start_dir(candidates: &[String], documents: Option<PathBuf>) -> Option<PathBuf> {
+    let first_valid = candidates
+        .iter()
+        .map(PathBuf::from)
+        .find(|p| p.is_absolute() && p.is_dir());
+    first_valid.or_else(|| documents.filter(|d| d.is_dir()))
+}
+
+/// `pick_start_dir` con la carpeta Documentos real del usuario como último recurso.
+///
+/// @spec RF-46
+pub fn dialog_start_dir(app: &tauri::AppHandle, default_dirs: &Option<Vec<String>>) -> Option<PathBuf> {
+    let candidates = default_dirs.as_deref().unwrap_or(&[]);
+    pick_start_dir(candidates, app.path().document_dir().ok())
+}
+
 pub mod commands {
     use super::*;
 
@@ -434,37 +461,35 @@ pub mod commands {
 
     /// Opens a native OS file picker dialog and returns the selected path
     #[tauri::command]
-    pub async fn open_file_dialog(app: tauri::AppHandle) -> Option<String> {
-        app.dialog()
-            .file()
-            .add_filter("Markdown", &MARKDOWN_EXTENSIONS)
-            .blocking_pick_file()
-            .map(|p| p.to_string())
+    pub async fn open_file_dialog(app: tauri::AppHandle, default_dirs: Option<Vec<String>>) -> Option<String> {
+        let mut dialog = app.dialog().file().add_filter("Markdown", &MARKDOWN_EXTENSIONS);
+        if let Some(dir) = crate::dialog_start_dir(&app, &default_dirs) {
+            dialog = dialog.set_directory(dir);
+        }
+        dialog.blocking_pick_file().map(|p| p.to_string())
     }
 
     /// Opens a native "save as" dialog for the Typst export (RF-27) and returns the
     /// chosen path. Writing is done by `write_file` (RF-20) — this only picks where.
     #[tauri::command]
-    pub async fn save_typst_dialog(app: tauri::AppHandle, default_name: String) -> Option<String> {
-        app.dialog()
-            .file()
-            .add_filter("Typst", &["typ"])
-            .set_file_name(default_name)
-            .blocking_save_file()
-            .map(|p| p.to_string())
+    pub async fn save_typst_dialog(app: tauri::AppHandle, default_name: String, default_dirs: Option<Vec<String>>) -> Option<String> {
+        let mut dialog = app.dialog().file().add_filter("Typst", &["typ"]).set_file_name(default_name);
+        if let Some(dir) = crate::dialog_start_dir(&app, &default_dirs) {
+            dialog = dialog.set_directory(dir);
+        }
+        dialog.blocking_save_file().map(|p| p.to_string())
     }
 
     /// Opens a native "save as" dialog to pick where to create a brand-new Markdown
     /// document (RF-29). Writing the (empty) content is done by `write_file` — this
     /// only picks where, same split as `save_typst_dialog`.
     #[tauri::command]
-    pub async fn save_new_file_dialog(app: tauri::AppHandle, default_name: String) -> Option<String> {
-        app.dialog()
-            .file()
-            .add_filter("Markdown", &MARKDOWN_EXTENSIONS)
-            .set_file_name(default_name)
-            .blocking_save_file()
-            .map(|p| p.to_string())
+    pub async fn save_new_file_dialog(app: tauri::AppHandle, default_name: String, default_dirs: Option<Vec<String>>) -> Option<String> {
+        let mut dialog = app.dialog().file().add_filter("Markdown", &MARKDOWN_EXTENSIONS).set_file_name(default_name);
+        if let Some(dir) = crate::dialog_start_dir(&app, &default_dirs) {
+            dialog = dialog.set_directory(dir);
+        }
+        dialog.blocking_save_file().map(|p| p.to_string())
     }
 
     /// Resolves a relative Markdown/image link from the current document's directory (local or remote base)
@@ -722,6 +747,13 @@ mod macos_menu {
             ],
         )?;
 
+        let new_file_item = MenuItem::with_id(
+            handle,
+            "new_file",
+            if es { "Nuevo documento" } else { "New Document" },
+            true,
+            Some("CmdOrCtrl+N"),
+        )?;
         let open_file_item = MenuItem::with_id(
             handle,
             "open_file",
@@ -741,6 +773,7 @@ mod macos_menu {
             "File",
             true,
             &[
+                &new_file_item,
                 &open_file_item,
                 &PredefinedMenuItem::separator(handle)?,
                 &save_item,
@@ -811,8 +844,25 @@ mod macos_menu {
     }
 }
 
+/// Evento del frontend que dispara cada entrada del menú nativo (macOS). Función pura para poder probar
+/// la tabla en cualquier plataforma (RF-29).
+///
+/// @spec RF-29
+pub fn menu_event_name(id: &str) -> Option<&'static str> {
+    match id {
+        "new_file" => Some("menu-new-file"),
+        "open_file" => Some("menu-open-file"),
+        "save" => Some("menu-save"),
+        "toggle_edit_mode" => Some("menu-toggle-edit-mode"),
+        _ => None,
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // RF-14: antes de crear ninguna ventana, descartar las variables de WebView2 que haya impuesto el proceso que nos lanzó.
+    webview_env::scrub_inherited();
+
     // `builder` se construye en dos tramos: el plugin de instancia única (RF-14) y el
     // manejador de eventos de menú (macOS) no existen en Android — el modelo de una sola
     // Activity ya garantiza instancia única, y no hay menú nativo que emitir eventos. No se
@@ -874,21 +924,22 @@ pub fn run() {
                 let menu = macos_menu::build(_app.handle())?;
                 _app.handle().set_menu(menu)?;
             }
+            // RF-42: colocar la ventana principal donde estaba (ver window_state.rs).
+            #[cfg(desktop)]
+            window_state::restore(_app.handle());
             Ok(())
         });
 
     #[cfg(desktop)]
     {
+        builder = builder
+            .manage(window_state::Memory::default())
+            .on_window_event(window_state::on_window_event);
         builder = builder.on_menu_event(|app, event| {
             // "Abrir archivo…" del menú File (macOS) reusa el flujo que ya tiene
             // el frontend para el botón de la toolbar — sólo hace falta avisar
             // a la ventana enfocada, no reimplementar el diálogo en Rust.
-            let event_name = match event.id().as_ref() {
-                "open_file" => Some("menu-open-file"),
-                "save" => Some("menu-save"),
-                "toggle_edit_mode" => Some("menu-toggle-edit-mode"),
-                _ => None,
-            };
+            let event_name = menu_event_name(event.id().as_ref());
             if let Some(event_name) = event_name {
                 let windows = app.webview_windows();
                 let target = windows
@@ -916,6 +967,10 @@ pub fn run() {
             commands::save_typst_dialog,
             commands::save_new_file_dialog,
             commands::resolve_relative_path,
+            #[cfg(desktop)]
+            window_state::get_window_state_pref,
+            #[cfg(desktop)]
+            window_state::set_window_state_pref,
             commands::watch_file,
             commands::get_recent_files,
             commands::add_recent_file,
@@ -1277,6 +1332,61 @@ mod tests {
         let (program, args) = reveal_command("C:\\a\\b", true);
         assert_eq!(program, "explorer");
         assert_eq!(args, vec!["C:\\a\\b".to_string()]);
+    }
+
+    // ── Carpeta inicial de los diálogos (RF-46) ──
+
+    /// @spec RF-46
+    #[test]
+    fn la_carpeta_inicial_es_la_primera_candidata_que_existe() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ok = tmp.path().to_string_lossy().to_string();
+        let missing = tmp.path().join("no-existe").to_string_lossy().to_string();
+        let got = pick_start_dir(&[missing, ok.clone()], None);
+        assert_eq!(got, Some(PathBuf::from(ok)));
+    }
+
+    /// @spec RF-46
+    #[test]
+    fn sin_candidata_valida_cae_en_documentos_y_si_no_existe_en_nada() {
+        let docs = tempfile::tempdir().unwrap();
+        let got = pick_start_dir(&["/no/existe/en/ningun/sitio".to_string()], Some(docs.path().to_path_buf()));
+        assert_eq!(got, Some(docs.path().to_path_buf()));
+        assert_eq!(pick_start_dir(&[], Some(PathBuf::from("/documentos/borrados"))), None);
+    }
+
+    /// @spec RF-46
+    #[test]
+    fn una_ruta_relativa_nunca_vale_porque_apuntaria_al_directorio_de_trabajo() {
+        // `.` existe y es un directorio, pero es justo el directorio de trabajo (`/tmp/.mount_…` en AppImage).
+        assert_eq!(pick_start_dir(&[".".to_string(), "images".to_string(), String::new()], None), None);
+    }
+
+    /// @spec RF-46
+    #[test]
+    fn un_fichero_no_vale_como_carpeta() {
+        let tmp = tempfile::tempdir().unwrap();
+        let file = tmp.path().join("a.md");
+        fs::write(&file, "x").unwrap();
+        assert_eq!(pick_start_dir(&[file.to_string_lossy().to_string()], None), None);
+    }
+
+    // ── Menú nativo de macOS: tabla id → evento (RF-29) ──
+
+    /// @spec RF-29
+    #[test]
+    fn cada_entrada_del_menu_nativo_dispara_su_evento() {
+        assert_eq!(menu_event_name("new_file"), Some("menu-new-file"));
+        assert_eq!(menu_event_name("open_file"), Some("menu-open-file"));
+        assert_eq!(menu_event_name("save"), Some("menu-save"));
+        assert_eq!(menu_event_name("toggle_edit_mode"), Some("menu-toggle-edit-mode"));
+    }
+
+    /// @spec RF-29
+    #[test]
+    fn una_entrada_desconocida_no_dispara_nada() {
+        assert_eq!(menu_event_name("quit"), None);
+        assert_eq!(menu_event_name(""), None);
     }
 
     // ── read_file remote (RF-08A) — requires network, run with `cargo test -- --ignored` ──

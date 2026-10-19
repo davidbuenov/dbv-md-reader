@@ -47,7 +47,7 @@
   `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`
 - **Tamaño de Fuente Base:** `16px` (escalable con `Ctrl + +` / `Ctrl + -`)
 - **Line Height:** `1.6` (optimizado para legibilidad)
-- **Ancho del Documento (dos niveles, "breakout"):** los elementos de prosa (títulos, párrafos, listas, citas) se limitan a `800px` centrados, como en GitHub, para una línea de lectura cómoda. Los bloques anchos (código, tablas, diagramas Mermaid) no llevan ese límite y aprovechan hasta `1100px` (el ancho del contenedor `#content`), reduciendo el scroll horizontal en bloques con líneas largas.
+- **Ancho del Documento (dos niveles, "breakout"):** por defecto, los elementos de prosa (títulos, párrafos, listas, citas) se limitan a `800px` centrados, como en GitHub, para una línea de lectura cómoda, y los bloques anchos (código, tablas, diagramas Mermaid, líneas horizontales, imágenes sueltas) aprovechan hasta `1100px` (el ancho del contenedor `#content`). **Desde la 0.19.0 (RF-41)** el usuario elige el ancho de la prosa (Estrecho 640 · Normal 800 · Ancho 1000 · Completo 100 %) con las variables `--reading-width` y `--content-max`, y una casilla decide si los bloques anchos se abren a todo el contenedor (por defecto, como arriba) o se alinean con la columna del texto. Normal con la casilla marcada es idéntico al diseño anterior.
 
 ---
 
@@ -70,3 +70,15 @@
 
 ### 🔘 Selector de Temas
 - Discreto botón de icono en la esquina superior derecha o barra superior que conmuta entre Claro, Oscuro y Sepia.
+
+### 🧭 Cabecera con menús (0.19.0, RF-38)
+- Tres menús desplegables, en este orden, en la zona derecha de la barra: **Archivo ▾**, **Herramientas ▾**, **Preferencias ▾** (botón fantasma con icono + etiqueta + flecha, como en `dbv-typst-editor`). Cada entrada lleva icono, etiqueta y, si lo tiene, el atajo alineado a la derecha.
+- Lo que depende del contexto se **muestra en gris (deshabilitado)** en lugar de ocultarse, para que el menú no cambie de tamaño. Archivo y Herramientas se cierran al elegir una acción; **Preferencias no se cierra** al marcar una casilla (✓ a la izquierda de la entrada marcada).
+- A la derecha de los menús, **fuera** de ellos: selector de idioma, tema (tres iconos sin texto), Buscar, Modo Edición/Guardar, panel lateral, IA ✨, chincheta, «?» y «i».
+
+### 🌐 Selector de idioma (0.19.0, RF-39)
+- Desplegable compacto con el **código del idioma activo** («ES ▾»); la lista usa los **nombres nativos** (Español, English, 한국어) con ✓ en el activo. Sustituye a los botones ES/EN. Debe admitir más idiomas sin cambiar el diseño (lista con scroll si crece).
+- Tipografía por idioma (`html[lang]`): para coreano se declaran familias con glifos coreanos (Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR) delante de la fuente de reserva.
+
+### ↔️ Ancho de lectura (0.19.0, RF-41)
+- Dentro de **Preferencias**: cuatro opciones excluyentes (Estrecho, Normal, Ancho, Completo) y debajo una casilla «Bloques anchos a todo el ancho». No hay botón propio en la barra.

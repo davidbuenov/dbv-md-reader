@@ -115,6 +115,9 @@ body {
   font-size: 15px;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
+/* RF-39.8: familias con los glifos del idioma delante de la de reserva, para no depender de qué fuente CJK
+   elija el sistema (`<html lang>` lo fija i18n.js al cambiar de idioma). */
+html:lang(ko) body { font-family: 'Inter', system-ui, -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans CJK KR', 'Noto Sans KR', sans-serif; }
 
 /* ─── Utilidades ──────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
@@ -277,11 +280,11 @@ body.is-android #btn-settings {
 }
 
 /* ─── Selector de tema ────────────────────────────────────────────────────── */
-/* Segmented-control compartido por Temas, Idioma y las pestañas Índice/Archivos
+/* Segmented-control compartido por Temas y las pestañas del panel lateral
    (RF-25) — mismo contenedor/botón, cada uno solo aporta su selector propio
-   para el padding/layout que de verdad difiere (ver reglas `#sidebar-tabs`/
-   `.lang-btn`/`.sidebar-tab` más abajo). */
-#theme-switcher, #lang-switcher, #sidebar-tabs {
+   para el padding/layout que de verdad difiere. El idioma ya no es un
+   segmented-control sino un desplegable (RF-39). */
+#theme-switcher, #sidebar-tabs, #help-tabs {
   display: flex;
   align-items: center;
   background-color: var(--bg-primary);
@@ -291,7 +294,7 @@ body.is-android #btn-settings {
   gap: 1px;
 }
 
-.theme-btn, .lang-btn, .sidebar-tab {
+.theme-btn, .sidebar-tab, .help-tab {
   padding: 3px 10px;
   border-radius: 6px;
   font-size: 11px;
@@ -303,15 +306,130 @@ body.is-android #btn-settings {
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.theme-btn:hover, .lang-btn:hover, .sidebar-tab:hover { color: var(--text-primary); }
-.theme-btn.active, .lang-btn.active, .sidebar-tab.active {
+.theme-btn:hover, .sidebar-tab:hover, .help-tab:hover { color: var(--text-primary); }
+.theme-btn.active, .sidebar-tab.active, .help-tab.active {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
   font-weight: 600;
 }
 
-/* ─── Selector de idioma ──────────────────────────────────────────────────── */
-.lang-btn { padding: 3px 8px; }
+/* ─── Selector de idioma (RF-39): desplegable compacto con el código del idioma activo ──────── */
+#btn-lang { min-width: 46px; justify-content: center; border: 1px solid var(--border); background-color: var(--bg-primary); font-weight: 600; }
+.floating-panel--lang { min-width: 170px; max-height: 60vh; overflow-y: auto; }
+.settings-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+/* ─── Cabecera con menús Archivo / Herramientas / Preferencias (RF-38, solo escritorio) ─────────────
+   Los botones originales siguen en el DOM (`.in-menu`) y los menús disparan su clic: ver headermenu.js.
+   El orden visual sale de `order` (el DOM conserva el de siempre, que es el que usa Android). */
+.header-menu { position: relative; display: flex; }
+body.is-android .header-menu { display: none !important; }
+.header-menu__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.header-menu__btn:hover,
+.header-menu__btn[aria-expanded="true"] { background-color: var(--bg-tertiary); color: var(--text-primary); }
+.header-menu__icon { display: none; }
+.header-menu__caret { font-size: 9px; opacity: 0.7; }
+
+.floating-panel--menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 250px;
+  padding: 6px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px var(--shadow);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+.floating-panel--menu.hidden { display: none; }
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item.hidden { display: none; }
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible { background-color: var(--bg-tertiary); outline: none; }
+.menu-item:disabled { opacity: 0.4; cursor: default; }
+.menu-item__icon { display: inline-flex; width: 16px; height: 16px; color: var(--text-secondary); flex-shrink: 0; }
+.menu-item__icon svg { pointer-events: none; }
+.menu-item__icon:empty { display: none; }
+.menu-item__label { flex: 1; white-space: nowrap; }
+.menu-item__keys { margin-left: 16px; font-family: inherit; font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.menu-item__check { width: 14px; visibility: hidden; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+.menu-item[aria-checked="true"] .menu-item__check { visibility: visible; }
+.menu-separator { height: 1px; margin: 5px 4px; background-color: var(--border); }
+.menu-heading { padding: 6px 10px 2px 30px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-muted); }
+
+/* El panel de Archivos recientes ya no cuelga de su botón (oculto): se ancla al borde izquierdo de la zona
+   derecha de la barra, justo debajo de «Archivo». */
+body:not(.is-android) .toolbar-right > .recent-wrap { order: 9; width: 0; }
+body:not(.is-android) #recent-panel { left: 0; right: auto; }
+
+/* Escritorio: orden visual — menús · idioma y tema · Buscar, Modo Edición, Guardar, panel, IA · chincheta, ayuda, acerca de. */
+body:not(.is-android) .in-menu,
+body:not(.is-android) .legacy-divider { display: none !important; }
+body:not(.is-android) .toolbar-right > .header-menu { order: 10; }
+body:not(.is-android) .toolbar-right > .menus-divider { order: 13; }
+body:not(.is-android) .toolbar-right > #lang-switcher { order: 14; }
+body:not(.is-android) .toolbar-right > #theme-switcher { order: 15; }
+body:not(.is-android) .toolbar-right > #btn-search { order: 20; }
+body:not(.is-android) .toolbar-right > #btn-edit-toggle { order: 21; }
+body:not(.is-android) .toolbar-right > #btn-save { order: 22; }
+body:not(.is-android) .toolbar-right > #btn-toggle-toc { order: 23; }
+body:not(.is-android) .toolbar-right > #btn-ai { order: 24; }
+body:not(.is-android) .toolbar-right > .toolbar-divider:not(.legacy-divider):not(.menus-divider) { order: 25; }
+body:not(.is-android) .toolbar-right > #btn-always-on-top { order: 26; }
+body:not(.is-android) .toolbar-right > #btn-markdown-help { order: 27; }
+body:not(.is-android) .toolbar-right > #btn-about { order: 28; }
+body:not(.is-android) .toolbar-left { min-width: 0; flex: 1 1 0; overflow: hidden; }
+body:not(.is-android) .toolbar-right { flex: 0 0 auto; }
+body:not(.is-android) #theme-switcher .theme-btn { padding: 3px 7px; font-size: 13px; }
+
+/* Ventana estrecha: los menús se quedan en su icono y «?» y «i» (que también están en Herramientas) se retiran
+   de la barra, para que quepa en el ancho mínimo de ventana (640 px). */
+@media (max-width: 900px) {
+  body:not(.is-android) .header-menu__label { display: none; }
+  body:not(.is-android) .header-menu__icon { display: inline-flex; }
+}
+@media (max-width: 760px) {
+  body:not(.is-android) #btn-markdown-help,
+  body:not(.is-android) #btn-about { display: none; }
+}
 
 /* ─── Layout principal ────────────────────────────────────────────────────── */
 #app-body {
@@ -329,9 +447,9 @@ body.is-android #btn-settings {
   padding: 40px 32px;
 }
 
-#reader-container::-webkit-scrollbar { width: 8px; }
-#reader-container::-webkit-scrollbar-track { background: transparent; }
-#reader-container::-webkit-scrollbar-thumb {
+#reader-container::-webkit-scrollbar, #help-content::-webkit-scrollbar { width: 8px; }
+#reader-container::-webkit-scrollbar-track, #help-content::-webkit-scrollbar-track { background: transparent; }
+#reader-container::-webkit-scrollbar-thumb, #help-content::-webkit-scrollbar-thumb {
   background-color: var(--border);
   border-radius: 4px;
 }
@@ -403,7 +521,14 @@ body.is-android #btn-settings {
   display: flex;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
+
+/* RF-44.4: resaltado de la coincidencia actual de la búsqueda en el editor (un <textarea> no pinta fragmentos y con el
+   foco en el campo de búsqueda su selección no se ve). Capa encima del texto, sin ratón. */
+#editor-hit-layer { position: absolute; overflow: hidden; pointer-events: none; z-index: 2; }
+#editor-hit-layer[hidden] { display: none; }
+#editor-hit { position: absolute; border-radius: 2px; background-color: rgba(255, 196, 0, 0.38); outline: 1px solid rgba(255, 196, 0, 0.95); }
 
 #editor-line-numbers {
   flex-shrink: 0;
@@ -412,7 +537,7 @@ body.is-android #btn-settings {
   text-align: right;
   color: var(--text-muted);
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: var(--editor-font-size);
   line-height: 1.6;
   white-space: pre;
   user-select: none;
@@ -428,7 +553,7 @@ body.is-android #btn-settings {
   background-color: var(--code-bg);
   color: var(--text-primary);
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: var(--editor-font-size);
   line-height: 1.6;
   padding: 16px;
   outline: none;
@@ -480,6 +605,11 @@ body.is-android #btn-settings {
   transition: border-color 0.2s;
 }
 #empty-state:hover { border-color: var(--accent); }
+/* RF-09 (0.19.0): mientras no se sabe si hay un documento que abrir (arranque con archivo), la bienvenida y
+   «Sin documento abierto» no se pintan — `visibility` y no `display`, para que el layout no cambie.
+   app.js quita la clase `booting` (endBoot). */
+body.booting #empty-state,
+body.booting #doc-breadcrumb { visibility: hidden; }
 
 .empty-icon {
   width: 64px;
@@ -532,15 +662,26 @@ body.is-android #btn-settings {
    modal de Ayuda de sintaxis (#help-content, RF-22) son el mismo pipeline de
    render (parseo + sanitizado + Prism/Mermaid/KaTeX), así que comparten la
    misma hoja de estilos en vez de mantener dos copias que puedan divergir. */
-#content { width: 100%; max-width: 1100px; }
+/* ─── Ancho de lectura (RF-41) ────────────────────────────────────────────────────────────────────────
+   `--reading-width` es la columna del texto y `--content-max` el contenedor de los bloques anchos. Por defecto
+   (Normal, bloques anchos marcados) es EXACTAMENTE el de siempre: 800 px de prosa dentro de 1100 px. Los fija
+   app.js con `data-width` en <body> y la clase `wide-blocks-off` (casilla de Preferencias). */
+:root { --reading-width: 800px; --content-max: 1100px; }
+/* RF-43: tamaño de letra del editor (13 px × el zoom del editor, app.js). Lo comparten el <textarea> y su columna de
+   números de línea: misma fuente e interlineado en los dos, así siguen alineados a cualquier tamaño. */
+:root { --editor-font-size: 13px; }
+body[data-width="narrow"] { --reading-width: 640px; }
+body[data-width="wide"] { --reading-width: 1000px; }
+body[data-width="full"] { --reading-width: 100%; --content-max: 100%; }
+#content { width: 100%; max-width: var(--content-max); }
 .markdown-body { color: var(--text-primary); line-height: 1.75; }
 
-/* Elementos de prosa: ancho de lectura cómodo (~800px, como GitHub), centrados
-   dentro del contenedor más ancho. Los bloques "anchos" (código, tablas, Mermaid)
-   no llevan este límite. */
+/* Elementos de prosa: ancho de lectura cómodo (800px por defecto, como GitHub; ajustable, RF-41), centrados
+   dentro del contenedor más ancho. Los bloques "anchos" (código, tablas, Mermaid, líneas horizontales e
+   imágenes sueltas) no llevan este límite salvo que se desmarque «Bloques anchos a todo el ancho». */
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6,
 .markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body blockquote, .markdown-body .markdown-alert {
-  max-width: 800px;
+  max-width: var(--reading-width);
   margin-left: auto;
   margin-right: auto;
 }
@@ -606,6 +747,24 @@ body.is-android #btn-settings {
 .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
 .markdown-body img { max-width: 100%; border-radius: 8px; vertical-align: middle; }
+
+/* RF-41.2: una imagen que es lo único de su párrafo es un bloque ancho (no una imagen entre texto). */
+.markdown-body p.img-block { max-width: none; }
+
+/* Casilla «Bloques anchos a todo el ancho» desmarcada: se alinean con la columna del texto (lo que pedía la PR #17). */
+body.wide-blocks-off .markdown-body table,
+body.wide-blocks-off .markdown-body .code-block,
+body.wide-blocks-off .markdown-body > pre,
+body.wide-blocks-off .markdown-body hr,
+body.wide-blocks-off .markdown-body .mermaid-container,
+body.wide-blocks-off .markdown-body .mermaid-error,
+body.wide-blocks-off .markdown-body p.img-block {
+  max-width: var(--reading-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+/* Una tabla que no cabe en la columna tiene su propio scroll horizontal, sin desbordar ni la columna ni la ventana. */
+body.wide-blocks-off .markdown-body table { display: block; overflow-x: auto; }
 
 /* Solo la imagen "suelta" (única en su párrafo) se centra como bloque; varias
    imágenes seguidas (p.ej. badges) se quedan inline y fluyen como en GitHub/VS Code. */
@@ -744,10 +903,12 @@ body.is-android #btn-settings {
 /* Contenedor de los botones flotantes de un bloque de código (Copiar, Ajustar
    línea): posicionamiento y aparición al hover en un solo sitio; los botones
    se apilan en columna, así que ninguno necesita un "top" fijo a mano. */
+/* RF-10 (0.19.0): envoltorio sin scroll que ancla los botones (ver ensureCodeActions en app.js). */
+.code-block { position: relative; }
 .code-actions {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 9px;
+  right: 9px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -755,7 +916,7 @@ body.is-android #btn-settings {
   opacity: 0;
   transition: opacity 0.15s;
 }
-.markdown-body pre:hover .code-actions { opacity: 1; }
+.code-block:hover .code-actions, .code-block:focus-within .code-actions { opacity: 1; }
 
 .code-action-btn {
   padding: 3px 10px;
@@ -898,6 +1059,13 @@ body.is-android #btn-settings {
   background-color: var(--bg-tertiary);
   color: var(--accent);
 }
+/* RF-45: reordenar secciones arrastrando entradas del Índice (solo Modo Edición). */
+#toc-list { position: relative; }
+#toc-list a[draggable="true"] { cursor: grab; }
+#toc-list a.toc-dragging { opacity: 0.45; }
+#toc-drop-indicator { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background-color: var(--accent); border-radius: 1px; pointer-events: none; z-index: 3; }
+#toc-drop-indicator[hidden] { display: none; }
+#toc-drop-indicator.invalid { background-color: var(--alert-caution, #cf222e); }
 
 /* ─── Paneles flotantes fijos bajo la barra superior (URL, Búsqueda) ───────── */
 .floating-panel {
@@ -994,6 +1162,12 @@ body.is-android #btn-settings {
 
 /* ─── Modal de búsqueda ───────────────────────────────────────────────────── */
 #search-input { width: 240px; }
+/* RF-44: selector «Editor | Vista previa» del panel de búsqueda (solo visible en Modo Edición). */
+.search-target { display: flex; gap: 1px; padding: 2px; border: 1px solid var(--border); border-radius: 8px; background-color: var(--bg-primary); }
+.search-target.hidden { display: none; }
+.search-target__btn { padding: 2px 8px; border: none; border-radius: 6px; background: transparent; color: var(--text-muted); font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.search-target__btn:hover { color: var(--text-primary); }
+.search-target__btn.active { background-color: var(--bg-tertiary); color: var(--text-primary); font-weight: 600; }
 #search-counter { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 32px; text-align: center; }
 
 /* ─── Panel de Archivos Recientes ─────────────────────────────────────────── */
@@ -1265,10 +1439,13 @@ mark.search-highlight.search-active {
 .about-update-status.is-available { color: var(--accent); font-weight: 600; }
 .about-author { font-size: 11px; color: var(--text-muted); }
 
-/* ─── Ayuda de sintaxis Markdown ──────────────────────────────────────────── */
+/* ─── Ayuda (RF-47): pestañas fijas arriba y contenido con su propio scroll ──── */
 #help-modal { z-index: 250; }
-#help-card { width: min(760px, 90vw); max-height: 85vh; overflow-y: auto; padding: 32px 36px; }
-#help-close { position: absolute; top: 12px; right: 12px; }
+#help-card { width: min(760px, 90vw); height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+#help-close { position: absolute; top: 12px; right: 12px; z-index: 2; }
+#help-tabs { align-self: flex-start; margin: 16px 56px 12px 36px; flex-shrink: 0; max-width: calc(100% - 92px); }
+.help-tab { padding: 5px 14px; font-size: 12px; }
+#help-content { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 36px 32px; outline: none; }
 
 /* Tipografía de prosa: la aporta la clase compartida .markdown-body (ver
    "Contenido Markdown" más arriba) — #help-content la lleva en el HTML. */
@@ -1382,6 +1559,23 @@ body.drag-over #reader-container {
     height: auto !important;
   }
   #content { max-width: 100%; }
+
+  /* RF-10 (0.19.0) — nada queda recortado ni depende de la pantalla: el código se ajusta a la línea en vez
+     de llevar un scroll interno (que el papel recorta e imprime como barra), los diagramas no recortan,
+     las tablas parten el texto largo, y el zoom de lectura no se imprime (medido: con zoom 60 % la
+     columna impresa salía un 23 % más estrecha). */
+  .markdown-body pre,
+  .markdown-body pre code {
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    word-break: break-word;
+  }
+  .mermaid-container { overflow: visible !important; }
+  .markdown-body table { table-layout: auto; word-break: break-word; }
+  #content, #toc-sidebar { zoom: 1 !important; }
+  /* RF-41: el ancho de lectura elegido en pantalla no se imprime; el ancho lo marca la hoja. */
+  :root, body[data-width] { --reading-width: 800px !important; --content-max: 100% !important; }
+  body.wide-blocks-off .markdown-body table { display: table; }
 
   /* En papel el fondo es siempre blanco, sea cual sea el tema de pantalla, así
      que se fuerza aquí la paleta COMPLETA del tema Claro (RF-05) en vez de

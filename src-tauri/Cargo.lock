@@ -799,7 +799,7 @@ dependencies = [
 
 [[package]]
 name = "dbv-md-reader"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "base64 0.22.1",
  "ctor",

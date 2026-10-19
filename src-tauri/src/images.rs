@@ -262,22 +262,29 @@ pub fn copy_image_as(dest_path: String, source_path: String) -> Result<SavedImag
 ///
 /// @spec RF-37
 #[tauri::command]
-pub async fn pick_folder_dialog(app: AppHandle, title: String) -> Option<String> {
-    app.dialog().file().set_title(title).blocking_pick_folder().map(|p| p.to_string())
+pub async fn pick_folder_dialog(app: AppHandle, title: String, default_dirs: Option<Vec<String>>) -> Option<String> {
+    let mut dialog = app.dialog().file().set_title(title);
+    if let Some(dir) = crate::dialog_start_dir(&app, &default_dirs) {
+        dialog = dialog.set_directory(dir);
+    }
+    dialog.blocking_pick_folder().map(|p| p.to_string())
 }
 
 /// Cuadro nativo «Guardar como» para una imagen (cuando no se pudo guardar junto al documento).
 ///
 /// @spec RF-37
 #[tauri::command]
-pub async fn save_image_dialog(app: AppHandle, default_name: String, title: String) -> Option<String> {
-    app.dialog()
+pub async fn save_image_dialog(app: AppHandle, default_name: String, title: String, default_dirs: Option<Vec<String>>) -> Option<String> {
+    let mut dialog = app
+        .dialog()
         .file()
         .add_filter("Imagen", &IMAGE_EXTENSIONS)
         .set_title(title)
-        .set_file_name(default_name)
-        .blocking_save_file()
-        .map(|p| p.to_string())
+        .set_file_name(default_name);
+    if let Some(dir) = crate::dialog_start_dir(&app, &default_dirs) {
+        dialog = dialog.set_directory(dir);
+    }
+    dialog.blocking_save_file().map(|p| p.to_string())
 }
 
 #[cfg(test)]

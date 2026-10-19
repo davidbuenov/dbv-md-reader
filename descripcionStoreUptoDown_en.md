@@ -4,7 +4,7 @@
 >
 > **Listing focused on Mac** (the platform Uptodown actually has published, in review since `v0.7.0`): the text no longer splits attention evenly across Windows/macOS/Linux — it leads with the native Mac experience (app menu, ⌘ shortcuts) and mentions the other platforms briefly at the end. If the Windows listing is published on Uptodown later, rewrite the body with the same approach but centered on Windows — don't reuse this text as-is.
 >
-> **File to upload in *Select File*:** `DBV.Markdown.Reader_0.18.0_universal.dmg` (macOS, Intel + Apple Silicon, no Apple code signing), downloaded from the `v0.18.0` GitHub Release (built by the `release-macos.yml` workflow when the tag is pushed; verify the real name with `gh release view v0.18.0`) that this is the real asset name (an earlier note in this file had a dot before the version, `.7.0`; the real name uses an underscore: `_0.12.0_`).
+> **File to upload in *Select File*:** `DBV.Markdown.Reader_0.19.0_universal.dmg` (macOS, Intel + Apple Silicon, no Apple code signing), downloaded from the `v0.19.0` GitHub Release (built by the `release-macos.yml` workflow when the tag is pushed; verify the real name with `gh release view v0.19.0`) that this is the real asset name (an earlier note in this file had a dot before the version, `.7.0`; the real name uses an underscore: `_0.12.0_`).
 
 ---
 
@@ -62,10 +62,12 @@ No internet connection required to function, and no personal data collected. The
 
 ---
 
-## What's new in this version (v0.18.0)
+## What's new in this version (v0.19.0)
 *(per-version changelog field)*
 
-v0.18.0 "AI Native": optional AI assistant (off by default) with local models, cloud models with your own API key, or agents such as Claude Code or Gemini CLI — it sees the open document and its folder, and nothing is written until you review each change (applied in the editor and undone with ⌘Z); inline AI on the selected text (improve, fix, translate, shorten...). Editor ↔ preview sync (double-click the preview to jump to the code; context menu in the editor). Paste a screenshot or drop an image and it is saved to an images folder next to the document, inserting its code. The file tree now refreshes by itself.
+v0.19.0: the header groups the actions into three menus (File, Tools and Preferences) and the help (F1) now includes an app guide besides the Markdown syntax. New language: Korean (한국어), with a language selector ready for more. Preferences for reading width and editor font size, and the app remembers the window's position and size and the side panel. In Edit Mode you can search inside the editor's text and reorder sections by dragging them from the Index (⌥↑/↓), with undo. Fixes: the welcome screen no longer flashes when opening a file, the code block copy and wrap buttons no longer move with horizontal scroll, printing and PDF no longer clip long code, file dialogs open in the document's folder, and scroll sync between editor and preview is more precise.
+
+And from v0.18.0 "AI Native": optional AI assistant (off by default) with local models, cloud models with your own API key, or agents such as Claude Code or Gemini CLI — it sees the open document and its folder, and nothing is written until you review each change (applied in the editor and undone with ⌘Z); inline AI on the selected text (improve, fix, translate, shorten...). Editor ↔ preview sync (double-click the preview to jump to the code; context menu in the editor). Paste a screenshot or drop an image and it is saved to an images folder next to the document, inserting its code. The file tree now refreshes by itself.
 
 Since v0.12.0 (the last one published here) it also gained: export to Typst (.typ), "New document" (⌘N), GitHub-style alerts, an unsaved-changes warning, syntax highlighting with correct colors when printing, and aligned line numbers.
 

@@ -552,6 +552,3 @@ Esto ya no es sintaxis Markdown, sino los atajos de teclado de **DBV Markdown Re
 📄 Documento de referencia generado para los usuarios de **[DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader)** — ábrelo con la propia aplicación para ver el resultado renderizado en vivo.
 
 </div>
-
-
-VERIFICACION TRAS CODE_SIMPLIFY:

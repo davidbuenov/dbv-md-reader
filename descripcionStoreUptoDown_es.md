@@ -4,7 +4,7 @@
 >
 > **Ficha centrada en Mac** (esta es la plataforma que Uptodown tiene publicada, en revisión desde `v0.7.0`): el texto ya no reparte el protagonismo a partes iguales entre Windows/macOS/Linux — describe primero la experiencia nativa en Mac (menú de aplicación, atajos ⌘) y menciona el resto de plataformas al final, como nota breve. Si más adelante se publica también la ficha de Windows en Uptodown, hay que reescribir el cuerpo con el mismo criterio pero centrado en Windows, no reutilizar este texto tal cual.
 >
-> **Qué archivo subir en *Select File*:** `DBV.Markdown.Reader_0.18.0_universal.dmg` (macOS, Intel + Apple Silicon, sin firma de Apple), descargado de la Release `v0.18.0` en GitHub (la genera el workflow `release-macos.yml` al empujar el tag; verifica el nombre real con `gh release view v0.18.0`) que ese es el nombre real del asset (el `.7.0` de una nota anterior de este fichero llevaba un punto antes de la versión; el nombre real usa guion bajo: `_0.12.0_`).
+> **Qué archivo subir en *Select File*:** `DBV.Markdown.Reader_0.19.0_universal.dmg` (macOS, Intel + Apple Silicon, sin firma de Apple), descargado de la Release `v0.19.0` en GitHub (la genera el workflow `release-macos.yml` al empujar el tag; verifica el nombre real con `gh release view v0.19.0`) que ese es el nombre real del asset (el `.7.0` de una nota anterior de este fichero llevaba un punto antes de la versión; el nombre real usa guion bajo: `_0.12.0_`).
 
 ---
 
@@ -62,10 +62,12 @@ Sin conexión a internet requerida para funcionar y sin recopilación de datos p
 
 ---
 
-## Novedades de esta versión (v0.18.0)
+## Novedades de esta versión (v0.19.0)
 *(campo de changelog por versión)*
 
-v0.18.0 «AI Native»: asistente de IA opcional (desactivado por defecto) con modelos locales, en la nube con tu clave de API o con agentes como Claude Code o Gemini CLI — ve el documento abierto y su carpeta, y nada se escribe sin que revises cada cambio (se aplica en el editor y se deshace con ⌘Z); IA en línea sobre el texto seleccionado (mejorar, corregir, traducir, acortar...). Sincronización entre edición y vista previa (doble clic en la previsualización para saltar al código; menú contextual en el editor). Pega un recorte de pantalla o suelta una imagen y se guarda en una carpeta images junto al documento, insertando su código. El árbol de archivos se actualiza solo.
+v0.19.0: la cabecera agrupa las acciones en tres menús (Archivo, Herramientas y Preferencias) y la ayuda (F1) ahora incluye una guía de la aplicación además de la sintaxis Markdown. Nuevo idioma: coreano (한국어), con un selector de idioma preparado para añadir más. Preferencias de ancho de lectura y de tamaño de letra del editor, y la aplicación recuerda la posición y el tamaño de la ventana y el panel lateral. En Modo Edición puedes buscar dentro del texto del editor y reordenar secciones arrastrándolas desde el Índice (⌥↑/↓), con deshacer. Arreglos: la pantalla de bienvenida ya no parpadea al abrir un archivo, los botones de copiar y ajustar línea del código ya no se mueven con el scroll, la impresión y el PDF ya no recortan el código largo, los cuadros de archivo abren en la carpeta del documento y la sincronización de scroll entre editor y vista previa es más precisa.
+
+Y de v0.18.0 «AI Native»: asistente de IA opcional (desactivado por defecto) con modelos locales, en la nube con tu clave de API o con agentes como Claude Code o Gemini CLI — ve el documento abierto y su carpeta, y nada se escribe sin que revises cada cambio (se aplica en el editor y se deshace con ⌘Z); IA en línea sobre el texto seleccionado (mejorar, corregir, traducir, acortar...). Sincronización entre edición y vista previa (doble clic en la previsualización para saltar al código; menú contextual en el editor). Pega un recorte de pantalla o suelta una imagen y se guarda en una carpeta images junto al documento, insertando su código. El árbol de archivos se actualiza solo.
 
 Desde la v0.12.0 (la última publicada aquí) se añadieron también: exportación a Typst (.typ), «Nuevo documento» (⌘N), alertas al estilo GitHub, aviso de cambios sin guardar, resaltado de sintaxis con colores correctos al imprimir y numeración de línea alineada.
 

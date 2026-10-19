@@ -108,7 +108,7 @@ Requires Xcode Command Line Tools (`xcode-select --install`), [Rust](https://rus
 - **Ultra-lightweight native touch reader:** designed for phones and tablets with a streamlined touch interface and strict compliance with system insets (status bar, notch, and navigation bar).
 - **Storage Access Framework (SAF):** open individual Markdown files in 1 tap, or browse entire folder trees with support for relative local images and cross-document links.
 - **WhatsApp, Telegram, and Gmail integration:** open and view Markdown files shared directly from messaging and mail apps via in-memory streaming without downloading first.
-- **Mobile theme and language switcher:** floating Settings menu (⚙️) with instant switching between Light, Dark, and Sepia themes, and Spanish/English language.
+- **Mobile theme and language switcher:** floating Settings menu (⚙️) with instant switching between Light, Dark, and Sepia themes, and language (Spanish, English or 한국어).
 - **Universal signed AAB bundle:** official release package prepared for Google Play App Signing compiled for ARM64, ARMv7, x86, and x86_64 architectures.
 
 ---
@@ -170,7 +170,13 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 
 ## ✨ Key Features
 
-- **Edit Mode:** split pane with raw Markdown on the left (with line numbers) and the rendered view on the right, scroll-synced by line in either direction — no code-editor library, so it costs nothing in size or RAM. Draggable resize handles. Conflict handling if the file changes externally while you're editing (same model as Windows Notepad: silent if you have no unsaved changes, a one-time prompt if you do). Includes a built-in Markdown syntax cheat sheet ("?" button), a 16-icon formatting toolbar (bold, italic, headings, lists, links, images, tables...) that wraps the selection or inserts a ready-to-fill skeleton, and `Tab`/`Shift+Tab` to indent/outdent lists without leaving the editor.
+- **Edit Mode:** split pane with raw Markdown on the left (with line numbers) and the rendered view on the right, scroll-synced by line in either direction — no code-editor library, so it costs nothing in size or RAM. Draggable resize handles. Conflict handling if the file changes externally while you're editing (same model as Windows Notepad: silent if you have no unsaved changes, a one-time prompt if you do). Includes a 16-icon formatting toolbar (bold, italic, headings, lists, links, images, tables...) that wraps the selection or inserts a ready-to-fill skeleton, and `Tab`/`Shift+Tab` to indent/outdent lists without leaving the editor.
+- **File, Tools and Preferences menus (since 0.19.0):** the header groups the actions into three menus —as in `dbv-typst-editor`— instead of a row of buttons, with shortcuts shown and keyboard navigation. Search, Edit Mode, side panel, theme, language and help stay one click away.
+- **Built-in help with two tabs (since 0.19.0):** `F1`, the "?" button or Tools → Help open the **App guide** (open, read, search, edit, AI, export, preferences and shortcuts) and the **Markdown syntax** cheat sheet.
+- **Extensible languages (since 0.19.0):** Spanish, English and **Korean (한국어)**, chosen from a dropdown built from a language registry (adding another one is one more dictionary). The system language is detected and, without a translation, English is used. The AI answers in the chosen language.
+- **Reading width and wide blocks (since 0.19.0):** in Preferences, Narrow / Normal / Wide / Full and a checkbox so tables, code, diagrams and images may take more room than the text or stay aligned with it. Also the **editor font size** (`Ctrl/Cmd +`, `-`, `0` inside the editor).
+- **Remembers how you left it (since 0.19.0):** window position, size and maximized state (never leaving it off-screen; it can be turned off) and the side panel state. File dialogs open in the document's folder or the last one used, not the process working directory.
+- **Reorder sections from the Index (since 0.19.0):** in Edit Mode, drag an Index entry (or `Alt+↑/↓`) and the whole section moves in the text, with `Ctrl/Cmd+Z` to undo.
 - **New document:** button next to "Open file" (`Ctrl/Cmd + N`) to create a `.md` file from scratch — opens the native save dialog, creates the empty file wherever you choose, and drops straight into Edit Mode.
 - **Built-in, optional AI (desktop only, since 0.18.0):** ✨ button (`Ctrl/Cmd + Shift + I`) and an **«Assistant»** tab in the side panel. Connect a **local** model (Ollama, LM Studio), a **cloud** one with **your own API key** (Anthropic, OpenAI, Google, OpenRouter) or an **agent you already have** (Claude Code, Gemini CLI, Codex, GitHub Copilot CLI). The AI sees the open document and its folder, and **nothing is written until you review it** hunk by hunk (it is applied in the editor and undone with `Ctrl+Z`). Inline AI on the selection (improve, fix, translate, shorten…) with `Ctrl/Cmd + Alt + I`. **Zero footprint** if you don't use it: nothing is loaded and nothing connects anywhere. Guide: [`docs/IA.en.md`](docs/IA.en.md).
 - **Editor ↔ preview sync:** in Edit Mode, **double-click the preview** to put the cursor at the source (the word or the block), and the editor context menu offers **«Go to preview»** (`Ctrl/Cmd + Alt + P`). In reading mode, the preview menu offers «Edit here».
@@ -187,7 +193,7 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 - **Remote documents:** open and navigate links to `.md` files hosted at a URL (`http(s)://`), in addition to local ones.
 - **Strict security:** sanitization of dangerous tags and attributes (DOMPurify) before insertion into WebView2.
 - **Navigation & Table of Contents:** floating/sidebar Table of Contents (TOC) auto-generated from headings, with the visible section highlighted as you scroll. Estimated reading time is shown next to the document name, and a thin progress bar under the header tracks scroll progress.
-- **In-page search:** `Ctrl + F` shortcut for fast, intuitive text search.
+- **In-page search:** `Ctrl + F` shortcut for fast, intuitive text search; in Edit Mode, also **inside the editor's source text** ("Editor | Preview" selector).
 - **Visual themes:** Light mode (GitHub Light), Dark mode (VS Code / GitHub Dark), and Sepia (for extended reading).
 - **Print / Export to PDF:** `Ctrl + P` opens the native print dialog with real pagination (A4, no titles/tables/code blocks split across pages) and syntax/theme colors preserved on paper regardless of the active on-screen theme. *Tip (Windows):* if you don't want the PDF to include the URL/timestamp footer that the print dialog itself adds (WebView2's Chromium engine), expand "More settings" and uncheck "Headers and footers" — the browser remembers this preference for next time. On macOS/Linux the native dialog is different (macOS print panel / GTK on Linux) and it hasn't been confirmed whether it adds the same footer.
 - **Export to Typst:** button next to Print that converts the document to Typst syntax (`.typ`) and saves it wherever you choose — headings, bold/italic/strikethrough, code, lists, quotes, tables, images and links. No need to have Typst installed. Great for continuing to edit it with [dbv-typst-editor](https://davidbuenov.github.io/dbv-typst-editor/).
@@ -209,6 +215,7 @@ The repository includes a [`templates/`](templates/) folder with **20 ready-to-u
 
 | Shortcut | Action |
 | --- | --- |
+| `F1` | Help (app guide and Markdown syntax) |
 | `Ctrl/Cmd + N` | New document |
 | `Ctrl/Cmd + O` | Open file |
 | `Ctrl/Cmd + F` | Search within the document |
@@ -222,13 +229,14 @@ The repository includes a [`templates/`](templates/) folder with **20 ready-to-u
 | `Tab` / `Shift + Tab` | Indent / outdent the line or selection (in the editor) |
 | `Ctrl/Cmd + P` | Print / export to PDF |
 | `Ctrl/Cmd + +` / `-` / `0` | Zoom in / out / reset |
+| `Alt + ↑` / `Alt + ↓` | Move the selected Index section (Edit Mode) |
 | `Alt + ←` / `Alt + →` | Back / forward in navigation history |
 | `Home` / `End` | Jump to the beginning / end of the document (outside a text field) |
 | `Esc` | Close the open panel or modal |
 
 **Mouse:** double-clicking a word in the editor selects it (ready for `Ctrl/Cmd + B` / `I`); right-clicking a Mermaid diagram opens "mermaid.live"; right-clicking a file/folder in the tree offers "Open in new window" / "Reveal in File Explorer".
 
-> The full list, including keyboard navigation for Quick Open and search, also lives in the app's built-in help (the "?" button in Edit Mode).
+> The full list, including keyboard navigation for Quick Open and search, also lives in the app's built-in help (`F1`).
 
 ---
 
@@ -330,6 +338,8 @@ dbv-md-reader/
 │   ├── ai/                # Optional AI (ES modules loaded on demand)
 │   ├── sourcesync.js      # Editor ↔ preview sync (pure logic)
 │   ├── imagepaste.js      # Paste or drop images (pure logic)
+│   ├── headermenu.js      # Header menus (File, Tools, Preferences)
+│   ├── i18n.js            # Language registry (+ i18n.ko.js); guides in apphelp_*.md and markdownhelp_*.md
 │   └── styles.css         # Styles and color tokens
 ├── dbv-specs-ops/         # SDD specifications and engineering framework
 │   ├── project.config.md  # Project identity and file headers
@@ -412,10 +422,12 @@ Copyright (c) 2026 David Bueno Vallejo
 Thanks to everyone who has helped by testing the app, finding bugs and suggesting improvements:
 
 - José M. Alarcón Aguín
-- Victor Estival
+- Victor Estival — proposed adding "New document" to the native macOS menu in [#16](https://github.com/davidbuenov/dbv-md-reader/pull/16) (0.19.0).
 - Julio Lorca
 - Juan Ignacio Caballero — suggested the idea for the Directory Tree Explorer (RF-25/v0.13.0) in [Issue #5](https://github.com/davidbuenov/dbv-md-reader/issues/5).
 - Jacinto Parga — fixed `.md` file association on Linux in [PR #9](https://github.com/davidbuenov/dbv-md-reader/pull/9).
+- [Park-Young-Seok](https://github.com/Park-Young-Seok) — in 0.19.0: the Korean translation and the language selector ([#22](https://github.com/davidbuenov/dbv-md-reader/issues/22)), the reading width ([#21](https://github.com/davidbuenov/dbv-md-reader/issues/21), [#17](https://github.com/davidbuenov/dbv-md-reader/pull/17)), remembering the window ([#20](https://github.com/davidbuenov/dbv-md-reader/issues/20)) and the diagnosis of four bugs with a proposed fix each: WebView2 variables inherited from PowerToys Peek ([#23](https://github.com/davidbuenov/dbv-md-reader/pull/23)), code-block buttons ([#18](https://github.com/davidbuenov/dbv-md-reader/pull/18)), printing ([#19](https://github.com/davidbuenov/dbv-md-reader/pull/19)) and the welcome-screen flash ([#24](https://github.com/davidbuenov/dbv-md-reader/pull/24)).
+- johnblommers — in 0.19.0: search inside the editor ([#11](https://github.com/davidbuenov/dbv-md-reader/issues/11)), the dialogs' folder ([#12](https://github.com/davidbuenov/dbv-md-reader/issues/12)), the editor font size ([#13](https://github.com/davidbuenov/dbv-md-reader/issues/13)) and reordering sections from the Index ([#15](https://github.com/davidbuenov/dbv-md-reader/issues/15)); also raised PDF control ([#14](https://github.com/davidbuenov/dbv-md-reader/issues/14)).
 - Johannes Rexx — reported, on the Typst forum, that embedded HTML in a document (e.g. `<module>` inside an error traceback) was silently disappearing when exporting to Typst (RF-27).
 
 ### 🤖 Built with AI

@@ -129,6 +129,16 @@
   // ─── DOM ─────────────────────────────────────────────────────────────────
   var contentEl    = document.getElementById('content');
   var emptyEl      = document.getElementById('empty-state');
+
+  // RF-09 (0.19.0): hasta saber si hay un documento que abrir, la bienvenida no se pinta (clase `booting`
+  // en <body>), así abrir con un archivo no la deja ver ni un fotograma. El plazo es la red de seguridad:
+  // si el arranque falla o `get_cli_argument` no responde, la bienvenida se muestra igualmente.
+  var BOOT_TIMEOUT_MS = 2000;
+  var bootTimer = setTimeout(endBoot, BOOT_TIMEOUT_MS);
+  function endBoot() {
+    clearTimeout(bootTimer);
+    document.body.classList.remove('booting');
+  }
   var breadcrumb   = document.getElementById('doc-breadcrumb');
   var readingTimeEl = document.getElementById('doc-reading-time');
   var readOnlyBadge = document.getElementById('doc-readonly-badge');
@@ -449,13 +459,11 @@
           updateNavButtons();
           renderMarkdown(doc.content);
           emptyEl.classList.add('hidden');
+          endBoot();
           contentEl.classList.remove('hidden');
-          // Auto-abrir TOC si tiene encabezados en pantalla ancha (>768px); en móvil permanece cerrado hasta toggle explícito
-          if (tocHeaders.length > 0 && window.innerWidth > 768) {
-            setTocVisible(true);
-          } else {
-            setTocVisible(false);
-          }
+          // Auto-abrir TOC si tiene encabezados en pantalla ancha (>768px); en móvil permanece cerrado hasta toggle explícito.
+          // Desde la primera decisión manual del usuario (botón del panel), esa decisión prevalece (RF-42.3).
+          setTocVisible(wantSidebarOpen(tocHeaders.length > 0));
           // Scroll: si hay ancla, ir a ella; si no, al inicio
           var container = document.getElementById('reader-container');
           if (scrollAnchor) {
@@ -512,6 +520,7 @@
           aiNotifyDocument();
         })
         .catch(function (err) {
+          endBoot();
           if (opts.isAutoRestore) {
             console.warn('[autoRestore]', err);
             try { localStorage.removeItem('dbv-md-last-doc'); } catch (_) {}
@@ -571,10 +580,21 @@
     setTocVisible: setTocVisible,
     // RF-33: filetree.js avisa de que se pulsó la pestaña del Asistente; la carga y el contenido son de app.js.
     openAssistant: function () { openAssistant(); },
+    // RF-47: las entradas del menú Herramientas abren la ayuda en una pestaña concreta.
+    openHelp: function (tab) { openHelp(tab); },
     // RF-33.2: el menú contextual del árbol ofrece «Añadir a la conversación» si las funciones de IA están a la vista.
     aiAvailable: function () { return !isAndroid && aiState.showAi && !!aiRoot(); },
     attachToAi: function (path) { attachToAi(path); },
     registerPanel: registerPanel,
+    // RF-38: headermenu.js calcula qué entradas están habilitadas y dispara «Ir a la vista previa».
+    hasDocument: function () { return !!currentDoc; },
+    // RF-43: las entradas «Tamaño de letra del editor» de Preferencias.
+    editorZoomStep: function (direction) { editorZoomStep(direction); },
+    editorZoomReset: function () { applyEditorZoom(100); },
+    editorZoomLevel: function () { return editorZoomLevel; },
+    setLanguage: function (code) { setLang(code); },
+    isEditing: function () { return editMode; },
+    goToPreview: function () { goToPreviewFromEditor(); },
     // RF-25 sobre SAF (Slice 2): filetree.js lista carpetas sin saber si la
     // raíz actual es una ruta de disco o un árbol `content://` — ver
     // isSafUri()/listDirectoryAny() más arriba.
@@ -594,10 +614,10 @@
     readFileAny(currentDoc.path)
       .then(function (doc) {
         currentDoc = doc;
-        var tokens = renderMarkdown(doc.content);
+        renderMarkdown(doc.content);
         // Vista Dividida en Vivo / Modo Espejo (RF-20): sin cambios propios sin
         // guardar, el panel de código también se refresca, no solo la preview.
-        if (editMode) { editorTextarea.value = doc.content; setDirty(false); updateEditorLineNumbers(); updateHeadingAnchors(tokens); }
+        if (editMode) { editorTextarea.value = doc.content; setDirty(false); updateEditorLineNumbers(); updateHeadingAnchors(); }
         container.scrollTop = savedScroll;
       })
       .catch(function (err) { console.warn('[reloadCurrentDocument]', err); });
@@ -674,6 +694,7 @@
       addWrapToggleButton(block.parentElement);
     });
     assignHeadingIds(targetEl);
+    markImageBlocks(targetEl);
     processMermaid(targetEl);
     processMath(targetEl);
     interceptLinks(targetEl);
@@ -735,12 +756,22 @@
   // Comparten un único contenedor `.code-actions` (posicionamiento/aparición
   // al hover en CSS) y la clase base `.code-action-btn` (estilo visual);
   // cada botón solo aporta su clase identificadora, etiqueta y comportamiento.
+  // RF-10 (0.19.0): los botones viven en un contenedor `.code-block` que envuelve al <pre> y NO hace scroll;
+  // el scroll horizontal sigue en el <pre> (así la numeración por líneas, ADR-046, no cambia) y los botones
+  // quedan fijos en su esquina en vez de desplazarse con el contenido, como pasaba siendo hijos del <pre>.
   function ensureCodeActions(pre) {
-    var actions = pre.querySelector('.code-actions');
+    var block = pre.parentNode;
+    if (!block.classList || !block.classList.contains('code-block')) {
+      block = document.createElement('div');
+      block.className = 'code-block';
+      pre.parentNode.insertBefore(block, pre);
+      block.appendChild(pre);
+    }
+    var actions = block.querySelector(':scope > .code-actions');
     if (!actions) {
       actions = document.createElement('div');
       actions.className = 'code-actions';
-      pre.appendChild(actions);
+      block.appendChild(actions);
     }
     return actions;
   }
@@ -983,6 +1014,18 @@
   // (solo h1-h3, ver buildToc). Se llama para el documento principal y para
   // el modal de Ayuda (RF-22): cualquier contenido renderizado con
   // renderMarkdown() puede tener enlaces internos que dependan de estos ids.
+  // RF-41: un párrafo cuyo único contenido es una imagen (o una imagen dentro de un enlace) es un bloque ancho.
+  // CSS no puede distinguirlo de «texto con una imagen dentro» (`:only-child` ignora los nodos de texto), así que
+  // se marca aquí, tras sanear, con la clase `img-block`.
+  function markImageBlocks(container) {
+    container.querySelectorAll('p').forEach(function (p) {
+      var only = p.children.length === 1 ? p.children[0] : null;
+      if (only && only.tagName === 'A' && only.children.length === 1) only = only.children[0];
+      var bare = !!only && only.tagName === 'IMG' && p.textContent.trim() === '';
+      p.classList.toggle('img-block', bare);
+    });
+  }
+
   function assignHeadingIds(container) {
     var usedSlugs = {};
     container.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(function (h) {
@@ -1014,15 +1057,25 @@
     host.scrollTo({ top: targetTop, behavior: 'smooth' });
   }
 
+  /** Mensaje tenue dentro de un contenedor. Con `textContent`, no `innerHTML`: el texto sale de un diccionario de idioma, que
+   *  desde la 0.19.0 puede ser de un tercero (RF-40) — por construcción no puede inyectar HTML. */
+  function setMutedMessage(container, text) {
+    var p = document.createElement('p');
+    p.className = 'text-xs text-muted';
+    p.textContent = text;
+    container.replaceChildren(p);
+  }
+
   function buildToc() {
     tocList.innerHTML = '';
     tocHeaders = Array.prototype.slice.call(contentEl.querySelectorAll('h1,h2,h3'));
     if (!tocHeaders.length) {
-      tocList.innerHTML = '<p class="text-xs text-muted">' + t('toc.empty') + '</p>';
+      setMutedMessage(tocList, t('toc.empty'));
       return;
     }
-    tocHeaders.forEach(function (h) {
+    tocHeaders.forEach(function (h, tocIndex) {
       var a = document.createElement('a');
+      a.dataset.tocIndex = String(tocIndex);
       a.href = '#' + h.id;
       a.textContent = h.innerText;
       a.className = 'block py-1 hover:text-accent truncate transition ' +
@@ -1036,6 +1089,269 @@
       });
       tocList.appendChild(a);
     });
+    refreshTocDraggable();
+  }
+
+  // ─── Reordenar secciones arrastrando desde el Índice (RF-45) ───────────────────────────────────────
+  // Solo en Modo Edición y con documento local. Arrastrar una entrada y soltarla entre otras mueve su SECCIÓN en el
+  // texto fuente (el encabezado y todo hasta el siguiente de su nivel o superior) como UNA edición deshacible con
+  // Ctrl+Z. La lógica es pura y está probada (outline.js); aquí solo el cableado con el DOM. Las protecciones:
+  // se fuerza antes el render pendiente (los números de línea del mapa de origen deben ser los del texto real), se
+  // ABORTA sin tocar nada si la línea indicada no es de verdad un encabezado, y si el texto cambió durante el arrastre
+  // (p. ej. un cambio externo, RF-21) el movimiento se cancela. Alternativa de teclado: Alt+↑ / Alt+↓.
+  var Outline = window.DBVOutline;
+  var tocDrag = null; // { index, snapshot } mientras se arrastra
+  var tocDropIndicator = document.createElement('div');
+  tocDropIndicator.id = 'toc-drop-indicator';
+  tocDropIndicator.hidden = true;
+  tocList.appendChild(tocDropIndicator);
+
+  function canReorder() { return editMode && canEditHere(); }
+
+  function refreshTocDraggable() {
+    var on = canReorder();
+    // buildToc() vacía la lista y con ella el indicador de soltado: se vuelve a colgar.
+    if (tocDropIndicator.parentNode !== tocList) tocList.appendChild(tocDropIndicator);
+    Array.prototype.forEach.call(tocList.querySelectorAll('a[data-toc-index]'), function (a) {
+      if (on) { a.draggable = true; a.title = t('toc.reorderHint'); }
+      else { a.removeAttribute('draggable'); a.removeAttribute('title'); }
+    });
+  }
+
+  /** Encabezados h1–h6 del texto, con su línea de origen y nivel, tal como los dejó el último render. */
+  function outlineHeadings() {
+    return Array.prototype.slice.call(contentEl.querySelectorAll('h1,h2,h3,h4,h5,h6'))
+      .filter(function (el) { return el.hasAttribute('data-src-line'); })
+      .map(function (el) { return { el: el, line: Number(el.getAttribute('data-src-line')), level: Number(el.tagName.charAt(1)) }; });
+  }
+
+  /**
+   * Modelo de secciones del texto actual: los encabezados del último render en la forma de outline.js, el número de
+   * líneas y dos traducciones del Índice a líneas de texto. Lo usan el arrastre, su validación y las teclas.
+   */
+  function outlineModel(value) {
+    var all = outlineHeadings();
+    var total = Outline.splitLines(value).length;
+    return {
+      heads: all.map(function (x) { return { line: x.line, level: x.level }; }),
+      total: total,
+      /** Posición, entre los encabezados, de la entrada `tocIndex` del Índice (−1 si no está). */
+      indexOfEntry: function (tocIndex) { return all.map(function (x) { return x.el; }).indexOf(tocHeaders[tocIndex]); },
+      /** Línea ANTES de la cual se suelta en la posición `dropIndex` del Índice (el total = al final). */
+      dropLine: function (dropIndex) { return dropIndex < tocHeaders.length ? Number(tocHeaders[dropIndex].getAttribute('data-src-line')) : total; }
+    };
+  }
+
+  // Una sola edición y UN solo Ctrl+Z. NO se usa `execCommand('insertText')` aunque entraría en el historial nativo: con texto
+  // multilínea Chromium emite ~2 eventos `input` por línea (medido en un <textarea> limpio: 1,5 ms por línea; con los
+  // manejadores de la app, 29 ms por línea → 129 s para 3.000 líneas). `setRangeText` tarda 1 ms. A cambio el deshacer es
+  // propio y de un nivel: Ctrl/Cmd+Z restaura el texto Y la selección exactos y Ctrl+Y / Ctrl+Mayús+Z lo rehace. Tras
+  // un `setRangeText` el historial nativo queda vacío (medido: no se corrompe), así que lo tecleado ANTES del movimiento ya no se
+  // puede deshacer; cualquier edición posterior vuelve a la historia nativa.
+  var sectionUndo = null; // { before, after, selection } del último movimiento, mientras el texto siga siendo `after`
+  var sectionRedo = null; // { before, after, selection } tras deshacerlo
+  var applyingSectionEdit = false;
+
+  function setEditorText(text, selection) {
+    var scroll = editorTextarea.scrollTop;
+    applyingSectionEdit = true;
+    editorTextarea.setRangeText(text, 0, editorTextarea.value.length, 'end');
+    editorTextarea.setSelectionRange(selection.start, selection.end);
+    editorTextarea.scrollTop = scroll;
+    editorTextarea.dispatchEvent(new Event('input', { bubbles: true })); // sucio, números de línea, re-render con debounce
+    applyingSectionEdit = false;
+  }
+
+  /** Aplica el movimiento como UNA edición del <textarea> y recuerda cómo deshacerla. */
+  function applySectionEdit(plan) {
+    var before = editorTextarea.value;
+    var selection = { start: editorTextarea.selectionStart, end: editorTextarea.selectionEnd };
+    applyingSectionEdit = true;
+    editorTextarea.setRangeText(plan.replacement, plan.replaceStart, plan.replaceEnd, 'end');
+    editorTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    applyingSectionEdit = false;
+    sectionUndo = { before: before, after: editorTextarea.value, selection: selection };
+    sectionRedo = null;
+  }
+
+  // Ctrl/Cmd+Z y Ctrl+Y / Ctrl+Mayús+Z: solo cuando el texto sigue siendo el que dejó el movimiento (o el que dejó el
+  // deshacer) y no estás escribiendo en otro campo; si no, se descartan y manda el deshacer nativo.
+  window.addEventListener('keydown', function (e) {
+    if (!editMode || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+    var key = String(e.key).toLowerCase();
+    var other = e.target !== editorTextarea && e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]');
+    if (other || (key !== 'z' && key !== 'y')) return;
+    var current = editorTextarea.value;
+    if (sectionUndo && sectionUndo.after !== current) sectionUndo = null;
+    if (sectionRedo && sectionRedo.before !== current) sectionRedo = null;
+    var wantsUndo = key === 'z' && !e.shiftKey;
+    if (wantsUndo && sectionUndo) {
+      e.preventDefault();
+      setEditorText(sectionUndo.before, sectionUndo.selection);
+      sectionRedo = sectionUndo;
+      sectionUndo = null;
+    } else if (!wantsUndo && sectionRedo) {
+      e.preventDefault();
+      setEditorText(sectionRedo.after, sectionRedo.afterSelection || sectionRedo.selection);
+      sectionUndo = sectionRedo;
+      sectionRedo = null;
+    }
+  }, true);
+
+  /**
+   * Mueve la sección de la entrada `tocIndex` del Índice a antes de la entrada `dropIndex` (o al final si es el número de
+   * entradas) y la deja seleccionada en el editor. Devuelve `true` si se movió algo.
+   */
+  function reorderSection(tocIndex, dropIndex, snapshot) {
+    var moved = false;
+    if (canReorder()) {
+      flushPendingRender();
+      var value = editorTextarea.value;
+      if (snapshot !== undefined && snapshot !== null && snapshot !== value) {
+        showToast(t('toc.moveFailed'), 'error');
+      } else {
+        var model = outlineModel(value);
+        var from = model.indexOfEntry(tocIndex);
+        var plan = from < 0 ? { ok: false, reason: 'mismatch' } : Outline.moveSection(value, model.heads, from, model.dropLine(dropIndex));
+        if (!plan.ok) {
+          if (plan.reason === 'mismatch') showToast(t('toc.moveFailed'), 'error');
+        } else if (plan.replacement !== '' || plan.replaceStart !== plan.replaceEnd) {
+          applySectionEdit(plan);
+          selectMovedSection(plan);
+          moved = true;
+        }
+      }
+    }
+    return moved;
+  }
+
+  /** Deja la sección movida seleccionada (su encabezado) y a la vista, y el foco en su entrada del Índice si se movió con el teclado. */
+  function selectMovedSection(plan) {
+    var text = editorTextarea.value;
+    var lines = Outline.splitLines(text);
+    var offset = 0;
+    for (var i = 0; i < plan.movedTo && i < lines.length; i++) offset += lines[i].length;
+    var headingLength = plan.movedTo < lines.length ? lines[plan.movedTo].replace(/\r?\n$/, '').length : 0;
+    editorTextarea.setSelectionRange(offset, offset + headingLength);
+    var lh = editorLineHeightPx();
+    var padding = parseFloat(getComputedStyle(editorTextarea).paddingTop) || 16;
+    editorTextarea.scrollTop = TextSearch.scrollTopFor(plan.movedTo, lh, editorTextarea.clientHeight, padding, editorTextarea.scrollHeight);
+    if (sectionUndo) sectionUndo.afterSelection = { start: offset, end: offset + headingLength }; // para rehacer
+  }
+
+  /** Posición de soltado (0..n) según dónde está el puntero sobre la lista: antes o después de la entrada bajo él. */
+  function dropIndexAt(e) {
+    var link = e.target.closest ? e.target.closest('a[data-toc-index]') : null;
+    var result = null;
+    if (link) {
+      var rect = link.getBoundingClientRect();
+      var index = Number(link.dataset.tocIndex);
+      result = e.clientY < rect.top + rect.height / 2 ? index : index + 1;
+    } else if (tocHeaders.length) {
+      var first = tocList.querySelector('a[data-toc-index]');
+      result = first && e.clientY < first.getBoundingClientRect().top ? 0 : tocHeaders.length;
+    }
+    return result;
+  }
+
+  function showDropIndicator(dropIndex, valid) {
+    var links = tocList.querySelectorAll('a[data-toc-index]');
+    var anchor = dropIndex < links.length ? links[dropIndex] : links[links.length - 1];
+    if (!anchor) { tocDropIndicator.hidden = true; return; }
+    var top = dropIndex < links.length ? anchor.offsetTop : anchor.offsetTop + anchor.offsetHeight;
+    tocDropIndicator.style.top = top + 'px';
+    tocDropIndicator.classList.toggle('invalid', !valid);
+    tocDropIndicator.hidden = false;
+  }
+
+  /** ¿Se puede soltar la entrada arrastrada ahí? (no dentro de su propia sección) */
+  function isValidDrop(tocIndex, dropIndex) {
+    var model = outlineModel(editorTextarea.value);
+    var from = model.indexOfEntry(tocIndex);
+    var at = model.dropLine(dropIndex);
+    var section = from >= 0 ? Outline.sections(model.heads, model.total)[from] : null;
+    return !!section && !(at > section.line && at < section.end);
+  }
+
+  tocList.addEventListener('dragstart', function (e) {
+    var link = e.target.closest ? e.target.closest('a[data-toc-index]') : null;
+    if (!link || !canReorder()) return;
+    // Con un render pendiente (se acaba de teclear) el Índice que ves es el ANTERIOR: forzar el render lo reconstruiría y el
+    // índice arrastrado apuntaría a otra sección. Se cancela este arrastre (el Índice ya queda al día) y se puede repetir.
+    if (flushPendingRender()) { e.preventDefault(); return; }
+    tocDrag = { index: Number(link.dataset.tocIndex), snapshot: editorTextarea.value };
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', link.textContent);
+    link.classList.add('toc-dragging');
+  });
+  tocList.addEventListener('dragover', function (e) {
+    if (!tocDrag) return;
+    var dropIndex = dropIndexAt(e);
+    if (dropIndex === null) return;
+    var valid = isValidDrop(tocDrag.index, dropIndex);
+    e.preventDefault();
+    e.dataTransfer.dropEffect = valid ? 'move' : 'none';
+    showDropIndicator(dropIndex, valid);
+  });
+  tocList.addEventListener('drop', function (e) {
+    if (!tocDrag) return;
+    e.preventDefault();
+    var dropIndex = dropIndexAt(e);
+    var drag = tocDrag;
+    tocDrag = null;
+    tocDropIndicator.hidden = true;
+    if (dropIndex !== null) reorderSection(drag.index, dropIndex, drag.snapshot);
+  });
+  tocList.addEventListener('dragend', function () {
+    tocDrag = null;
+    tocDropIndicator.hidden = true;
+    Array.prototype.forEach.call(tocList.querySelectorAll('.toc-dragging'), function (a) { a.classList.remove('toc-dragging'); });
+  });
+
+  // Alt+↑ / Alt+↓ con una entrada del Índice enfocada: la mueve una posición entre sus hermanas (alternativa al arrastre).
+  tocList.addEventListener('keydown', function (e) {
+    var link = e.target.closest ? e.target.closest('a[data-toc-index]') : null;
+    if (!link || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || !canReorder()) return;
+    e.preventDefault();
+    if (flushPendingRender()) return; // Índice obsoleto: ya se ha reconstruido, se vuelve a intentar
+    var value = editorTextarea.value;
+    var model = outlineModel(value);
+    var from = model.indexOfEntry(Number(link.dataset.tocIndex));
+    var at = from < 0 ? null : Outline.siblingAt(model.heads, model.total, from, e.key === 'ArrowUp' ? -1 : 1);
+    if (at === null) return;
+    var plan = Outline.moveSection(value, model.heads, from, at);
+    if (!plan.ok) { if (plan.reason === 'mismatch') showToast(t('toc.moveFailed'), 'error'); return; }
+    applySectionEdit(plan);
+    flushPendingRender(); // para reconstruir el Índice y devolver el foco a la entrada movida
+    selectMovedSection(plan);
+    // La lista se reconstruye al renderizar: el foco vuelve a la entrada de la sección movida.
+    var moved = Array.prototype.find.call(tocList.querySelectorAll('a[data-toc-index]'), function (a) {
+      return Number(tocHeaders[Number(a.dataset.tocIndex)].getAttribute('data-src-line')) === plan.movedTo;
+    });
+    if (moved) moved.focus();
+  });
+
+  // ─── Panel lateral recordado (RF-42.3) ─────────────────────────────────────────────────────────────
+  // `dbv-md-toc-pref` solo existe tras una decisión MANUAL del usuario (botón del panel): mientras no exista,
+  // rige el comportamiento automático de siempre (abrir con encabezados en pantalla ancha); desde la primera
+  // decisión, esa decisión prevalece. En ≤ 768 px el panel sigue cerrado por defecto.
+  var TOC_PREF_KEY = 'dbv-md-toc-pref';
+  var SIDEBAR_TAB_KEY = 'dbv-md-sidebar-tab';
+
+  function sidebarPref() {
+    var value = null;
+    try { value = localStorage.getItem(TOC_PREF_KEY); } catch (_) {}
+    return value === 'open' || value === 'closed' ? value : null;
+  }
+
+  function saveSidebarPref(value) {
+    try { localStorage.setItem(TOC_PREF_KEY, value); } catch (_) {}
+  }
+
+  function wantSidebarOpen(hasHeadings) {
+    var pref = sidebarPref();
+    var wide = window.innerWidth > 768;
+    return pref === 'closed' ? false : (pref === 'open' ? wide : hasHeadings && wide);
   }
 
   // Muestra/oculta el TOC y su divisor arrastrable juntos (mismo estado siempre).
@@ -1145,31 +1461,23 @@
   });
 
   document.getElementById('btn-toggle-toc').addEventListener('click', function () {
-    setTocVisible(tocSidebar.classList.contains('hidden'));
+    var open = tocSidebar.classList.contains('hidden');
+    setTocVisible(open);
+    saveSidebarPref(open ? 'open' : 'closed');
   });
 
   // =========================================================================
   // Idioma
   // =========================================================================
 
-  var btnLangs = {
-    es: document.getElementById('lang-es'),
-    en: document.getElementById('lang-en')
-  };
+  // RF-39: el selector de escritorio (desplegable de la cabecera) lo construye headermenu.js desde el registro de
+  // idiomas de i18n.js; en Android es esta lista en Ajustes. Añadir un idioma no toca nada de aquí.
+  var mLangSelect = document.getElementById('m-lang-select');
 
-  var mBtnLangs = {
-    es: document.getElementById('m-lang-es'),
-    en: document.getElementById('m-lang-en')
-  };
-
-  function setLang(lang) {
-    window.DBV_I18N.setLang(lang);
-    Object.keys(btnLangs).forEach(function (k) {
-      if (btnLangs[k]) btnLangs[k].classList.remove('active');
-      if (mBtnLangs[k]) mBtnLangs[k].classList.remove('active');
-    });
-    if (btnLangs[lang]) btnLangs[lang].classList.add('active');
-    if (mBtnLangs[lang]) mBtnLangs[lang].classList.add('active');
+  /** `opts.persist === false` aplica el idioma sin guardarlo como elección (el arranque con el autodetectado). */
+  function setLang(lang, opts) {
+    window.DBV_I18N.setLang(lang, opts);
+    if (mLangSelect) mLangSelect.value = lang;
     // El breadcrumb no lleva data-i18n (si hay un documento abierto, applyTranslations()
     // no debe pisar su nombre de archivo con el texto de "sin documento").
     if (!currentDoc) breadcrumb.textContent = t('toolbar.noDocument');
@@ -1181,10 +1489,15 @@
     }
   }
 
-  Object.keys(btnLangs).forEach(function (name) {
-    if (btnLangs[name]) btnLangs[name].addEventListener('click', function () { setLang(name); });
-    if (mBtnLangs[name]) mBtnLangs[name].addEventListener('click', function () { setLang(name); });
-  });
+  if (mLangSelect) {
+    window.DBV_I18N.languages().forEach(function (l) {
+      var option = document.createElement('option');
+      option.value = l.code;
+      option.textContent = l.name;
+      mLangSelect.appendChild(option);
+    });
+    mLangSelect.addEventListener('change', function () { setLang(mLangSelect.value); });
+  }
 
   // =========================================================================
   // Paneles flotantes (helper compartido: abrir/cerrar/clic-fuera/Escape)
@@ -1325,41 +1638,81 @@
   }
 
   // =========================================================================
-  // Ayuda de sintaxis Markdown (chuleta ES/EN según idioma activo)
+  // Ayuda (RF-47): guía de la aplicación + chuleta de sintaxis Markdown
   // =========================================================================
+  // Dos pestañas sobre el mismo contenedor. Cada guía es un `.md` por idioma renderizado con el pipeline completo
+  // (RF-02/03): `apphelp_<código>.md` (la aplicación) y `markdownhelp_<código>.md` (la sintaxis, RF-22). Si un idioma no
+  // tiene su guía se usa la inglesa (RF-39).
 
   var helpContentEl = document.getElementById('help-content');
-  var helpRenderedText = null; // último texto ya renderizado en #help-content (con su idioma como prefijo)
+  var helpCardEl = document.getElementById('help-card');
+  var helpTabButtons = Array.prototype.slice.call(document.querySelectorAll('#help-tabs .help-tab'));
+  var HELP_FILES = { app: 'apphelp_', syntax: 'markdownhelp_' };
+  var helpTab = 'app';          // pestaña activa; se conserva mientras la sesión siga abierta
+  var helpRenderedText = null;  // último texto ya renderizado en #help-content (pestaña + idioma como prefijo)
 
   var helpModalCtrl = registerPanel(document.getElementById('help-modal'), {});
   document.getElementById('help-backdrop').addEventListener('click', helpModalCtrl.close);
   document.getElementById('help-close').addEventListener('click', helpModalCtrl.close);
 
-  document.getElementById('btn-markdown-help').addEventListener('click', function () {
+  function fetchHelp(prefix, lang) {
+    return fetch(prefix + lang + '.md', { cache: 'no-store' }).then(function (r) {
+      if (r.ok) return r.text();
+      if (lang === 'en') throw new Error('HTTP ' + r.status);
+      return fetchHelp(prefix, 'en');
+    });
+  }
+
+  /** Muestra la pestaña `tab` de la ayuda (la guía en el idioma activo) sin abrir ni cerrar el diálogo. */
+  function showHelpTab(tab) {
     var lang = window.DBV_I18N.getLang();
-    helpModalCtrl.open();
-    // La lectura del fichero (barata) se repite en cada apertura — a
-    // diferencia del documento principal (RF-06, watch_file), este fetch no
-    // reacciona solo a cambios externos del fichero, así que editar
-    // markdownhelp_*.md no se reflejaba hasta recargar toda la ventana. Lo
-    // caro (parseo + DOMPurify + Prism + Mermaid + KaTeX por diagrama/fórmula)
-    // solo se repite si el contenido leído cambió de verdad.
-    fetch('markdownhelp_' + lang + '.md', { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    helpTab = HELP_FILES[tab] ? tab : 'app';
+    helpTabButtons.forEach(function (button) {
+      var on = button.dataset.helpTab === helpTab;
+      button.classList.toggle('active', on);
+      button.setAttribute('aria-selected', on ? 'true' : 'false');
+      button.tabIndex = on ? 0 : -1;
+    });
+    helpCardEl.setAttribute('aria-label', t('menu.help'));
+    // La lectura del fichero (barata) se repite en cada apertura — a diferencia del documento principal (RF-06,
+    // watch_file), este fetch no reacciona solo a cambios externos, así que editar la guía no se reflejaba hasta
+    // recargar la ventana. Lo caro (parseo + DOMPurify + Prism + Mermaid + KaTeX) solo se repite si el contenido
+    // leído cambió de verdad.
+    return fetchHelp(HELP_FILES[helpTab], lang)
       .then(function (text) {
-        var cacheKey = lang + '\n' + text;
+        var cacheKey = helpTab + '\n' + lang + '\n' + text;
         if (cacheKey === helpRenderedText) return;
         helpRenderedText = cacheKey;
-        // Mismo pipeline completo que el documento principal (RF-02/03) —
-        // no un renderizador aparte: así el modal de ayuda también resuelve
-        // fórmulas KaTeX, diagramas Mermaid y sus propios enlaces internos.
+        // Mismo pipeline completo que el documento principal: así la guía también resuelve fórmulas, diagramas
+        // y sus propios enlaces internos.
         renderMarkdown(text, helpContentEl);
+        helpContentEl.scrollTop = 0;
       })
       .catch(function (err) {
-        showError('[markdown-help] ' + err);
+        helpRenderedText = null;
+        showError('[help] ' + err);
         helpContentEl.textContent = t('help.loadError');
       });
+  }
+
+  /** Abre la ayuda en `tab` ('app' o 'syntax'); sin argumento, en la última pestaña usada. */
+  function openHelp(tab) {
+    helpModalCtrl.open();
+    return showHelpTab(tab || helpTab);
+  }
+
+  helpTabButtons.forEach(function (button) {
+    button.addEventListener('click', function () { showHelpTab(button.dataset.helpTab); });
+    button.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      var next = helpTabButtons[(helpTabButtons.indexOf(button) + (e.key === 'ArrowRight' ? 1 : -1) + helpTabButtons.length) % helpTabButtons.length];
+      next.focus();
+      showHelpTab(next.dataset.helpTab);
+    });
   });
+
+  document.getElementById('btn-markdown-help').addEventListener('click', function () { openHelp(); });
 
   // ─── Buscar actualizaciones (bajo demanda, nunca al arrancar) ─────────────
   var btnCheckUpdate = document.getElementById('btn-check-update');
@@ -1435,23 +1788,56 @@
   var searchCounter = document.getElementById('search-counter');
   var searchMatches = [], searchCurrent = -1;
 
-  var searchPanel = registerPanel(document.getElementById('search-modal'), {
-    trigger: document.getElementById('btn-search'),
-    onOpen: function () { searchInput.focus(); searchInput.select(); },
-    onClose: function () {
-      contentEl.querySelectorAll('mark.search-highlight').forEach(function (m) {
-        m.replaceWith(document.createTextNode(m.textContent));
-      });
-      contentEl.normalize();
-      searchMatches = []; searchCurrent = -1; searchCounter.textContent = '0/0';
-    }
-  });
+  // RF-44: la búsqueda también puede dirigirse al TEXTO FUENTE del editor. El objetivo es el panel con el foco al abrirla
+  // (o el que se elija con el selector «Editor | Vista previa», visible solo en Modo Edición). Las coincidencias del
+  // editor se SELECCIONAN en el <textarea> (que no pinta fragmentos, así que no se resaltan todas a la vez) y no tocan el
+  // documento: ni «Modificado», ni historial de deshacer, ni re-render. La lógica de búsqueda es pura (textsearch.js).
+  var TextSearch = window.DBVTextSearch;
+  var searchModalEl = document.getElementById('search-modal');
+  var searchTargetBar = document.getElementById('search-target');
+  var searchTarget = 'preview';
+  var editorMatches = [], editorCurrent = -1;
+  var editorSearched = { value: null, query: null };
 
-  function runSearch(q) {
+  function updateSearchTargetUi() {
+    searchTargetBar.classList.toggle('hidden', !editMode);
+    Array.prototype.forEach.call(searchTargetBar.querySelectorAll('button'), function (b) {
+      var on = b.dataset.target === searchTarget;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function clearPreviewMarks() {
     contentEl.querySelectorAll('mark.search-highlight').forEach(function (m) {
       m.replaceWith(document.createTextNode(m.textContent));
     });
     contentEl.normalize();
+  }
+
+  var searchPanel = registerPanel(searchModalEl, {
+    trigger: document.getElementById('btn-search'),
+    onOpen: function () {
+      // El objetivo sale del panel con el foco; pero con el foco YA dentro del panel de búsqueda (Ctrl+F estando abierto)
+      // se conserva el que hubiera, en vez de pasar a la vista previa solo porque el foco no está en el editor.
+      if (!searchModalEl.contains(document.activeElement)) searchTarget = editMode && focusInEditor() ? 'editor' : 'preview';
+      updateSearchTargetUi();
+      searchInput.focus(); searchInput.select();
+    },
+    onClose: function () {
+      clearPreviewMarks();
+      // Escape devuelve el foco al editor con la última coincidencia seleccionada (RF-44.2).
+      var backToEditor = searchTarget === 'editor' && editMode && searchModalEl.contains(document.activeElement);
+      searchMatches = []; searchCurrent = -1;
+      editorMatches = []; editorCurrent = -1;
+      searchCounter.textContent = '0/0';
+      clearEditorHit();
+      if (backToEditor) editorTextarea.focus({ preventScroll: true });
+    }
+  });
+
+  function runPreviewSearch(q) {
+    clearPreviewMarks();
     searchMatches = []; searchCurrent = -1;
     if (!q.trim()) { searchCounter.textContent = '0/0'; return; }
     var lq = q.toLowerCase();
@@ -1489,19 +1875,159 @@
     }
   }
 
+  // Ancho en píxeles de un trozo de texto del editor, medido con la MISMA fuente (canvas): sirve para dejar a la vista una
+  // coincidencia fuera de pantalla en horizontal (el <textarea> no ajusta línea, `wrap="off"`) y para pintar el resaltado
+  // exactamente debajo de ella. Medir (en vez de multiplicar columnas por un ancho fijo) es lo que acierta con texto
+  // coreano o con caracteres que caen en una fuente de reserva, que no son de ancho fijo.
+  var measureCache = { font: null, ctx: null };
+  function measureEditorText(str) {
+    var font = getComputedStyle(editorTextarea).font;
+    if (measureCache.font !== font) {
+      measureCache = { font: font, ctx: document.createElement('canvas').getContext('2d') };
+      measureCache.ctx.font = font;
+    }
+    return measureCache.ctx.measureText(str.replace(/\t/g, '        ')).width;
+  }
+
+  // ─── Resaltado de la coincidencia actual en el editor (RF-44.4) ──────────────────────────────────────
+  // Un <textarea> no pinta fragmentos, y con el foco en el campo de búsqueda su selección NO se ve (medido en el
+  // motor real, en los tres temas). Se dibuja una capa encima, que no recibe el ratón, con el rectángulo de la
+  // coincidencia; sigue al scroll y a la letra del editor.
+  var editorBody = document.getElementById('editor-body');
+  var editorHitLayer = document.createElement('div');
+  editorHitLayer.id = 'editor-hit-layer';
+  var editorHit = document.createElement('div');
+  editorHit.id = 'editor-hit';
+  editorHitLayer.appendChild(editorHit);
+  editorHitLayer.hidden = true;
+  editorBody.appendChild(editorHitLayer);
+  var editorHitRange = null;
+
+  function clearEditorHit() {
+    editorHitRange = null;
+    editorHitLayer.hidden = true;
+  }
+
+  function updateEditorHit() {
+    var range = editorHitRange;
+    var valid = !!range && editMode && range.end <= editorTextarea.value.length;
+    if (!valid) { editorHitLayer.hidden = true; return; }
+    var value = editorTextarea.value;
+    var cs = getComputedStyle(editorTextarea);
+    var lh = editorLineHeightPx();
+    var lineStart = range.start - TextSearch.columnOf(value, range.start);
+    var lineEnd = value.indexOf('\n', range.start);
+    var matchEnd = Math.min(range.end, lineEnd === -1 ? value.length : lineEnd);
+    editorHitLayer.style.left = editorTextarea.offsetLeft + 'px';
+    editorHitLayer.style.top = editorTextarea.offsetTop + 'px';
+    editorHitLayer.style.width = editorTextarea.clientWidth + 'px';
+    editorHitLayer.style.height = editorTextarea.clientHeight + 'px';
+    editorHit.style.left = ((parseFloat(cs.paddingLeft) || 0) + measureEditorText(value.slice(lineStart, range.start)) - editorTextarea.scrollLeft) + 'px';
+    editorHit.style.top = ((parseFloat(cs.paddingTop) || 0) + TextSearch.lineOf(value, range.start) * lh - editorTextarea.scrollTop) + 'px';
+    editorHit.style.width = Math.max(2, measureEditorText(value.slice(range.start, matchEnd))) + 'px';
+    editorHit.style.height = lh + 'px';
+    editorHitLayer.hidden = false;
+  }
+
+  // Cada selección lleva un testigo: sus colocaciones diferidas (abajo) se ignoran si entretanto hubo otra selección,
+  // para que la de una coincidencia anterior no pise a la actual.
+  var editorSelectToken = 0;
+
+  function selectInEditor(start, end) {
+    var text = editorTextarea.value;
+    var token = ++editorSelectToken;
+    editorTextarea.setSelectionRange(start, end);
+    editorHitRange = { start: start, end: end };
+    updateEditorHit();
+    // Un desplazamiento SUAVE de la vista previa aún en curso (p. ej. el de una búsqueda anterior en ella) seguiría
+    // disparando la sincronía de scroll y arrastraría al editor de vuelta. Se detiene DENTRO del bloqueo de scroll (su
+    // propio evento no debe sincronizar nada) y el editor se coloca cuando ese bloqueo ya se liberó, dos fotogramas después.
+    withScrollLock(contentEl, function () { contentEl.scrollTo({ top: contentEl.scrollTop, behavior: 'instant' }); });
+    var line = TextSearch.lineOf(text, start);
+    function placeVertically() {
+      var padding = parseFloat(getComputedStyle(editorTextarea).paddingTop) || 16;
+      editorTextarea.scrollTop = TextSearch.scrollTopFor(line, editorLineHeightPx(), editorTextarea.clientHeight, padding, editorTextarea.scrollHeight);
+    }
+    // La sincronía de scroll editor↔vista previa no es exactamente su propia inversa (deriva de ~2 líneas por ida y
+    // vuelta): una vez asentado el scroll se comprueba que la coincidencia sigue a la vista y, si no, se recoloca UNA vez
+    // con el bloqueo puesto (para no volver a arrastrar a la vista previa).
+    setTimeout(function () {
+      var lh = editorLineHeightPx();
+      var top = (parseFloat(getComputedStyle(editorTextarea).paddingTop) || 16) + line * lh;
+      var visible = top >= editorTextarea.scrollTop && top + lh <= editorTextarea.scrollTop + editorTextarea.clientHeight;
+      if (!visible && token === editorSelectToken && editorTextarea.value === text) withScrollLock(editorTextarea, placeVertically);
+    }, 280);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (token !== editorSelectToken) return;
+        placeVertically();
+        var lineStart = start - TextSearch.columnOf(text, start);
+        var left = measureEditorText(text.slice(lineStart, start));
+        var right = left + measureEditorText(text.slice(start, end));
+        if (left < editorTextarea.scrollLeft + 20 || right > editorTextarea.scrollLeft + editorTextarea.clientWidth - 40) {
+          editorTextarea.scrollLeft = Math.max(0, left - editorTextarea.clientWidth / 3);
+        }
+        updateEditorHit();
+      });
+    });
+  }
+
+  function showEditorMatch() {
+    var m = editorMatches[editorCurrent];
+    if (!m) { clearEditorHit(); searchCounter.textContent = '0/0'; return; }
+    selectInEditor(m.start, m.end);
+    searchCounter.textContent = (editorCurrent + 1) + '/' + editorMatches.length;
+  }
+
+  function runEditorSearch(q) {
+    clearPreviewMarks();
+    searchMatches = []; searchCurrent = -1;
+    editorSearched = { value: editorTextarea.value, query: q };
+    editorMatches = TextSearch.findAll(editorTextarea.value, q);
+    // Desde el cursor, no desde el principio: al teclear más letras la coincidencia actual no salta.
+    editorCurrent = TextSearch.firstFrom(editorMatches, editorTextarea.selectionStart);
+    showEditorMatch();
+  }
+
+  function runSearch(q) {
+    if (!editMode) searchTarget = 'preview';
+    if (searchTarget === 'editor') runEditorSearch(q);
+    else { editorMatches = []; editorCurrent = -1; clearEditorHit(); runPreviewSearch(q); }
+  }
+
+  /** Coincidencia siguiente (1) o anterior (−1). En el editor da la vuelta; en la vista previa se queda en los extremos, como siempre. */
+  function stepSearch(direction) {
+    if (!editMode) searchTarget = 'preview';
+    if (searchTarget === 'editor') {
+      var q = searchInput.value;
+      var stale = editorSearched.value !== editorTextarea.value || editorSearched.query !== q;
+      if (stale) { runEditorSearch(q); return; }
+      editorCurrent = TextSearch.step(editorCurrent, editorMatches.length, direction);
+      showEditorMatch();
+    } else if (direction < 0) {
+      if (searchCurrent > 0) { searchCurrent--; highlightCurrent(); }
+    } else if (searchCurrent < searchMatches.length - 1) {
+      searchCurrent++; highlightCurrent();
+    }
+  }
+
+  Array.prototype.forEach.call(searchTargetBar.querySelectorAll('button'), function (b) {
+    b.addEventListener('click', function () {
+      searchTarget = b.dataset.target;
+      updateSearchTargetUi();
+      runSearch(searchInput.value);
+      searchInput.focus();
+    });
+  });
+
   document.getElementById('search-close').addEventListener('click', searchPanel.close);
-  document.getElementById('search-prev').addEventListener('click', function () {
-    if (searchCurrent > 0) { searchCurrent--; highlightCurrent(); }
-  });
-  document.getElementById('search-next').addEventListener('click', function () {
-    if (searchCurrent < searchMatches.length - 1) { searchCurrent++; highlightCurrent(); }
-  });
+  document.getElementById('search-prev').addEventListener('click', function () { stepSearch(-1); });
+  document.getElementById('search-next').addEventListener('click', function () { stepSearch(1); });
   searchInput.addEventListener('input', function (e) { runSearch(e.target.value); });
   searchInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (e.shiftKey) { if (searchCurrent > 0) { searchCurrent--; highlightCurrent(); } }
-      else            { if (searchCurrent < searchMatches.length - 1) { searchCurrent++; highlightCurrent(); } }
+      stepSearch(e.shiftKey ? -1 : 1);
     }
   });
 
@@ -1546,9 +2072,11 @@
   }
 
   function renderRecentPanel(list) {
+    // Lo que no sea una lista se trata como «sin recientes» (antes lanzaba un TypeError y dejaba el panel sin su mensaje).
+    list = recentFilesCache = Array.isArray(list) ? list : [];
     recentList.innerHTML = '';
     if (!list.length) {
-      recentList.innerHTML = '<p class="text-xs text-muted">' + t('recent.empty') + '</p>';
+      setMutedMessage(recentList, t('recent.empty'));
     } else {
       list.forEach(function (file) { recentList.appendChild(buildRecentItem(file)); });
     }
@@ -1589,8 +2117,33 @@
   // Apertura de archivo (diálogo nativo vía Rust)
   // =========================================================================
 
+  // ─── Carpeta inicial de los diálogos de archivo (RF-46) ──────────────────────
+  // El frontend solo ORDENA las candidatas (dialogdirs.js); Rust se queda con la primera que existe o, si
+  // ninguna, con Documentos — nunca con el directorio de trabajo (en AppImage es `/tmp/.mount_…`, issue #12).
+  var DialogDirs = window.DBVDialogDirs;
+  var recentFilesCache = [];
+
+  function dialogDirsFor(kind) {
+    var remembered = {};
+    ['typst', 'newfile', 'images'].forEach(function (k) {
+      try { remembered[k] = localStorage.getItem(DialogDirs.STORAGE_PREFIX + k); } catch (_) {}
+    });
+    var local = currentDoc && currentDoc.dir_path && !isRemoteDoc(currentDoc) ? currentDoc.dir_path : null;
+    return DialogDirs.candidates(kind, {
+      docDir: local,
+      recentPath: recentFilesCache.length ? recentFilesCache[0].path : null,
+      remembered: remembered
+    });
+  }
+
+  /** Recuerda la carpeta de una operación COMPLETADA (no se llama al cancelar el diálogo). */
+  function rememberDir(kind, dir) {
+    if (!dir) return;
+    try { localStorage.setItem(DialogDirs.STORAGE_PREFIX + kind, dir); } catch (_) {}
+  }
+
   function openFileDialog() {
-    invoke('open_file_dialog')
+    invoke('open_file_dialog', { defaultDirs: dialogDirsFor('open') })
       .then(function (selected) {
         if (selected) loadDocument(selected, { isPrimaryOpen: true });
       })
@@ -1615,11 +2168,14 @@
   // reutiliza `loadDocument()` tal cual, igual que abrir un archivo existente.
   function createNewFile() {
     if (isAndroid) return; // edición fuera de alcance en Android (RF-20/RF-21)
-    invoke('save_new_file_dialog', { defaultName: t('editor.newFileDefaultName') })
+    invoke('save_new_file_dialog', { defaultName: t('editor.newFileDefaultName'), defaultDirs: dialogDirsFor('newfile') })
       .then(function (path) {
         if (!path) return null;
         return invoke('write_file', { path: path, content: '' })
-          .then(function () { loadDocument(path, { isPrimaryOpen: true, startInEditMode: true }); });
+          .then(function () {
+            rememberDir('newfile', DialogDirs.parentDir(path));
+            loadDocument(path, { isPrimaryOpen: true, startInEditMode: true });
+          });
       })
       .catch(function (err) { showError('[save_new_file_dialog] ' + err); });
   }
@@ -1905,10 +2461,11 @@
     var baseName = (currentDoc.file_name || 'documento.md').replace(/\.[^.]+$/, '');
     var extracted = extractMath(currentDoc.content);
     var typst = markdownToTypst(md.parse(extracted.text, {}), currentDoc.file_name, extracted.formulas);
-    invoke('save_typst_dialog', { defaultName: baseName + '.typ' })
+    invoke('save_typst_dialog', { defaultName: baseName + '.typ', defaultDirs: dialogDirsFor('typst') })
       .then(function (path) {
         if (!path) return null;
-        return invoke('write_file', { path: path, content: typst });
+        return invoke('write_file', { path: path, content: typst })
+          .then(function () { rememberDir('typst', DialogDirs.parentDir(path)); });
       })
       .catch(function (err) { showError(String(err)); });
   }
@@ -1964,8 +2521,9 @@
   // Rust (no hay DOM ahí), así que emite este evento a la ventana enfocada
   // en vez de reimplementar el diálogo.
   window.__TAURI__.event.listen('menu-open-file', openFileDialog);
-  // "Guardar" y "Alternar Modo Edición" del menú nativo de macOS (File/View):
+  // "Nuevo documento" (RF-29), "Guardar" y "Alternar Modo Edición" del menú nativo de macOS (File/View):
   // mismo patrón, el menú vive en Rust y avisa por evento a la ventana enfocada.
+  window.__TAURI__.event.listen('menu-new-file', createNewFile);
   window.__TAURI__.event.listen('menu-save', saveCurrentDocument);
   window.__TAURI__.event.listen('menu-toggle-edit-mode', toggleEditMode);
 
@@ -2042,7 +2600,8 @@
     if (currentDoc && currentDoc.dir_path && !isRemoteDoc(currentDoc)) {
       return Promise.resolve({ dir: currentDoc.dir_path, intoImages: true });
     }
-    return invoke('pick_folder_dialog', { title: t('img.pickFolder') }).then(function (folder) {
+    return invoke('pick_folder_dialog', { title: t('img.pickFolder'), defaultDirs: dialogDirsFor('images') }).then(function (folder) {
+      rememberDir('images', folder);
       return folder ? { dir: folder, intoImages: false } : null;
     });
   }
@@ -2059,9 +2618,10 @@
 
   /** RF-37.7: no se pudo guardar donde tocaba (carpeta de solo lectura, `images` es un fichero…): «Guardar como». */
   function saveWithDialog(item, cause) {
-    return invoke('save_image_dialog', { defaultName: item.name, title: t('img.saveAsTitle') }).then(function (dest) {
+    return invoke('save_image_dialog', { defaultName: item.name, title: t('img.saveAsTitle'), defaultDirs: dialogDirsFor('images') }).then(function (dest) {
       if (!dest) return { saved: null, insertable: false, error: String(cause) };
       return saveImageAs(dest, item).then(function (saved) {
+        rememberDir('images', DialogDirs.parentDir(dest));
         var local = currentDoc && currentDoc.dir_path && !isRemoteDoc(currentDoc);
         var inside = local ? ImagePaste.relativeInside(currentDoc.dir_path, saved.path) : null;
         if (inside !== null) saved.relative = inside;
@@ -2176,7 +2736,7 @@
   function zoomOut()   { applyZoom(zoomLevel - 10); }
   function zoomReset() { applyZoom(100); }
 
-  function showZoomToast() {
+  function showZoomToast(label) {
     if (!zoomToast) {
       zoomToast = document.createElement('div');
       zoomToast.style.cssText = [
@@ -2189,7 +2749,7 @@
       ].join(';');
       document.body.appendChild(zoomToast);
     }
-    zoomToast.textContent = '🔍 ' + zoomLevel + '%';
+    zoomToast.textContent = label || ('🔍 ' + zoomLevel + '%');
     zoomToast.style.opacity = '1';
     clearTimeout(zoomToast._timer);
     zoomToast._timer = setTimeout(function () {
@@ -2201,9 +2761,40 @@
   window.addEventListener('wheel', function (e) {
     if (!e.ctrlKey) return;
     e.preventDefault();
-    if (e.deltaY < 0) zoomIn();
+    var overEditor = editMode && !!e.target.closest && !!e.target.closest('#editor-pane');
+    if (overEditor) editorZoomStep(e.deltaY < 0 ? 1 : -1);
+    else if (e.deltaY < 0) zoomIn();
     else zoomOut();
   }, { passive: false });
+
+  // ─── Tamaño de letra del editor (RF-43) ──────────────────────────────────────────────────────────
+  // El zoom de lectura (arriba) solo afecta a la vista previa y al panel lateral; el editor tiene el suyo, de 60 % a
+  // 200 % en pasos del 10 %. `Ctrl +/−/0` y la rueda actúan sobre el panel con el foco o bajo el puntero (RF-43.2).
+  var EDITOR_FONT_BASE_PX = 13;
+  var EDITOR_ZOOM_KEY = 'dbv-md-editor-zoom';
+  var editorZoomLevel = 100;
+  try {
+    var savedEditorZoom = parseInt(localStorage.getItem(EDITOR_ZOOM_KEY) || '100', 10);
+    if (isFinite(savedEditorZoom)) editorZoomLevel = savedEditorZoom;
+  } catch (_) { /* sin almacenamiento: 100 % */ }
+
+  function applyEditorZoom(level, opts) {
+    editorZoomLevel = Math.min(200, Math.max(60, Math.round(level / 10) * 10));
+    document.documentElement.style.setProperty('--editor-font-size', (EDITOR_FONT_BASE_PX * editorZoomLevel / 100) + 'px');
+    try { localStorage.setItem(EDITOR_ZOOM_KEY, String(editorZoomLevel)); } catch (_) {}
+    if (!opts || !opts.silent) showZoomToast('✏️ ' + editorZoomLevel + '%');
+    scheduleAnchorRefresh(); // la altura del editor cambia con la letra: las anclas de scroll se remiden (RF-20)
+    if (typeof updateEditorHit === 'function') updateEditorHit(); // y el resaltado de la búsqueda (RF-44)
+  }
+
+  function editorZoomStep(direction) { applyEditorZoom(editorZoomLevel + direction * 10); }
+  applyEditorZoom(editorZoomLevel, { silent: true });
+
+  /** ¿Tiene el foco el panel del editor (el área de texto o su barra de formato)? */
+  function focusInEditor() {
+    var active = document.activeElement;
+    return editMode && !!active && !!active.closest && !!active.closest('#editor-pane');
+  }
 
   // =========================================================================
   // Modo Edición (RF-20) + Gestión de Conflictos (RF-21)
@@ -2218,7 +2809,6 @@
 
   function updateEditorLineNumbers() {
     var lineCount = editorTextarea.value.split('\n').length;
-    cachedTotalLines = Math.max(1, lineCount - 1);
     // La mayoría de pulsaciones no añaden ni quitan una línea — reconstruir y
     // reescribir el textContent de la columna en cada una sería trabajo tirado
     // a la basura para el caso común (editar dentro de la misma línea).
@@ -2301,49 +2891,52 @@
   })();
 
   // ─── Sincronización de scroll editor↔preview por línea de origen ──────────
-  // Cada encabezado h1/h2/h3 tiene una línea de origen conocida (markdown-it
-  // expone el rango de líneas de cada token vía .map) y una posición vertical
-  // ya renderizada en la preview (tocHeaders[i].offsetTop) — con esos puntos
-  // de referencia se interpola linealmente entre encabezados en vez de un
+  // Cada BLOQUE renderizado (`data-src-line`, RF-30) tiene una línea de origen
+  // conocida y una posición vertical ya pintada en la preview — con esos puntos
+  // de referencia se interpola linealmente entre bloques (RF-20) en vez de un
   // simple porcentaje de scroll global, que se desalinearía en cualquier
   // documento con secciones de longitud desigual (imágenes grandes, tablas...).
-  var editHeadingAnchors = [];
   var syncingScroll = false;
   // Evitan recalcular en cada evento de scroll (alta frecuencia con rueda/
   // trackpad) lo que solo cambia cuando el documento se re-renderiza o se
-  // teclea — se refrescan en updateEditorLineNumbers()/updateHeadingAnchors(),
-  // no en fullScrollAnchors() ni en los listeners de scroll.
-  var cachedTotalLines = 1;
+  // teclea — se refrescan en updateHeadingAnchors(), no en fullScrollAnchors() ni
+  // en los listeners de scroll.
   var cachedMaxScroll = 0;
 
-  // tokens: opcional — si `renderMarkdown()` ya parseó este mismo texto en la
-  // misma pasada (caso normal: debounce de escritura, modo espejo), se
-  // reutilizan sus tokens en vez de volver a parsear el documento entero.
-  // Solo se parsea aquí cuando no hay render de por medio (p. ej. al entrar
-  // en Modo Edición sobre contenido ya renderizado antes).
-  function updateHeadingAnchors(tokens) {
-    editHeadingAnchors = [];
-    if (!tokens) {
-      try { tokens = md.parse(editorTextarea.value, {}); } catch (e) { return; }
-    }
-    // offsetTop no sirve aquí: depende de la cadena de offsetParent, que en este
-    // layout no es #content (ningún ancestro entre el encabezado y #content
-    // tiene position != static) — mide contra <body>, no contra el scroll
-    // interno de #content. getBoundingClientRect() da el valor real, sea cual
-    // sea la cadena de posicionamiento.
-    var contentOrigin = contentEl.getBoundingClientRect().top - contentEl.scrollTop;
-    var idx = 0;
-    for (var i = 0; i < tokens.length && idx < tocHeaders.length; i++) {
-      var tok = tokens[i];
-      if (tok.type === 'heading_open' && tok.map && /^h[123]$/.test(tok.tag)) {
-        var top = tocHeaders[idx].getBoundingClientRect().top - contentOrigin;
-        editHeadingAnchors.push({ line: tok.map[0], top: top });
-        idx++;
+  // RF-20 (0.19.0, #15 de johnblommers): las anclas son TODOS los bloques que el render marca con `data-src-line`
+  // (RF-30), no solo los encabezados h1–h3. Con encabezados solos, en una sección larga con bloques de altura
+  // desigual (imágenes, tablas, un párrafo de una sola línea muy ancho...) se asumía una relación línea↔píxel
+  // uniforme entre dos encabezados y el editor «se iba por las ramas». Ahora se interpola entre bloques.
+  //
+  var cachedMaxLine = 1;
+  var cachedAnchors = [{ line: 0, top: 0 }, { line: 1, top: 0 }];
+
+  function updateHeadingAnchors() {
+    // offsetTop no sirve aquí: depende de la cadena de offsetParent, que en este layout no es #content (ningún
+    // ancestro entre el bloque y #content tiene position != static) — mide contra <body>, no contra el scroll
+    // interno de #content. getBoundingClientRect() da el valor real, sea cual sea la cadena de posicionamiento.
+    var origin = contentEl.getBoundingClientRect().top - contentEl.scrollTop;
+    var blocks = contentEl.querySelectorAll('[data-src-line]');
+    // Se refrescan aquí, no en cada evento de scroll — es el único punto donde la altura de la preview o del
+    // editor puede haber cambiado de verdad.
+    cachedMaxScroll = Math.max(0, contentEl.scrollHeight - contentEl.clientHeight);
+    // La última línea que el editor puede dejar arriba NO es la última del documento: la ventana visible ocupa
+    // unas decenas de líneas. Con el total de líneas como última ancla el tramo final se descuadraba ±16 líneas.
+    cachedMaxLine = Math.max(1, (editorTextarea.scrollHeight - editorTextarea.clientHeight) / editorLineHeightPx());
+    var anchors = [{ line: 0, top: 0 }];
+    var lastLine = 0, lastTop = 0;
+    for (var i = 0; i < blocks.length; i++) {
+      var line = Number(blocks[i].getAttribute('data-src-line'));
+      var top = blocks[i].getBoundingClientRect().top - origin;
+      // Solo anclas que avanzan en las dos direcciones y que se pueden alcanzar con el scroll de cada panel.
+      if (line > lastLine && top >= lastTop && line < cachedMaxLine && top < cachedMaxScroll) {
+        anchors.push({ line: line, top: top });
+        lastLine = line;
+        lastTop = top;
       }
     }
-    // Se refresca aquí, no en cada evento de scroll — este es el único punto
-    // donde la altura de la preview puede haber cambiado de verdad.
-    cachedMaxScroll = Math.max(0, contentEl.scrollHeight - contentEl.clientHeight);
+    anchors.push({ line: cachedMaxLine, top: cachedMaxScroll });
+    cachedAnchors = anchors;
   }
 
   function editorLineHeightPx() {
@@ -2351,23 +2944,33 @@
     return (isFinite(lh) && lh > 0) ? lh : 20.8;
   }
 
-  // Añade el principio y el final del documento como anclas implícitas, así
-  // la interpolación cubre todo el rango sin casos especiales para "antes del
-  // primer encabezado" / "después del último" (o sin encabezados en absoluto).
+  // Las anclas ya incluyen el principio (línea 0 ↔ 0 px) y el final (última línea alcanzable ↔ scroll máximo), así la
+  // interpolación cubre todo el rango sin casos especiales para «antes del primer bloque» / «después del último».
   function fullScrollAnchors() {
-    return [{ line: 0, top: 0 }].concat(editHeadingAnchors).concat([{ line: cachedTotalLines, top: cachedMaxScroll }]);
+    return cachedAnchors;
   }
 
+  // Búsqueda binaria: con un documento de miles de bloques este cálculo corre en cada evento de scroll.
   function interpolateScroll(anchors, fromKey, value, toKey) {
-    for (var i = 0; i < anchors.length - 1; i++) {
-      var a = anchors[i], b = anchors[i + 1];
-      if (value >= a[fromKey] && value <= b[fromKey]) {
-        var span = b[fromKey] - a[fromKey];
-        var f = span > 0 ? (value - a[fromKey]) / span : 0;
-        return a[toKey] + f * (b[toKey] - a[toKey]);
+    var last = anchors.length - 1;
+    var result;
+    if (last < 1) {
+      result = last === 0 ? anchors[0][toKey] : 0;
+    } else if (value <= anchors[0][fromKey]) {
+      result = anchors[0][toKey];
+    } else if (value >= anchors[last][fromKey]) {
+      result = anchors[last][toKey];
+    } else {
+      var lo = 0, hi = last - 1;
+      while (lo < hi) {
+        var mid = (lo + hi + 1) >> 1;
+        if (anchors[mid][fromKey] <= value) lo = mid; else hi = mid - 1;
       }
+      var a = anchors[lo], b = anchors[lo + 1];
+      var span = b[fromKey] - a[fromKey];
+      result = a[toKey] + (span > 0 ? (value - a[fromKey]) / span : 0) * (b[toKey] - a[toKey]);
     }
-    return anchors[anchors.length - 1][toKey];
+    return result;
   }
 
   // Evita el bucle de retroalimentación: al fijar el scroll del otro panel a
@@ -2399,6 +3002,8 @@
   function setEditMode(on) {
     if (isAndroid && on) return;
     editMode = on;
+    if (!on && typeof clearEditorHit === 'function') clearEditorHit();
+    refreshTocDraggable();
     readerContainer.classList.toggle('edit-mode', on);
     editorPane.classList.toggle('hidden', !on);
     editorResizer.classList.toggle('hidden', !on);
@@ -2432,10 +3037,13 @@
 
   editorTextarea.addEventListener('input', function () {
     setDirty(editorTextarea.value !== currentDoc.content);
+    clearEditorHit(); // el texto cambió: la posición de la coincidencia ya no vale
+    if (!applyingSectionEdit) { sectionUndo = null; sectionRedo = null; } // escribir descarta el deshacer del movimiento (RF-45)
     updateEditorLineNumbers();
     clearTimeout(editDebounceTimer);
     editDebounceTimer = setTimeout(function () {
-      updateHeadingAnchors(renderMarkdown(editorTextarea.value));
+      renderMarkdown(editorTextarea.value);
+      updateHeadingAnchors();
     }, 400);
   });
 
@@ -2443,6 +3051,7 @@
   // encabezado, ver "Sincronización de scroll" más abajo) ───────────────────
   editorTextarea.addEventListener('scroll', function () {
     editorLineNumbers.scrollTop = editorTextarea.scrollTop;
+    updateEditorHit();
     if (syncingScroll || !editMode) return;
     var line = editorTextarea.scrollTop / editorLineHeightPx();
     var top = interpolateScroll(fullScrollAnchors(), 'line', line, 'top');
@@ -2453,6 +3062,20 @@
     var line = interpolateScroll(fullScrollAnchors(), 'top', contentEl.scrollTop, 'line');
     withScrollLock(editorTextarea, function () { editorTextarea.scrollTop = line * editorLineHeightPx(); });
   });
+
+  // Las anclas se miden con la altura ya pintada, que cambia sin que se re-renderice el documento: al cargar una imagen,
+  // al terminar un diagrama Mermaid, al redimensionar la ventana o al cambiar el tamaño de letra del editor (RF-43).
+  var anchorRefreshTimer = null;
+  function scheduleAnchorRefresh() {
+    if (!editMode || anchorRefreshTimer) return;
+    anchorRefreshTimer = setTimeout(function () {
+      anchorRefreshTimer = null;
+      if (editMode) updateHeadingAnchors();
+    }, 120);
+  }
+  contentEl.addEventListener('load', scheduleAnchorRefresh, true);
+  new MutationObserver(scheduleAnchorRefresh).observe(contentEl, { childList: true, subtree: true });
+  window.addEventListener('resize', scheduleAnchorRefresh);
 
   // =========================================================================
   // Sincronización edición ↔ previsualización por posición de origen (RF-30)
@@ -2492,7 +3115,8 @@
     var rendered = lastRenderedRaw == null ? null : lastRenderedRaw.replace(/\r\n/g, '\n');
     if (editorTextarea.value === rendered) return false;
     clearTimeout(editDebounceTimer);
-    updateHeadingAnchors(renderMarkdown(editorTextarea.value));
+    renderMarkdown(editorTextarea.value);
+    updateHeadingAnchors();
     return true;
   }
 
@@ -2994,7 +3618,8 @@
     // La preview debe reflejar exactamente lo que se guarda — y como esto
     // cancela el debounce pendiente, también hay que refrescar las anclas de
     // scroll aquí (si no, quedarían desactualizadas hasta el siguiente input).
-    updateHeadingAnchors(renderMarkdown(content));
+    renderMarkdown(content);
+    updateHeadingAnchors();
     // Ventana de supresión (RF-21) fijada ANTES de invocar, no en el .then(): el
     // watcher de disco (RF-06) es un camino async independiente del propio invoke
     // y puede detectar la escritura y emitir file-changed antes de que vuelva esta
@@ -3349,8 +3974,81 @@
       aiState.showAi = file.showAi !== false;
       aiState.connected = file.connections.length > 0;
       refreshAiVisibility();
+      // RF-42.3: si el panel se dejó abierto en el Asistente y la IA sigue disponible, se vuelve a él.
+      var leftOnAi = false;
+      try { leftOnAi = localStorage.getItem(SIDEBAR_TAB_KEY) === 'ai'; } catch (_) {}
+      if (leftOnAi && aiState.showAi && aiState.connected && sidebarPref() === 'open' && window.innerWidth > 768) openAssistant();
     }).catch(function (err) { console.warn('[ai_connections]', err); });
   }
+
+  // Preferencias del menú de la cabecera (RF-38): cada una expone get()/set() y headermenu.js las pinta como
+  // casillas. «Mostrar las funciones de IA» es el mismo ajuste del asistente de conexión (RNF-IA.1).
+  window.DBVPrefs = window.DBVPrefs || {};
+
+  // ─── Ancho de lectura (RF-41) ───────────────────────────────────────────────────────────────────
+  // Cuatro anchos de la columna de texto y una casilla que decide si los bloques anchos (tablas, código, Mermaid,
+  // líneas horizontales e imágenes sueltas) siguen abiertos a todo el contenedor (como siempre) o se alinean con el
+  // texto. El CSS hace el trabajo (`data-width` y `wide-blocks-off` en <body>); aquí solo se guarda y se aplica.
+  var WIDTH_KEY = 'dbv-md-content-width';
+  var WIDE_BLOCKS_KEY = 'dbv-md-wide-blocks';
+  var WIDTH_PRESETS = ['narrow', 'normal', 'wide', 'full'];
+  var readingWidth = 'normal';
+  var wideBlocks = true;
+  try {
+    var savedWidth = localStorage.getItem(WIDTH_KEY);
+    if (WIDTH_PRESETS.indexOf(savedWidth) !== -1) readingWidth = savedWidth;
+    wideBlocks = localStorage.getItem(WIDE_BLOCKS_KEY) !== '0';
+  } catch (_) { /* sin almacenamiento: valores por defecto */ }
+
+  function applyReadingWidth() {
+    document.body.setAttribute('data-width', readingWidth);
+    document.body.classList.toggle('wide-blocks-off', !wideBlocks);
+  }
+  applyReadingWidth();
+
+  window.DBVPrefs.contentWidth = {
+    get: function () { return readingWidth; },
+    set: function (value) {
+      if (WIDTH_PRESETS.indexOf(value) === -1) return;
+      readingWidth = value;
+      try { localStorage.setItem(WIDTH_KEY, value); } catch (_) {}
+      applyReadingWidth();
+    }
+  };
+  window.DBVPrefs.wideBlocks = {
+    get: function () { return wideBlocks; },
+    set: function (value) {
+      wideBlocks = !!value;
+      try { localStorage.setItem(WIDE_BLOCKS_KEY, wideBlocks ? '1' : '0'); } catch (_) {}
+      applyReadingWidth();
+    }
+  };
+
+  // «Recordar la posición y el tamaño de la ventana» (RF-42): el valor vive en Rust (window-state.json), que lo lee
+  // antes de que exista el frontend. Solo se ofrece en escritorio.
+  var rememberWindow = true;
+  if (!isAndroid) {
+    invoke('get_window_state_pref').then(function (enabled) { rememberWindow = enabled !== false; }).catch(function () {});
+  }
+  window.DBVPrefs.rememberWindow = {
+    get: function () { return rememberWindow; },
+    set: function (value) {
+      return invoke('set_window_state_pref', { enabled: !!value }).then(function () { rememberWindow = !!value; })
+        .catch(function (err) { console.warn('[set_window_state_pref]', err); });
+    }
+  };
+
+  window.DBVPrefs.showAi = {
+    get: function () { return aiState.showAi; },
+    set: function (value) {
+      return invoke('ai_set_preferences', { showAi: !!value }).then(function (file) {
+        aiState.showAi = file.showAi !== false;
+        aiState.connected = file.connections.length > 0;
+        refreshAiVisibility();
+        document.dispatchEvent(new CustomEvent('dbv-ai-show-changed', { detail: { show: aiState.showAi } }));
+      }).catch(function (err) { console.warn('[ai_set_preferences]', err); });
+    }
+  };
 
   // La carpeta de la IA sigue al documento activo (la misma regla que el árbol de RF-25).
   function aiNotifyDocument() { if (aiApp) aiApp.onRootChanged(aiRoot()); }
@@ -3375,11 +4073,12 @@
     else if (mod && e.key === 'e') { e.preventDefault(); toggleEditMode(); }
     else if (mod && e.key === 's') { e.preventDefault(); saveCurrentDocument(); }
     else if (mod && e.key === 'k') { e.preventDefault(); if (window.DBVFileTree) window.DBVFileTree.toggleQuickOpen(); }
+    else if (e.key === 'F1' && !mod && !e.altKey && !e.shiftKey) { e.preventDefault(); openHelp(); }
     else if (mod && e.key === 'b' && editMode && document.activeElement === editorTextarea) { e.preventDefault(); applyMarkdownFormat(MD_FORMATS.bold); }
     else if (mod && e.key === 'i' && editMode && document.activeElement === editorTextarea) { e.preventDefault(); applyMarkdownFormat(MD_FORMATS.italic); }
-    else if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoomIn(); }
-    else if (mod && e.key === '-') { e.preventDefault(); zoomOut(); }
-    else if (mod && e.key === '0') { e.preventDefault(); zoomReset(); }
+    else if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); if (focusInEditor()) editorZoomStep(1); else zoomIn(); }
+    else if (mod && e.key === '-') { e.preventDefault(); if (focusInEditor()) editorZoomStep(-1); else zoomOut(); }
+    else if (mod && e.key === '0') { e.preventDefault(); if (focusInEditor()) applyEditorZoom(100); else zoomReset(); }
     else if (e.altKey && e.key === 'ArrowLeft')  { e.preventDefault(); if (histIdx > 0) btnBack.click(); }
     else if (e.altKey && e.key === 'ArrowRight') { e.preventDefault(); if (histIdx < history.length - 1) btnForward.click(); }
     else if (e.key === 'Escape') { closeAllPanels(); }
@@ -3390,7 +4089,17 @@
   // =========================================================================
 
   function init() {
-    setLang(window.DBV_I18N.getLang());
+    // RF-39.4: el idioma autodetectado se aplica pero NO se guarda; solo cuenta lo que el usuario elija.
+    setLang(window.DBV_I18N.getLang(), { persist: false });
+
+    // RF-42.3: el panel lateral vuelve como se dejó (si el usuario decidió abrirlo, sin esperar a un documento) y con su
+    // pestaña; el Asistente solo cuando se sabe que la IA sigue disponible (ver el arranque de la IA).
+    if (!isAndroid) {
+      if (sidebarPref() === 'open' && window.innerWidth > 768) setTocVisible(true);
+      var savedTab = null;
+      try { savedTab = localStorage.getItem(SIDEBAR_TAB_KEY); } catch (_) {}
+      if (savedTab === 'files' && window.DBVFileTree) window.DBVFileTree.setActiveTab('files');
+    }
 
     var theme = localStorage.getItem('dbv-md-theme') || 'dark';
     setTheme(theme);
@@ -3419,9 +4128,13 @@
                 }
               }
             } catch (_) {}
+            endBoot();
+          } else {
+            endBoot(); // sin documento que abrir: ahora sí se muestra la bienvenida
           }
         })
         .catch(function (err) {
+          endBoot();
           console.log('[init] no CLI arg:', err);
           if (isAndroid) {
             try {

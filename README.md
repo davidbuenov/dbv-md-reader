@@ -109,7 +109,7 @@ Requiere tener instalados Xcode Command Line Tools (`xcode-select --install`), [
 - **Lector nativo táctil ultra-ligero:** adaptado para teléfonos y tabletas con interfaz táctil simplificada y respeto de los insets del sistema (barra de estado, notch y barra de navegación).
 - **Storage Access Framework (SAF):** apertura directa de archivos Markdown en 1 solo toque, o navegación del árbol de carpetas con soporte para imágenes locales relativas y enlaces cruzados entre documentos.
 - **Integración con WhatsApp, Telegram y Gmail:** abre archivos Markdown compartidos directamente desde apps de mensajería y correo mediante streaming en memoria, sin necesidad de descargarlos previamente.
-- **Selector de temas e idioma móvil:** menú de Ajustes flotante (⚙️) con cambio instantáneo entre temas Claro, Oscuro y Sepia, e idioma Español/English.
+- **Selector de temas e idioma móvil:** menú de Ajustes flotante (⚙️) con cambio instantáneo entre temas Claro, Oscuro y Sepia, e idioma (Español, English o 한국어).
 - **Paquete AAB firmado universal:** bundle oficial preparado para Google Play App Signing compilado para arquitecturas ARM64, ARMv7, x86 y x86_64.
 
 ---
@@ -171,7 +171,13 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 
 ## ✨ Características Principales
 
-- **Modo Edición:** panel dividido con el Markdown en crudo a la izquierda (con números de línea) y la vista renderizada a la derecha, sincronizados por línea al hacer scroll en cualquiera de los dos — sin librería de editor de código, así que no penaliza el tamaño ni la RAM. Bordes arrastrables para redimensionar. Gestión de conflictos si el archivo cambia desde fuera mientras editas (igual que el Bloc de notas de Windows: silencioso si no tienes cambios propios, un aviso solo la primera vez si sí los tienes). Incluye una chuleta de sintaxis Markdown integrada (botón "?"), una barra de formato de 16 iconos (negrita, cursiva, encabezados, listas, enlaces, imágenes, tablas...) que envuelve la selección o inserta un esqueleto listo para rellenar, y `Tab`/`Shift+Tab` para indentar/desindentar listas sin salir del editor.
+- **Modo Edición:** panel dividido con el Markdown en crudo a la izquierda (con números de línea) y la vista renderizada a la derecha, sincronizados por línea al hacer scroll en cualquiera de los dos — sin librería de editor de código, así que no penaliza el tamaño ni la RAM. Bordes arrastrables para redimensionar. Gestión de conflictos si el archivo cambia desde fuera mientras editas (igual que el Bloc de notas de Windows: silencioso si no tienes cambios propios, un aviso solo la primera vez si sí los tienes). Incluye una barra de formato de 16 iconos (negrita, cursiva, encabezados, listas, enlaces, imágenes, tablas...) que envuelve la selección o inserta un esqueleto listo para rellenar, y `Tab`/`Shift+Tab` para indentar/desindentar listas sin salir del editor.
+- **Menús Archivo, Herramientas y Preferencias (desde la 0.19.0):** la cabecera agrupa las acciones en tres menús —como `dbv-typst-editor`— en vez de una fila de botones, con los atajos a la vista y navegación por teclado. Buscar, Modo Edición, panel lateral, tema, idioma y ayuda siguen a un clic.
+- **Ayuda integrada con dos pestañas (desde la 0.19.0):** `F1`, el botón «?» o Herramientas → Ayuda abren la **Guía de la aplicación** (abrir, leer, buscar, editar, IA, exportar, preferencias y atajos) y la chuleta de **Sintaxis Markdown**.
+- **Idiomas ampliables (desde la 0.19.0):** español, inglés y **coreano (한국어)**, elegibles en un desplegable que sale de un registro de idiomas (añadir otro es un diccionario más). Se detecta el idioma del sistema y, si no hay traducción, se usa el inglés. La IA contesta en el idioma elegido.
+- **Ancho de lectura y bloques anchos (desde la 0.19.0):** en Preferencias, Estrecho / Normal / Ancho / Completo y una casilla para que tablas, código, diagramas e imágenes ocupen más que el texto o se alineen con él. También el **tamaño de letra del editor** (`Ctrl/Cmd +`, `-`, `0` dentro del editor).
+- **Recuerda cómo lo dejaste (desde la 0.19.0):** posición, tamaño y maximizado de la ventana (sin dejarla nunca fuera de la pantalla; se puede desactivar) y el estado del panel lateral. Los diálogos de archivo abren en la carpeta del documento o en la última usada, no en la carpeta de trabajo del proceso.
+- **Reordenar secciones desde el Índice (desde la 0.19.0):** en Modo Edición, arrastra una entrada del Índice (o `Alt+↑/↓`) y se mueve la sección entera en el texto, con `Ctrl/Cmd+Z` para deshacer.
 - **Nuevo documento:** botón junto a "Abrir archivo" (`Ctrl/Cmd + N`) para crear un `.md` desde cero — abre el diálogo nativo de guardado, crea el fichero vacío donde elijas y entra directo en Modo Edición.
 - **IA integrada y opcional (solo escritorio, desde la 0.18.0):** botón ✨ (`Ctrl/Cmd + Mayús + I`) y pestaña **«Asistente»** en el panel lateral. Conecta un modelo **local** (Ollama, LM Studio), uno **en la nube con tu clave de API** (Anthropic, OpenAI, Google, OpenRouter) o un **agente que ya tengas** (Claude Code, Gemini CLI, Codex, GitHub Copilot CLI). La IA ve el documento abierto y su carpeta, y **nada se escribe sin que lo revises** trozo a trozo (se aplica en el editor y se deshace con `Ctrl+Z`). IA en línea sobre la selección (mejorar, corregir, traducir, acortar…) con `Ctrl/Cmd + Alt + I`. **Cero huella** si no la usas: no se carga nada ni se conecta a ningún sitio. Guía: [`docs/IA.md`](docs/IA.md).
 - **Sincronización edición ↔ vista previa:** en Modo Edición, **doble clic en la previsualización** lleva el cursor al fuente (a la palabra o al bloque) y el menú contextual del editor ofrece **«Ir a la vista previa»** (`Ctrl/Cmd + Alt + P`). En lectura, el menú de la vista previa ofrece «Editar aquí».
@@ -188,7 +194,7 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Documentos remotos:** Abre y navega enlaces a `.md` alojados en una URL (`http(s)://`), además de los locales.
 - **Seguridad Estricta:** Sanitización de etiquetas y atributos peligrosos (DOMPurify) antes de insertarse en el WebView2.
 - **Navegación e Índice:** Tabla de Contenidos (TOC) flotante/lateral generada automáticamente a partir de los encabezados, con la sección visible resaltada mientras haces scroll. Junto al nombre del documento se muestra el tiempo de lectura estimado, y una barra fina bajo la cabecera indica el progreso de scroll.
-- **Búsqueda en Página:** Atajo `Ctrl + F` para buscar texto de forma rápida e intuitiva.
+- **Búsqueda en Página:** Atajo `Ctrl + F` para buscar texto de forma rápida e intuitiva; en Modo Edición, también **dentro del texto fuente** del editor (selector «Editor | Vista previa»).
 - **Temas Visuales:** Soporte para modo Claro (GitHub Light), Oscuro (VS Code / GitHub Dark) y Sepia (lectura prolongada).
 - **Imprimir / Exportar a PDF:** `Ctrl + P` abre el diálogo nativo de impresión, con paginación real (A4, sin títulos/tablas/código partidos entre páginas) y con los colores de sintaxis y del tema conservados en papel, sea cual sea el tema activo en pantalla. *Truco (Windows):* si no quieres que el PDF lleve el pie con la URL/hora que añade el propio diálogo (motor Chromium de WebView2), despliega "Más opciones" y desmarca "Encabezados y pies de página" — el navegador recuerda esa preferencia para las siguientes veces. En macOS/Linux el diálogo nativo es distinto (panel de impresión de macOS / GTK en Linux) y no se ha confirmado si añade el mismo pie.
 - **Exportar a Typst:** botón junto a Imprimir que convierte el documento a sintaxis Typst (`.typ`) y lo guarda donde elijas — encabezados, negrita/cursiva/tachado, código, listas, citas, tablas, imágenes y enlaces. No hace falta tener Typst instalado. Ideal para seguir editándolo con [dbv-typst-editor](https://davidbuenov.github.io/dbv-typst-editor/).
@@ -210,6 +216,7 @@ El repositorio incluye una carpeta [`templates/`](templates/) con **20 plantilla
 
 | Atajo | Acción |
 | --- | --- |
+| `F1` | Ayuda (guía de la aplicación y sintaxis Markdown) |
 | `Ctrl/Cmd + N` | Nuevo documento |
 | `Ctrl/Cmd + O` | Abrir archivo |
 | `Ctrl/Cmd + F` | Buscar en el documento |
@@ -223,13 +230,14 @@ El repositorio incluye una carpeta [`templates/`](templates/) con **20 plantilla
 | `Tab` / `Shift + Tab` | Indentar / desindentar la línea o selección (en el editor) |
 | `Ctrl/Cmd + P` | Imprimir / exportar a PDF |
 | `Ctrl/Cmd + +` / `-` / `0` | Acercar / alejar / restablecer zoom |
+| `Alt + ↑` / `Alt + ↓` | Mover la sección del Índice seleccionada (Modo Edición) |
 | `Alt + ←` / `Alt + →` | Atrás / adelante en el historial de navegación |
 | `Inicio` / `Fin` | Ir al principio / final del documento (fuera de un campo de texto) |
 | `Esc` | Cerrar el panel o modal abierto |
 
 **Ratón:** doble clic sobre una palabra en el editor la selecciona (lista para `Ctrl/Cmd + B` / `I`); clic derecho sobre un diagrama Mermaid abre "mermaid.live"; clic derecho sobre un archivo/carpeta del árbol ofrece "Abrir en ventana nueva" / "Revelar en el Explorador".
 
-> La lista completa, con la navegación por teclado de Quick Open y la búsqueda, está también en la ayuda integrada de la app (botón «?» en Modo Edición).
+> La lista completa, con la navegación por teclado de Quick Open y la búsqueda, está también en la ayuda integrada de la app (`F1`).
 
 ---
 
@@ -331,6 +339,8 @@ dbv-md-reader/
 │   ├── ai/                # IA opcional (módulos ES cargados bajo demanda)
 │   ├── sourcesync.js      # Sincronización edición ↔ vista previa (lógica pura)
 │   ├── imagepaste.js      # Pegar o soltar imágenes (lógica pura)
+│   ├── headermenu.js      # Menús de la cabecera (Archivo, Herramientas, Preferencias)
+│   ├── i18n.js            # Registro de idiomas (+ i18n.ko.js); guías en apphelp_*.md y markdownhelp_*.md
 │   └── styles.css         # Estilos y tokens de color
 ├── dbv-specs-ops/         # Especificaciones SDD y marco de ingeniería
 │   ├── project.config.md  # Identidad del proyecto y cabeceras
@@ -413,10 +423,12 @@ Copyright (c) 2026 David Bueno Vallejo
 Gracias a quienes han colaborado probando la aplicación, encontrando errores y proponiendo mejoras:
 
 - José M. Alarcón Aguín
-- Victor Estival
+- Victor Estival — propuso añadir «Nuevo documento» al menú nativo de macOS en el [#16](https://github.com/davidbuenov/dbv-md-reader/pull/16) (0.19.0).
 - Julio Lorca
 - Juan Ignacio Caballero — propuso la idea del Explorador de árbol de directorios (RF-25/v0.13.0) en el [Issue #5](https://github.com/davidbuenov/dbv-md-reader/issues/5).
 - Jacinto Parga — corrigió la asociación de archivos `.md` en Linux en el [PR #9](https://github.com/davidbuenov/dbv-md-reader/pull/9).
+- [Park-Young-Seok](https://github.com/Park-Young-Seok) — en la 0.19.0: la traducción al coreano y el selector de idiomas ([#22](https://github.com/davidbuenov/dbv-md-reader/issues/22)), el ancho de lectura ([#21](https://github.com/davidbuenov/dbv-md-reader/issues/21), [#17](https://github.com/davidbuenov/dbv-md-reader/pull/17)), recordar la ventana ([#20](https://github.com/davidbuenov/dbv-md-reader/issues/20)) y el diagnóstico de cuatro fallos con su propuesta de arreglo: variables de WebView2 heredadas de PowerToys Peek ([#23](https://github.com/davidbuenov/dbv-md-reader/pull/23)), botones de código ([#18](https://github.com/davidbuenov/dbv-md-reader/pull/18)), impresión ([#19](https://github.com/davidbuenov/dbv-md-reader/pull/19)) y parpadeo de la bienvenida ([#24](https://github.com/davidbuenov/dbv-md-reader/pull/24)).
+- johnblommers — en la 0.19.0: buscar dentro del editor ([#11](https://github.com/davidbuenov/dbv-md-reader/issues/11)), la carpeta de los diálogos ([#12](https://github.com/davidbuenov/dbv-md-reader/issues/12)), el tamaño de letra del editor ([#13](https://github.com/davidbuenov/dbv-md-reader/issues/13)) y reordenar secciones desde el Índice ([#15](https://github.com/davidbuenov/dbv-md-reader/issues/15)); también planteó el control del PDF ([#14](https://github.com/davidbuenov/dbv-md-reader/issues/14)).
 - Johannes Rexx — detectó, en el foro de Typst, que el HTML embebido en un documento (p. ej. `<module>` dentro de la traza de un error) desaparecía en silencio al exportar a Typst (RF-27).
 
 ### 💡 Inspiración

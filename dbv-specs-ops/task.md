@@ -1,14 +1,45 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
-> ⏭️ **SNAPSHOT DE CONTEXTO (2026-10-19) — Fase 42: `v0.18.0` «AI Native» PUBLICADA (commit + tag + push) — `/spec` → `/plan` → `/build` → `/test` → `/code-simplify` → `/ship` HECHOS.**
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-10-19, noche) — Fase 43: `v0.19.0` — ciclo COMPLETO (`/spec` → `/plan` → `/build` → `/test` → `/code-simplify` → `/ship`). Versión `0.19.0` (Minor) fijada en `package.json`, `package-lock.json`, `Cargo.toml`, `Cargo.lock` y `tauri.conf.json`; CHANGELOG publicado como `[0.19.0] - 2026-10-19`; README ES/EN con agradecimientos, `walkthrough.md`, fichas de tienda y web actualizados. TODO SIN COMMIT NI TAG NI PUSH: se proponen al usuario.**
 >
-> **Qué lleva (ver `walkthrough.md` y `CHANGELOG.md` `[0.18.0]`):** IA opcional de tres caminos (RF-31..36, solo escritorio), sincronización edición ↔ vista previa (RF-30), pegar o soltar imágenes en `images/` (RF-37), y los arreglos que el usuario encontró probando (ruta `\\?\` del agente ACP en Windows, CRLF y rename en la escritura de la IA, árbol de Archivos que no se refrescaba, menú nativo del WebView que recargaba la ventana, «Copiar» en el Asistente).
+> **Pendiente del usuario tras el commit:** compilar y subir el `.msixbundle` (Store) y la versión de Google Play; responder y cerrar PRs #16–#19, #23, #24 e issues #11–#15 y #20–#22; pedir a Víctor que confirme `Cmd+N`; publicar la Release en GitHub (tag `v0.19.0`).
 >
-> **Cierre:** versión `0.18.0` en `package.json`, `package-lock.json`, `Cargo.toml`/`Cargo.lock` y `tauri.conf.json`; README ES/EN, `docs/IA*.md`, `docs/privacidad.html` (19-oct), landing ES/EN, fichas de Microsoft Store y Uptodown (Mac), `MICROSOFT_STORE.md`. **Paquete para la Store:** `src-tauri/target/msix/dbv-md-reader_0.18.0.0.msixbundle` (7,4 MB; identidad y `Version=0.18.0.0` verificadas; `internetClient`).
+> **Qué lleva** (`CHANGELOG.md` `[Sin publicar]`, `SPECIFICATIONS.md` «v0.19.0», ADR-050/051): cabecera con menús Archivo/Herramientas/Preferencias (RF-38); idiomas ampliables con selector desplegable, inglés de reserva y **coreano** (RF-39/40, con puerta de higiene); ancho de lectura + casilla de bloques anchos (RF-41); ventana y panel lateral recordados (RF-42); tamaño de letra del editor (RF-43); buscar dentro del editor con resaltado (RF-44); **reordenar secciones desde el Índice** (RF-45); carpeta inicial de los diálogos (RF-46); y los arreglos #24, #18, #19, #23, #16, #12 y la sincronía de scroll por bloques (#15). **Añadido tras la revisión del usuario (2026-10-19): RF-47, ayuda con dos pestañas** —«Guía de la aplicación» (`apphelp_es/en.md`, nueva) y «Sintaxis Markdown»— abierta con «?», F1 o Herramientas → Ayuda, inspirada en `dbv-typst-editor`.
 >
-> **Pendiente del usuario:** (1) subir el `.msixbundle` a Partner Center con los textos de `descripcionStore_{es,en}.md` y enviar a certificación; (2) subir a Uptodown el `DBV.Markdown.Reader_0.18.0_universal.dmg` que genera `release-macos.yml` (ficha en `descripcionStoreUptoDown_{es,en}.md`); (3) publicar el borrador de la Release en GitHub cuando terminen los Actions de Linux y macOS; (4) probar a mano Linux y macOS (sobre todo el `import()` de módulos ES, ADR-048) y la IA dentro del MSIX instalado (agentes como procesos hijos y almacén de credenciales); (5) LinkedIn: reutilizar la publicación con actualización fechada (memoria `linkedin_strategy`).
+> **Estado de las pruebas:** vitest 286 · sincronía 28 · Rust 131 · **18 bancos e2e** (Edge headless) · clippy limpio · `cargo check` Android y módulo macOS compilan · `dbv-lint` sin errores. Binario de release 19.005.952 bytes (+158 KB).
 >
-> **Siguiente paso acordado:** actualizar `dbv-tauri-starter` con lo aprendido (su IA era un esqueleto, REJECTED-01; los módulos Rust de `src-tauri/src/ai/` ya están copiados sin generalizar) y subir a `dbv-specs-ops` las Lecciones 33, 34 y 35 y la de «tests fuera de `frontendDist`».
+> **Revisión `/code-simplify` (3 pases):** 0 Críticos. Importantes registrados en el CHANGELOG: 4 sitios de `innerHTML` con texto de idioma (ahora `textContent`), `renderRecentPanel` frágil ante una no-lista, deriva de finales de línea en 3 ficheros. Limpieza: código muerto de la sincronía, `outlineModel`, CSS de los antiguos botones de idioma, `try_state` en la ventana.
+>
+> **Pendiente para `/ship` (lo elige/aprueba el usuario):** versión (Minor → `0.19.0`) en `package.json`, `package-lock.json`, `Cargo.toml`/`Cargo.lock` y `tauri.conf.json`; publicar el CHANGELOG; README ES/EN (que además dicen «botón «?» en Modo Edición» para la chuleta: ahora la ayuda tiene dos pestañas y F1) con **agradecimientos** a Park-Young-Seok (coreano y diagnósticos de #17–#24), Víctor Estival, jparga y johnblommers; `walkthrough.md`; fichas de tienda; responder y cerrar las PRs #16, #17, #18, #19, #23, #24 y los issues #11–#15 y #20–#22 («reimplementado aquí», con el motivo); pedir a Víctor que confirme `Cmd+N`. **Sin `git push` desde aquí.**
+>
+> **No verificado (solo hay Windows):** PowerToys Peek real (RF-14: además que Peek fije esas variables es un dato de la PR), `Cmd+N` sin doble disparo y el menú nativo real de macOS, Linux/Wayland (posición de ventana), WebKitGTK/WKWebView (`:has`, `canvas`, `setRangeText`), un segundo monitor real, AppImage real (RF-46), y la revisión de las 45 claves coreanas propias por un hablante nativo.
+>
+> **Cuestiones para el usuario al revisar:** (1) el cambio visible de las imágenes sueltas (ahora hasta 1100 px; se desactiva con la casilla); (2) tras mover una sección con el Índice el historial de deshacer nativo anterior se vacía (decisión medida, ADR-051); (3) el coreano de Park-Young-Seok se leyó entero y pasó la puerta de higiene, pero conviene una revisión nativa; (4) la bienvenida tarda ~0,1 s más en aparecer cuando se arranca SIN archivo.
+
+---
+
+## 🧭 Plan de la v0.19.0 (2026-10-19) — detalle en `implementation_plan.md`
+
+**Modo Orquestador.** Aprobado por el usuario (sin preguntar, 2026-10-19). Sin commit/push/`/ship`. Decisiones D1–D12 y Architect Review en `implementation_plan.md` (sin ejes en `low`). Línea base antes de tocar nada: 8 bancos e2e, 171 tests vitest, 24 de sincronización y 102 de Rust, **todo en verde**.
+
+- [x] **A0** harness (`send`, medio `print`) + medir punto de partida de #24, #19 (zoom), #18 y #15 *(RF-09, RF-10, RF-20)*
+- [x] **A1** bienvenida sin parpadeo *(RF-09)* · [x] **A2** botones de código fijos + impresión *(RF-10)* · [x] **A3** entorno de WebView2 *(RF-14)* · [x] **A4** «Nuevo documento» en el menú de macOS *(RF-29)* · [x] **A5** carpeta inicial de los diálogos *(RF-46)*
+- [x] **B1** cabecera con menús *(RF-38)* · [x] **B2** banco `header-menus`
+- [x] **C1** registro de idiomas *(RF-39)* · [x] **C2** selector y ajustes de idioma *(RF-39, RF-22, RF-16)* · [x] **C3** coreano *(RF-40)* · [x] **C4** banco de idiomas
+- [x] **D1** ancho de lectura *(RF-41)* · [x] **D2** ventana y panel lateral *(RF-42)* · [x] **D3** tamaño de letra del editor *(RF-43)*
+- [x] **E1** buscar en el editor *(RF-44)* · [x] **E2** sincronización de scroll por bloques *(RF-20)*
+- [x] **F1** módulo de secciones *(RF-45)* · [x] **F2** arrastre, teclado y banco *(RF-45)*
+- [x] **T** `/test` completo y medida del binario *(RNF-03)* · [x] **S** `/code-simplify` · [x] **D** documentación (CHANGELOG, ARCHITECTURE, memory)
+
+
+**Resultados de `/build` y `/test` (2026-10-19):** cinco rebanadas A–F construidas y verificadas.
+- **Batería final:** vitest **274** (18 ficheros), sincronía Node **24**, Rust **131** (+2 ignorados), **17 bancos e2e** en Edge headless. Línea base antes de empezar: 171 · 24 · 102 · 8.
+- **Estático:** `cargo clippy --all-targets` limpio; `cargo check` de **Android** limpio (con el NDK 25 en el PATH); el módulo `macos_menu` (con «Nuevo documento») **compila** activado temporalmente bajo `cfg(windows)` (lib.rs restaurado byte a byte). `dbv-lint --changed`: sin errores. Trazabilidad: RF-09, 10, 14, 16, 19, 20, 22, 29, 38–46 con tests `@spec`.
+- **Tamaño (RNF-03):** binario de release **19.005.952 bytes** (+158.208 sobre los 18.847.744 de la 0.18.0).
+- **Puntos de partida medidos:** #24 bienvenida visible 22 fotogramas (143–500 ms) → 0; #18 botones de código se movían 600 px con el scroll → 0; #19 impresión: `<pre>` 2230 px en 623 y columna 480 px con zoom 60 % → 0 desbordamiento y misma columna a 60/100/200 %; #15 sincronía: uniforme peor caso 16 líneas → 1, desigual 30–31 → 0–3; **el clic en el Índice ya funcionaba** (Δ 0, la primera medida captó el scroll suave a medias); cabecera a 640 px: **0.18.0 desbordaba 468 px, 0.19.0 no desborda**; a 1120 px zona de controles 766 → 693 px.
+- **Bugs reales encontrados y corregidos durante la construcción:** `.floating-panel` ya existente pisaba los menús; `:only-child` ignora los nodos de texto (párrafo con texto + 1 imagen contaba como imagen suelta → clase `img-block`); `scrollTo` que cancela el scroll suave dispara la sincronía (se hace dentro del bloqueo y la colocación espera 2 fotogramas); temporizador de una selección anterior pisaba a la actual (testigo); `Ctrl+F` con el panel abierto cambiaba el objetivo a la vista previa; `execCommand('insertText')` inviable (129 s) → `setRangeText` + deshacer propio; el Índice obsoleto tras teclear movía otra sección (se cancela el arrastre); `markdownhelp_es.md` llevaba una línea suelta desde la 0.13.1.
+
+**No verificable aquí (se registrará tal cual):** Peek real, `Cmd+N` en macOS, Linux/Wayland, `import()` de módulos en WebKitGTK/WKWebView.
 
 ---
 

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="vendor/katex.min.css" />
 </head>
-<body>
+<body class="booting">
 
   <!-- Error panel (debug) -->
   <div id="error-panel"></div>
@@ -31,20 +31,72 @@
 
     <!-- Right: Acciones + Tema + TOC -->
     <div class="toolbar-right">
+      <div class="header-menu">
+        <button id="btn-file-menu" class="header-menu__btn" type="button" aria-haspopup="menu" aria-expanded="false">
+          <span class="header-menu__icon" aria-hidden="true"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3h7l5 5v13H7zM14 3v5h5"/></svg></span><span class="header-menu__label" data-i18n="menu.file">Archivo</span><span class="header-menu__caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="file-menu" class="floating-panel--menu hidden" role="menu">
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-new-file"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.newDoc">Nuevo documento</span><kbd class="menu-item__keys" data-keys="mod+N"></kbd></button>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-open-file"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.openFile">Abrir archivo…</span><kbd class="menu-item__keys" data-keys="mod+O"></kbd></button>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-open-url"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.openUrl">Abrir desde URL…</span></button>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-recent"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.recent">Archivos recientes…</span></button>
+          <div class="menu-separator" role="separator"></div>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-save"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.save">Guardar</span><kbd class="menu-item__keys" data-keys="mod+S"></kbd></button>
+          <div class="menu-separator" role="separator"></div>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-print" data-needs="doc"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.print">Imprimir / PDF…</span><kbd class="menu-item__keys" data-keys="mod+P"></kbd></button>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-export-typst" data-needs="doc"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.exportTypst">Exportar a Typst…</span></button>
+        </div>
+      </div>
+      <div class="header-menu">
+        <button id="btn-tools-menu" class="header-menu__btn" type="button" aria-haspopup="menu" aria-expanded="false">
+          <span class="header-menu__icon" aria-hidden="true"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></span><span class="header-menu__label" data-i18n="menu.tools">Herramientas</span><span class="header-menu__caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="tools-menu" class="floating-panel--menu hidden" role="menu">
+          <button class="menu-item" type="button" role="menuitem" data-action="quickOpen"><span class="menu-item__icon" aria-hidden="true"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg></span><span class="menu-item__label" data-i18n="menu.quickOpen">Buscar archivo…</span><kbd class="menu-item__keys" data-keys="mod+K"></kbd></button>
+          <button class="menu-item" type="button" role="menuitem" data-action="goPreview" data-needs="edit"><span class="menu-item__icon" aria-hidden="true"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zm10 3a3 3 0 100-6 3 3 0 000 6z"/></svg></span><span class="menu-item__label" data-i18n="menu.goPreview">Ir a la vista previa</span><kbd class="menu-item__keys" data-keys="mod+Alt+P"></kbd></button>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-ai" data-when-hidden="hide"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.connectAi">Conectar una IA…</span><kbd class="menu-item__keys" data-keys="mod+Shift+I"></kbd></button>
+          <div class="menu-separator" role="separator"></div>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-markdown-help"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.help">Ayuda</span><kbd class="menu-item__keys" data-keys="F1"></kbd></button>
+          <button class="menu-item" type="button" role="menuitem" data-action="helpSyntax"><span class="menu-item__icon" aria-hidden="true"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-3-9l-2 12"/></svg></span><span class="menu-item__label" data-i18n="menu.syntaxHelp">Ayuda de sintaxis Markdown</span></button>
+          <button class="menu-item" type="button" role="menuitem" data-target="btn-about"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.about">Acerca de…</span></button>
+        </div>
+      </div>
+      <div class="header-menu">
+        <button id="btn-prefs-menu" class="header-menu__btn" type="button" aria-haspopup="menu" aria-expanded="false">
+          <span class="header-menu__icon" aria-hidden="true"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6m-4 4v6"/></svg></span><span class="header-menu__label" data-i18n="menu.prefs">Preferencias</span><span class="header-menu__caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="prefs-menu" class="floating-panel--menu hidden" role="menu">
+          <div class="menu-heading" role="presentation" data-i18n="menu.width">Ancho de lectura</div>
+          <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-pref="contentWidth" data-value="narrow"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.width.narrow">Estrecho</span></button>
+          <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-pref="contentWidth" data-value="normal"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.width.normal">Normal</span></button>
+          <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-pref="contentWidth" data-value="wide"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.width.wide">Ancho</span></button>
+          <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-pref="contentWidth" data-value="full"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.width.full">Completo</span></button>
+          <button class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false" data-pref="wideBlocks"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.wideBlocks">Bloques anchos a todo el ancho</span></button>
+          <div class="menu-separator" role="separator"></div>
+          <div class="menu-heading" role="presentation" data-dynamic="editorFont" data-i18n="menu.editorFont">Tamaño de letra del editor</div>
+          <button class="menu-item" type="button" role="menuitem" data-action="editorFontDec" data-stay="1"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.editorFont.dec">Reducir</span></button>
+          <button class="menu-item" type="button" role="menuitem" data-action="editorFontInc" data-stay="1"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.editorFont.inc">Aumentar</span></button>
+          <button class="menu-item" type="button" role="menuitem" data-action="editorFontReset" data-stay="1"><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.editorFont.reset">Restablecer</span></button>
+          <div class="menu-separator" role="separator"></div>
+          <button class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false" data-pref="rememberWindow"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.rememberWindow">Recordar la posición y el tamaño de la ventana</span></button>
+          <button class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false" data-pref="showAi"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.showAi">Mostrar las funciones de IA</span></button>
+        </div>
+      </div>
+      <div class="toolbar-divider menus-divider"></div>
       <button id="btn-search"    class="btn-icon" data-i18n-title="toolbar.search">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
       </button>
-      <button id="btn-new-file" class="btn-icon" data-i18n-title="toolbar.newFile">
+      <button id="btn-new-file" class="btn-icon in-menu" data-i18n-title="toolbar.newFile">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m3-3H9M13 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 3v5h5"/></svg>
       </button>
-      <button id="btn-open-file" class="btn-icon" data-i18n-title="toolbar.openFile">
+      <button id="btn-open-file" class="btn-icon in-menu" data-i18n-title="toolbar.openFile">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/></svg>
       </button>
-      <button id="btn-open-url" class="btn-icon" data-i18n-title="toolbar.openUrl">
+      <button id="btn-open-url" class="btn-icon in-menu" data-i18n-title="toolbar.openUrl">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5"/></svg>
       </button>
       <div class="recent-wrap">
-        <button id="btn-recent" class="btn-icon" data-i18n-title="toolbar.recent">
+        <button id="btn-recent" class="btn-icon in-menu" data-i18n-title="toolbar.recent">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </button>
         <div id="recent-panel" class="hidden">
@@ -55,27 +107,29 @@
           <div id="recent-list"></div>
         </div>
       </div>
-      <button id="btn-print" class="btn-icon" data-i18n-title="toolbar.print">
+      <button id="btn-print" class="btn-icon in-menu" data-i18n-title="toolbar.print">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
       </button>
-      <button id="btn-export-typst" class="btn-icon" data-i18n-title="toolbar.exportTypst">
+      <button id="btn-export-typst" class="btn-icon in-menu" data-i18n-title="toolbar.exportTypst">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
       </button>
       <button id="btn-always-on-top" class="btn-icon" data-i18n-title="toolbar.alwaysOnTop">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 17v5M8.5 12.5L5 14l7-7 7 7-3.5-1.5M8.5 12.5L7 6l5-2 5 2-1.5 6.5M8.5 12.5h7"/></svg>
       </button>
-      <div class="toolbar-divider"></div>
+      <div class="toolbar-divider legacy-divider"></div>
       <div id="theme-switcher">
-        <button id="theme-light" class="theme-btn" data-i18n-title="theme.light">☀️ Light</button>
-        <button id="theme-dark"  class="theme-btn active" data-i18n-title="theme.dark">🌙 Dark</button>
-        <button id="theme-sepia" class="theme-btn" data-i18n-title="theme.sepia">📜 Sepia</button>
+        <button id="theme-light" class="theme-btn" data-i18n-title="theme.light">☀️</button>
+        <button id="theme-dark"  class="theme-btn active" data-i18n-title="theme.dark">🌙</button>
+        <button id="theme-sepia" class="theme-btn" data-i18n-title="theme.sepia">📜</button>
       </div>
-      <div class="toolbar-divider"></div>
-      <div id="lang-switcher" data-i18n-title="lang.label">
-        <button id="lang-es" class="lang-btn" type="button">ES</button>
-        <button id="lang-en" class="lang-btn" type="button">EN</button>
+      <div class="toolbar-divider legacy-divider"></div>
+      <div id="lang-switcher" class="header-menu">
+        <button id="btn-lang" class="header-menu__btn" type="button" aria-haspopup="menu" aria-expanded="false" data-i18n-title="lang.label">
+          <span id="lang-current">ES</span><span class="header-menu__caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="lang-menu" class="floating-panel--menu floating-panel--lang hidden" role="menu"></div>
       </div>
-      <div class="toolbar-divider"></div>
+      <div class="toolbar-divider legacy-divider"></div>
       <button id="btn-save" class="btn-icon hidden" data-i18n-title="editor.save">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h9l3 3v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3v4h6V3M7 21v-6h10v6"/></svg>
       </button>
@@ -148,12 +202,16 @@
     </div>
   </div>
 
-  <!-- ─── Ayuda de sintaxis Markdown (chuleta ES/EN según idioma activo) ─── -->
+  <!-- ─── Ayuda (RF-47): guía de la aplicación + chuleta de sintaxis Markdown, en el idioma activo ─── -->
   <div id="help-modal" class="modal-overlay hidden">
     <div id="help-backdrop" class="modal-backdrop"></div>
-    <div id="help-card" class="modal-card">
+    <div id="help-card" class="modal-card" role="dialog" aria-modal="true" aria-label="Ayuda">
       <button id="help-close" class="btn-icon-sm" data-i18n-title="help.close">✕</button>
-      <div id="help-content" class="markdown-body"></div>
+      <div id="help-tabs" role="tablist">
+        <button id="help-tab-app" class="help-tab active" type="button" role="tab" aria-selected="true" aria-controls="help-content" data-help-tab="app" data-i18n="help.tabApp">Guía de la aplicación</button>
+        <button id="help-tab-syntax" class="help-tab" type="button" role="tab" aria-selected="false" aria-controls="help-content" data-help-tab="syntax" data-i18n="help.tabSyntax">Sintaxis Markdown</button>
+      </div>
+      <div id="help-content" class="markdown-body" role="tabpanel" tabindex="0"></div>
     </div>
   </div>
 
@@ -317,10 +375,7 @@
     </div>
     <div class="settings-group">
       <span class="settings-group-label" data-i18n="settings.language">Idioma</span>
-      <div id="m-lang-switcher" class="segmented-control">
-        <button id="m-lang-es" class="lang-btn" type="button">Español</button>
-        <button id="m-lang-en" class="lang-btn" type="button">English</button>
-      </div>
+      <select id="m-lang-select" class="settings-select" data-i18n-title="lang.label"></select>
     </div>
     <div class="settings-group">
       <button id="m-btn-about" class="settings-action-btn" type="button">
@@ -337,6 +392,10 @@
   <!-- ─── Modal de búsqueda ─────────────────────────────────────────────── -->
   <div id="search-modal" class="floating-panel hidden">
     <input id="search-input" class="floating-panel-input" type="text" data-i18n-placeholder="search.placeholder" placeholder="Buscar en el documento…" autocomplete="off" spellcheck="false" />
+    <div id="search-target" class="search-target hidden" role="group" data-i18n-title="search.targetLabel">
+      <button type="button" class="search-target__btn" data-target="editor" aria-pressed="false" data-i18n="search.target.editor">Editor</button>
+      <button type="button" class="search-target__btn" data-target="preview" aria-pressed="true" data-i18n="search.target.preview">Vista previa</button>
+    </div>
     <span id="search-counter">0/0</span>
     <button id="search-prev"  class="btn-icon-sm" data-i18n-title="search.prev">↑</button>
     <button id="search-next"  class="btn-icon-sm" data-i18n-title="search.next">↓</button>
@@ -393,9 +452,14 @@
   <script src="vendor/katex.min.js"></script>
   <script src="vendor/pako_deflate.min.js"></script>
   <script src="i18n.js"></script>
+  <script src="i18n.ko.js"></script>
   <script src="sourcesync.js"></script>
   <script src="imagepaste.js"></script>
+  <script src="dialogdirs.js"></script>
+  <script src="textsearch.js"></script>
+  <script src="outline.js"></script>
   <script src="app.js"></script>
   <script src="filetree.js"></script>
+  <script src="headermenu.js"></script>
 </body>
 </html>

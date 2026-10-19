@@ -197,6 +197,8 @@ const FIXTURES = [
   ['testfiles', 'GFM_test.md'],
   ['src', 'markdownhelp_es.md'],
   ['src', 'markdownhelp_en.md'],
+  ['src', 'apphelp_es.md'],
+  ['src', 'apphelp_en.md'],
   ['testfiles', 'demo-funcionalidades_es.md'],
   ['testfiles', 'demo-funcionalidades_en.md'],
 ];

@@ -100,7 +100,7 @@ export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', 
           if (cmd === 'get_cli_argument') return Promise.resolve(doc.path);
           if (cmd === 'read_file') return Promise.resolve(doc);
           if (cmd === 'list_directory') return Promise.resolve([]);
-          if (cmd === 'get_app_version') return Promise.resolve('0.18.0');
+          if (cmd === 'get_app_version') return Promise.resolve('0.19.0');
           if (cmd === 'get_recent_files') return Promise.resolve([]);
           if (cmd === 'write_file') return Promise.resolve(null);
           if (cmd === 'ai_connections') return Promise.resolve({ connections: [], active: null, showAi: true });
@@ -119,6 +119,8 @@ export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', 
   await sleep(1500);
 
   const api = {
+    /** Acceso directo al protocolo CDP (emulación de medio `print`, tamaño de ventana…). */
+    send,
     errors: poll,
     async eval(expr) {
       const r = await send('Runtime.evaluate', { expression: `(async()=>{ ${expr} })()`, awaitPromise: true, returnByValue: true });

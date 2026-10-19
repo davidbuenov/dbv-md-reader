@@ -4,9 +4,9 @@
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
-// Diccionarios ES/EN + helper t(). Sin librería de i18n (vanilla, mismo patrón
-// IIFE que app.js) — la app tiene pocos textos, no justifica una dependencia.
-// Cargar este script ANTES de app.js en index.html.
+// Diccionarios ES/EN + registro de idiomas (RF-39) + helper t(). Sin librería de i18n (vanilla,
+// mismo patrón IIFE que app.js) — la app tiene pocos textos, no justifica una dependencia.
+// Cargar este script ANTES de app.js en index.html (y de los scripts `i18n.<código>.js`).
 // =============================================================================
 (function () {
   'use strict';
@@ -29,9 +29,36 @@
       'toolbar.editMode': 'Modo edición (Ctrl+E)',
       'toolbar.editModeActive': 'Modo edición activo — clic para volver a lectura (Ctrl+E)',
       'toolbar.toc': 'Tabla de Contenidos',
-      'toolbar.markdownHelp': 'Ayuda de sintaxis Markdown',
+      'toolbar.markdownHelp': 'Ayuda (F1)',
       'toolbar.about': 'Acerca de DBV Markdown Reader',
       'toolbar.settings': 'Configuración',
+      'menu.file': 'Archivo',
+      'menu.tools': 'Herramientas',
+      'menu.prefs': 'Preferencias',
+      'menu.newDoc': 'Nuevo documento',
+      'menu.openFile': 'Abrir archivo…',
+      'menu.openUrl': 'Abrir desde URL…',
+      'menu.recent': 'Archivos recientes…',
+      'menu.save': 'Guardar',
+      'menu.print': 'Imprimir / PDF…',
+      'menu.exportTypst': 'Exportar a Typst…',
+      'menu.quickOpen': 'Buscar archivo…',
+      'menu.goPreview': 'Ir a la vista previa',
+      'menu.connectAi': 'Conectar una IA…',
+      'menu.syntaxHelp': 'Ayuda de sintaxis Markdown',
+      'menu.about': 'Acerca de…',
+      'menu.showAi': 'Mostrar las funciones de IA',
+      'menu.width': 'Ancho de lectura',
+      'menu.width.narrow': 'Estrecho',
+      'menu.width.normal': 'Normal',
+      'menu.width.wide': 'Ancho',
+      'menu.width.full': 'Completo',
+      'menu.wideBlocks': 'Bloques anchos a todo el ancho',
+      'menu.rememberWindow': 'Recordar la posición y el tamaño de la ventana',
+      'menu.editorFont': 'Tamaño de letra del editor',
+      'menu.editorFont.dec': 'Reducir',
+      'menu.editorFont.inc': 'Aumentar',
+      'menu.editorFont.reset': 'Restablecer',
       'settings.title': 'Configuración',
       'settings.theme': 'Tema',
       'settings.language': 'Idioma',
@@ -116,6 +143,11 @@
       'search.prev': 'Anterior (Shift+Enter)',
       'search.next': 'Siguiente (Enter)',
       'search.close': 'Cerrar (Esc)',
+      'search.target.editor': 'Editor',
+      'search.target.preview': 'Vista previa',
+      'search.targetLabel': 'Dónde buscar',
+      'toc.reorderHint': 'Arrastra para mover la sección (Alt+↑/↓)',
+      'toc.moveFailed': 'No se pudo mover la sección (el documento cambió). Inténtalo otra vez.',
       'copy.copy': 'Copiar',
       'copy.copied': '¡Copiado!',
       'code.wrapOn': 'Ajustar línea',
@@ -144,7 +176,10 @@
       'editor.confirmDiscardCancel': 'Seguir editando',
       'editor.confirmDiscardOk': 'Descartar cambios',
       'help.close': 'Cerrar (Esc)',
-      'help.loadError': 'No se pudo cargar la ayuda de sintaxis Markdown.',
+      'help.tabApp': 'Guía de la aplicación',
+      'help.tabSyntax': 'Sintaxis Markdown',
+      'menu.help': 'Ayuda',
+      'help.loadError': 'No se pudo cargar la ayuda.',
       'editor.resizeHandle': 'Arrastra para redimensionar',
       'toc.resizeHandle': 'Arrastra para redimensionar',
       'editor.save': 'Guardar (Ctrl+S)',
@@ -192,9 +227,36 @@
       'toolbar.editMode': 'Edit mode (Ctrl+E)',
       'toolbar.editModeActive': 'Edit mode active — click to return to reading (Ctrl+E)',
       'toolbar.toc': 'Table of Contents',
-      'toolbar.markdownHelp': 'Markdown syntax help',
+      'toolbar.markdownHelp': 'Help (F1)',
       'toolbar.about': 'About DBV Markdown Reader',
       'toolbar.settings': 'Settings',
+      'menu.file': 'File',
+      'menu.tools': 'Tools',
+      'menu.prefs': 'Preferences',
+      'menu.newDoc': 'New document',
+      'menu.openFile': 'Open file…',
+      'menu.openUrl': 'Open from URL…',
+      'menu.recent': 'Recent files…',
+      'menu.save': 'Save',
+      'menu.print': 'Print / PDF…',
+      'menu.exportTypst': 'Export to Typst…',
+      'menu.quickOpen': 'Find file…',
+      'menu.goPreview': 'Go to preview',
+      'menu.connectAi': 'Connect an AI…',
+      'menu.syntaxHelp': 'Markdown syntax help',
+      'menu.about': 'About…',
+      'menu.showAi': 'Show the AI features',
+      'menu.width': 'Reading width',
+      'menu.width.narrow': 'Narrow',
+      'menu.width.normal': 'Normal',
+      'menu.width.wide': 'Wide',
+      'menu.width.full': 'Full',
+      'menu.wideBlocks': 'Wide blocks at full width',
+      'menu.rememberWindow': 'Remember window position and size',
+      'menu.editorFont': 'Editor font size',
+      'menu.editorFont.dec': 'Smaller',
+      'menu.editorFont.inc': 'Larger',
+      'menu.editorFont.reset': 'Reset',
       'settings.title': 'Settings',
       'settings.theme': 'Theme',
       'settings.language': 'Language',
@@ -279,6 +341,11 @@
       'search.prev': 'Previous (Shift+Enter)',
       'search.next': 'Next (Enter)',
       'search.close': 'Close (Esc)',
+      'search.target.editor': 'Editor',
+      'search.target.preview': 'Preview',
+      'search.targetLabel': 'Where to search',
+      'toc.reorderHint': 'Drag to move the section (Alt+↑/↓)',
+      'toc.moveFailed': 'Could not move the section (the document changed). Try again.',
       'copy.copy': 'Copy',
       'copy.copied': 'Copied!',
       'code.wrapOn': 'Wrap line',
@@ -307,7 +374,10 @@
       'editor.confirmDiscardCancel': 'Keep editing',
       'editor.confirmDiscardOk': 'Discard changes',
       'help.close': 'Close (Esc)',
-      'help.loadError': 'Could not load the Markdown syntax help.',
+      'help.tabApp': 'App guide',
+      'help.tabSyntax': 'Markdown syntax',
+      'menu.help': 'Help',
+      'help.loadError': 'Could not load the help.',
       'editor.resizeHandle': 'Drag to resize',
       'toc.resizeHandle': 'Drag to resize',
       'editor.save': 'Save (Ctrl+S)',
@@ -340,19 +410,63 @@
     }
   };
 
+  // ─── Registro de idiomas (RF-39) ───────────────────────────────────────────
+  // Añadir un idioma = su diccionario + `markdownhelp_<código>.md` + una llamada a `registerLanguage()`
+  // (ver `i18n.ko.js`): el selector de la cabecera, la detección, `<html lang>` y la ayuda salen de aquí.
+  // `es` y `en` van en este mismo fichero; el resto se registran desde su propio script, cargado antes de app.js.
+  var LANGS = [
+    { code: 'es', name: 'Español' },
+    { code: 'en', name: 'English' }
+  ];
+  // Idioma de reserva (RF-39.3/.5): el de un sistema no soportado y el de una clave que falte en el idioma activo.
+  var FALLBACK_LANG = 'en';
   var STORAGE_KEY = 'dbv-md-lang';
   var currentLang = null;
 
+  /** Idiomas disponibles, en orden de registro: `[{ code, name }]` con el nombre en su propio idioma. */
+  function languages() {
+    return LANGS.map(function (l) { return { code: l.code, name: l.name }; });
+  }
+
+  function isSupported(code) {
+    return typeof code === 'string' && LANGS.some(function (l) { return l.code === code; });
+  }
+
+  /** Claves de un idioma (para comprobar que todos los diccionarios tienen las mismas). */
+  function keysOf(code) {
+    return DICT[code] ? Object.keys(DICT[code]) : [];
+  }
+
+  /**
+   * Registra un idioma nuevo, o añade textos a uno existente. `code` son 2–3 letras minúsculas (el subtag
+   * principal de BCP-47). Devuelve `false` si el código no vale.
+   */
+  function registerLanguage(code, name, dictionary) {
+    var valid = typeof code === 'string' && /^[a-z]{2,3}$/.test(code);
+    if (valid) {
+      if (!DICT[code]) DICT[code] = {};
+      if (!isSupported(code)) LANGS.push({ code: code, name: name || code });
+      Object.keys(dictionary || {}).forEach(function (key) { DICT[code][key] = dictionary[key]; });
+    }
+    return valid;
+  }
+
+  /** Idioma que corresponde a una etiqueta del sistema (`ko-KR` → `ko`, `es-MX` → `es`), o el de reserva. */
+  function fromSystem(tag) {
+    var primary = String(tag || '').toLowerCase().split(/[-_]/)[0];
+    return isSupported(primary) ? primary : FALLBACK_LANG;
+  }
+
+  /** Solo cuenta la elección EXPLÍCITA guardada; lo autodetectado no se guarda (RF-39.4). */
   function detectLang() {
-    var saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'es' || saved === 'en') return saved;
-    var nav = (navigator.language || 'es').toLowerCase();
-    return nav.indexOf('en') === 0 ? 'en' : 'es';
+    var saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch (_) { /* almacenamiento bloqueado: se autodetecta */ }
+    return isSupported(saved) ? saved : fromSystem(navigator.language);
   }
 
   function t(key, vars) {
     var lang = currentLang || detectLang();
-    var str = (DICT[lang] && DICT[lang][key]) || DICT.es[key] || key;
+    var str = (DICT[lang] && DICT[lang][key]) || (DICT[FALLBACK_LANG] && DICT[FALLBACK_LANG][key]) || key;
     if (vars) {
       Object.keys(vars).forEach(function (k) {
         str = str.replace('{' + k + '}', vars[k]);
@@ -373,22 +487,31 @@
     });
   }
 
-  function setLang(lang) {
-    if (lang !== 'es' && lang !== 'en') return;
+  /**
+   * Cambia el idioma activo. Por defecto es una elección del usuario y se guarda; el arranque pasa
+   * `{ persist: false }` para aplicar el idioma detectado SIN convertirlo en una elección permanente.
+   */
+  function setLang(lang, opts) {
+    if (!isSupported(lang)) return;
     currentLang = lang;
-    localStorage.setItem(STORAGE_KEY, lang);
+    if (!opts || opts.persist !== false) {
+      try { localStorage.setItem(STORAGE_KEY, lang); } catch (_) { /* sin almacenamiento: vale solo para esta sesión */ }
+    }
     document.documentElement.setAttribute('lang', lang);
     applyTranslations();
     document.dispatchEvent(new CustomEvent('dbv-lang-changed', { detail: { lang: lang } }));
   }
 
   // Añade textos al diccionario: los módulos de la IA se cargan de forma perezosa
-  // (RNF-IA.1) y traen los suyos, para no engordar el paquete inicial.
+  // (RNF-IA.1) y traen los suyos, para no engordar el paquete inicial. Un idioma que no
+  // traiga los suyos usa el inglés (reserva de `t()`).
   function register(dictionary) {
-    ['es', 'en'].forEach(function (lang) {
-      var entries = dictionary && dictionary[lang];
-      if (!entries) return;
-      Object.keys(entries).forEach(function (key) { DICT[lang][key] = entries[key]; });
+    Object.keys(dictionary || {}).forEach(function (lang) {
+      var entries = dictionary[lang];
+      // Propiedad propia: un nombre como `constructor` o `__proto__` no puede colarse como «idioma».
+      if (Object.prototype.hasOwnProperty.call(DICT, lang) && entries) {
+        Object.keys(entries).forEach(function (key) { DICT[lang][key] = entries[key]; });
+      }
     });
     applyTranslations();
   }
@@ -397,5 +520,16 @@
     return currentLang || detectLang();
   }
 
-  window.DBV_I18N = { t: t, setLang: setLang, getLang: getLang, applyTranslations: applyTranslations, register: register };
+  window.DBV_I18N = {
+    t: t,
+    setLang: setLang,
+    getLang: getLang,
+    applyTranslations: applyTranslations,
+    register: register,
+    languages: languages,
+    registerLanguage: registerLanguage,
+    isSupported: isSupported,
+    fromSystem: fromSystem,
+    keysOf: keysOf
+  };
 })();

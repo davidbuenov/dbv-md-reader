@@ -60,6 +60,8 @@
   // nada de una cuarta columna). Su contenido lo pinta la IA al cargarse; aquí
   // solo se enseña u oculta, y el clic avisa a app.js para que la cargue.
   function setActiveTab(tab) {
+    // RF-42.3: la pestaña activa se recuerda entre sesiones (app.js la restaura al arrancar).
+    try { localStorage.setItem('dbv-md-sidebar-tab', tab); } catch (_) { /* sin almacenamiento: no se recuerda */ }
     tabIndexBtn.classList.toggle('active', tab === 'index');
     tabFilesBtn.classList.toggle('active', tab === 'files');
     tabAiBtn.classList.toggle('active', tab === 'ai');
@@ -96,8 +98,16 @@
     knownFiles.length = 0;
   }
 
+  /** Mensaje tenue con `textContent` (no `innerHTML`): el texto sale de un diccionario de idioma, que puede ser de un tercero. */
+  function setMutedMessage(container, text) {
+    var p = document.createElement('p');
+    p.className = 'text-xs text-muted';
+    p.textContent = text;
+    container.replaceChildren(p);
+  }
+
   function showTreeEmptyState() {
-    fileTreeEl.innerHTML = '<p class="text-xs text-muted">' + t('fileTree.empty') + '</p>';
+    setMutedMessage(fileTreeEl, t('fileTree.empty'));
   }
 
   function registerKnownFiles(entries) {
@@ -328,7 +338,7 @@
   function renderQuickOpenList() {
     quickOpenResultsEl.innerHTML = '';
     if (!quickOpenMatches.length) {
-      quickOpenResultsEl.innerHTML = '<p class="text-xs text-muted">' + t('quickOpen.empty') + '</p>';
+      setMutedMessage(quickOpenResultsEl, t('quickOpen.empty'));
       return;
     }
     quickOpenMatches.forEach(function (file, i) {

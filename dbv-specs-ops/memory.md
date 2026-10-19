@@ -6,6 +6,22 @@
 
 ## 🏗️ Log de Decisiones Técnicas (ADR)
 
+### [2026-10-19] ADR-050: v0.19.0 — una sola versión con arreglos de la comunidad, más idiomas y cabecera con menús; las PRs de terceros se reimplementan, no se fusionan
+
+- **Contexto:** tras la 0.18.0 llegaron 5 PRs (#17, #18, #19, #23, #24) y 3 issues (#20–#22) de Park-Young-Seok, una PR (#16) y otra aparcada (#8) de Víctor Estival, y 5 issues (#11–#15) de johnblommers. El usuario temía aceptar código de un desconocido (cuenta de 2021 sin actividad pública salvo un fork con ramas de PR y la descripción «Soakdown development continues privately»).
+- **Auditoría hecha (solo lectura, nada descargado ni ejecutado):** los diffs de #17, #18, #19, #23 y #24 no tocan dependencias, CI ni scripts de build; el patrón (issue previo, plantilla bilingüe, mediciones, «si no encaja, lo dejo fuera») no es el de un ataque, **pero no se puede descartar desde fuera**. **Retroauditoría de lo ya fusionado** (#4, #7, #9, #10): limpio — el único permiso añadido es `core:webview:allow-print`, `sys-locale` figura en crates.io con su checksum, y los diffs de `app.js` de #4/#7 se releyeron con `git show --text` porque git los marcaba como binarios. Los workflows de `.github/` los escribió el mantenedor; las acciones se fijan por etiqueta (`@v0`, `@stable`), no por hash (mejora opcional, en `task.md`). La PR #8 pasaría la clave privada de firma al CI: sigue aparcada.
+- **Decisiones del usuario (`/spec`):** (1) **ninguna PR externa se fusiona tal cual**: se reimplementa con tests propios, se agradece en README y CHANGELOG (trailer `Co-authored-by` opcional) y se cierra con un comentario cortés; (2) **una sola 0.19.0**, sin 0.18.1; (3) coreano dentro y selector de idioma ampliable (RF-39/40); (4) inglés como idioma de reserva; (5) cabecera con menús Archivo / Herramientas / Preferencias como `dbv-typst-editor` (RF-38); (6) #17 + #21 → RF-41, #20 parcial → RF-42, #14 fuera.
+- **Una premisa corregida:** la PR #16 no dice que en 0.17.0 se perdieran botones de macOS; solo falta «Nuevo documento» en el menú File (RF-29).
+- **Sin verificar aún:** que PowerToys Peek fije `WEBVIEW2_USER_DATA_FOLDER` (dato de la PR #23), `Cmd+N` sin doble disparo en macOS, y todo lo de Linux/macOS (solo Windows disponible).
+### [2026-10-19] ADR-051: v0.19.0 — ventana propia sin plugin, deshacer propio al reordenar y selección del editor pintada con una capa
+
+- **Contexto:** construcción de RF-38 a RF-46 (ver `implementation_plan.md`). Tres decisiones técnicas que el plan dejó abiertas o que la medida corrigió.
+- **Ventana (RF-42):** módulo propio `window_state.rs` en vez de `tauri-plugin-window-state` (D1). La regla de «nunca una ventana inalcanzable» es una función pura (`plan_restore`) con 16 tests; guarda desde el estado en memoria de `Moved`/`Resized` y escribe en `CloseRequested` y `Destroyed`. Binario de release: 18.847.744 → 19.005.952 bytes (+158 KB).
+- **Reordenar (RF-45):** el plan decía «una sola edición con `execCommand('insertText')`». **Medido: inviable** — Chromium emite ~2 eventos `input` por línea (1,5 ms/línea en un `<textarea>` limpio, 29 ms/línea con los manejadores de la app: 129 s para 3.000 líneas). Se usa `setRangeText` (1 ms) con un **deshacer propio de un nivel** (`Ctrl/Cmd+Z`, `Ctrl+Y`, `Ctrl+Mayús+Z`) que restaura texto y cursor; tras un `setRangeText` el historial nativo queda vacío (medido, sin corrupción), así que lo tecleado antes del movimiento ya no se deshace. Además, con un render pendiente el Índice que se ve es el anterior: se cancela el arrastre en vez de mover otra sección.
+- **Búsqueda en el editor (RF-44):** con el foco en el campo de búsqueda la selección del `<textarea>` no se pinta (medido en los tres temas), así que el plan B del spec es obligatorio: capa de resaltado con `canvas.measureText`.
+- **Sincronización de scroll (RF-20):** anclas por bloque (`data-src-line`) con búsqueda binaria y última ancla = última línea alcanzable por el editor (no el total de líneas). El clic en el Índice ya funcionaba.
+- **No verificado aquí:** PowerToys Peek real (RF-14), `Cmd+N` sin doble disparo y la salida real del menú de macOS (el módulo SÍ compila: se activó temporalmente bajo `cfg(windows)`), Linux/Wayland (posición de ventana), WebKitGTK/WKWebView, un segundo monitor real (RF-42), AppImage real (RF-46).
+
 ### [2026-10-18] ADR-049: RF-37 — pegar o soltar imágenes se guarda en `images/` con comandos de Rust propios, nombres saneados y «Guardar como» como red de seguridad (misma 0.18.0)
 
 - **Contexto:** el usuario usa typst como forma rápida de guardar recortes de pantalla y pidió lo mismo aquí. Se copia el diseño de `dbv-typst-editor` (`assets.rs`, `clipboardImage.js`, `dropTarget.js`) y se añaden las decisiones propias de este lector: modo lectura (solo guarda y avisa, con el código copiado), documento remoto o sin documento (cuadro de carpeta) y fallo de guardado (cuadro «Guardar como»).
@@ -562,10 +578,39 @@
 - **REJECTED-03** (2026-10-18) · Agentes ACP — Conservar el agente `custom` con una orden libre (venía de typst) → ejecución arbitraria desde IPC en una app que renderiza `.md` de terceros, sin ninguna función que lo use → En su lugar: solo los cuatro agentes reconocidos.
 - **REJECTED-04** (2026-10-18) · Sincronización — Marcador de `$$` multilínea con saltos de línea detrás (`<span …></span>\n\n`) para conservar las líneas → una línea en blanco parte el párrafo y cambia el render → En su lugar: guardar `rawLine`/`extra` de cada fórmula y normalizar `token.map` a coordenadas del fichero.
 - **REJECTED-05** (2026-10-18) · Tests de la IA — Dejarlos junto a su módulo en `src/ai/*.test.js` como en typst → `frontendDist` es `../src` y Tauri los embebe en el ejecutable → En su lugar: `tests/ai/`.
+- **REJECTED-06** (2026-10-19) · Ventana y estado de la interfaz — Persistir también el Modo Edición y «Fijar encima» entre sesiones (propuesta #20) → contradice RF-20 («todo documento empieza en modo lectura»; reabrir en edición favorece ediciones accidentales) y ADR-023 (decisión de sesión, etiquetas `doc-N` inestables) → En su lugar: recordar solo la ventana principal y el panel lateral (RF-42).
+- **REJECTED-07** (2026-10-19) · Ancho de lectura — Alinear siempre tablas, líneas, código y Mermaid con la columna de 800 px (PR #17) → los bloques anchos se dejaron sin límite a propósito (menos scroll horizontal) y la PR los estrecha para todos sin opción → En su lugar: casilla «Bloques anchos a todo el ancho» dentro del control de ancho, marcada por defecto (RF-41).
+- **REJECTED-08** (2026-10-19) · Reordenar secciones (RF-45) — Aplicar el movimiento con `execCommand('insertText')` para conservar el deshacer nativo → con texto multilínea Chromium emite ~2 eventos `input` por línea; medido 129 s para 3.000 líneas (1,5 ms/línea en un `<textarea>` limpio) → En su lugar: `setRangeText` más deshacer propio de un nivel.
+- **REJECTED-09** (2026-10-19) · Búsqueda en el editor (RF-44) — Confiar en la selección del `<textarea>` como único resaltado → con el foco en el campo de búsqueda no se pinta en ningún tema (medido con capturas) → En su lugar: capa de resaltado medida con `canvas.measureText`.
 
 ---
 
 ## ⚠️ Lecciones Aprendidas & Gotchas
+
+### [2026-10-19] Lección 36: Medir el «antes» con el mismo cuidado que el «después» — dos de mis primeras medidas del ciclo 0.19.0 estaban mal
+
+- **Qué pasó:** (1) medí el clic en el Índice a los 500 ms y vi desalineaciones de miles de líneas; era el scroll **suave** a medias — esperando a que asiente, el desfase es 0 y esa parte de #15 ya funcionaba. (2) Mi primera métrica de sincronización dejaba huecos cuando el borde superior caía en el margen entre bloques. Medir mal habría llevado a «arreglar» algo que no estaba roto.
+- **Regla:** antes de dar un número por línea base, esperar a que asienten las animaciones y comprobar la métrica contra un caso conocido. Un banco debe medir con una verdad **independiente** (un div espejo para el resaltado; cadenas para el texto esperado), no con el mismo código que prueba.
+
+### [2026-10-19] Lección 37: Una prueba de propiedad sobre los ficheros reales encuentra basura real y casos de representación
+
+- **Qué pasó:** la prueba de RF-45 recorrió todos los `.md` del repositorio y destapó una línea suelta «VERIFICACION TRAS CODE_SIMPLIFY:» en `markdownhelp_es.md` desde la 0.13.1; y dos casos de **representación** (un texto «sin salto final» cuya última línea queda vacía es el mismo texto que «con salto final»). Hubo que afinar la definición de la propiedad, no el código.
+- **Regla:** al enunciar una propiedad sobre texto, definir el multiconjunto de líneas con `split` (no con una lista que ignora la línea final vacía) y comprobar primero qué es «el mismo texto».
+
+### [2026-10-19] Lección 38: `execCommand('insertText')` multilínea es O(líneas) y los manejadores de la app lo multiplican por ~20
+
+- **Qué pasó:** el plan de RF-45 usaba `insertText` para tener deshacer nativo gratis. Medido: 29 ms por línea en la app (129 s para 3.000 líneas). Lo mismo aplicaría a cualquier edición grande hecha así (p. ej. aplicar una propuesta grande de la IA al documento abierto, hoy fuera de este ciclo).
+- **Regla:** medir en un `<textarea>` limpio y en la app antes de elegir el mecanismo de edición; ante texto grande, `setRangeText` + un solo `input` y un deshacer propio.
+
+### [2026-10-19] Lección 40: Un test que pasa a la primera no prueba nada hasta que se le ve fallar — y `grep -c … && cat >>` se corta con 0 coincidencias
+
+- **Qué pasó:** al añadir los tests de la guía (RF-47) encadené `grep -c $'' fichero && cat >> fichero <<EOF …`. Sin retornos de carro, `grep -c` imprime 0 **y devuelve código 1**, así que el `&&` no ejecutó el `cat`: los tests nunca se añadieron y el «verde» que vi era el de los tests de antes. Lo destapó una mutación (romper un enlace de la guía y comprobar que el test fallaba): no falló.
+- **Regla:** tras añadir un test, comprobar que existe (`--reporter=verbose | grep`) y que **falla** al romper lo que vigila; y no encadenar con `&&` comandos de diagnóstico que usan el código de salida para «no encontrado» (`grep`, `diff`).
+
+### [2026-10-19] Lección 39: Un banco que lanza dos Edge a la vez mide el equivocado; y nunca `git stash` con trabajo sin confirmar
+
+- **Qué pasó:** el banco de rendimiento lanzaba un segundo Edge con el mismo puerto de depuración (9333) con el primero abierto y medía la página del primero. Además, un `git stash` mío (para «medir sobre el original») retiró trabajo sin confirmar; se restauró de inmediato sin pérdida.
+- **Regla:** un solo Edge por puerto (cerrar antes de lanzar otro); para comparar con el código original usar `git worktree add --detach` en un directorio temporal, nunca `git stash`.
 
 ### [2026-09-19] Lección 26: Medir la geometría del CSS con Edge headless en vez de deducirla — y no dar por buena una causa raíz leída "a ojo" del código
 - **Qué pasó:** el usuario reportó que los números de línea de los bloques de código no coinciden con su línea. En `/spec` se dedujo *leyendo el CSS* que la causa era la limitación conocida de `prism-line-numbers` con `white-space: pre-wrap` (el botón "Wrap line"). Esa hipótesis quedó escrita en `SPECIFICATIONS.md` y en el plan. **Era incompleta y no era la causa principal.** El usuario, probando en real, dejó claro que el desalineado ocurría *también sin Wrap activado* — algo que la hipótesis no explicaba en absoluto.
