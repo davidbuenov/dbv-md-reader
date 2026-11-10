@@ -456,6 +456,13 @@
           }
           breadcrumb.textContent = doc.file_name;
           breadcrumb.title = doc.path;
+          // En macOS el título de la ventana es también la etiqueta de su pestaña
+          // nativa. Se actualiza tras cada carga, incluso al navegar en la misma.
+          if (!isAndroid && /Mac/.test(navigator.platform || navigator.userAgent || '')) {
+            window.__TAURI__.window.getCurrentWindow().setTitle(doc.file_name).catch(function (err) {
+              console.warn('[document-title]', err);
+            });
+          }
           updateNavButtons();
           renderMarkdown(doc.content);
           emptyEl.classList.add('hidden');
@@ -2520,12 +2527,15 @@
   // "Abrir archivo…" del menú nativo File de macOS (Cmd+O): el menú vive en
   // Rust (no hay DOM ahí), así que emite este evento a la ventana enfocada
   // en vez de reimplementar el diálogo.
-  window.__TAURI__.event.listen('menu-open-file', openFileDialog);
+  // Un listener global recibe incluso eventos emit_to de otra ventana. Acotar
+  // también la recepción para que los menús no actúen sobre todas las pestañas.
+  var menuEventOptions = { target: window.__TAURI__.window.getCurrentWindow().label };
+  window.__TAURI__.event.listen('menu-open-file', openFileDialog, menuEventOptions);
   // "Nuevo documento" (RF-29), "Guardar" y "Alternar Modo Edición" del menú nativo de macOS (File/View):
   // mismo patrón, el menú vive en Rust y avisa por evento a la ventana enfocada.
-  window.__TAURI__.event.listen('menu-new-file', createNewFile);
-  window.__TAURI__.event.listen('menu-save', saveCurrentDocument);
-  window.__TAURI__.event.listen('menu-toggle-edit-mode', toggleEditMode);
+  window.__TAURI__.event.listen('menu-new-file', createNewFile, menuEventOptions);
+  window.__TAURI__.event.listen('menu-save', saveCurrentDocument, menuEventOptions);
+  window.__TAURI__.event.listen('menu-toggle-edit-mode', toggleEditMode, menuEventOptions);
 
   // =========================================================================
   // Apertura de documento remoto por URL (RF-08A)

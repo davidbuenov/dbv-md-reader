@@ -155,6 +155,25 @@ fn first_path_argument<I: IntoIterator<Item = String>>(args: I) -> Option<String
 #[cfg(desktop)]
 static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(0);
 
+#[cfg(any(target_os = "macos", test))]
+const DOCUMENT_TABBING_IDENTIFIER: &str = "com.davidbuenov.dbv-md-reader.documents";
+
+/// La primera ventana también debe ser elegible antes de crearla: Tauri desactiva
+/// el agrupamiento automático si se crea sin identificador. macOS decide si agrupa
+/// según la preferencia del sistema; no se modifica esa preferencia (issue #27).
+/// @spec RF-14
+#[cfg(any(target_os = "macos", test))]
+fn configure_macos_document_tabs(config: &mut tauri::Config) {
+    for window in config
+        .app
+        .windows
+        .iter_mut()
+        .filter(|window| window.label == "main")
+    {
+        window.tabbing_identifier = Some(DOCUMENT_TABBING_IDENTIFIER.to_string());
+    }
+}
+
 /// Opens `path` in a brand-new window of the *same* process (RF-14), instead of the OS
 /// launching a whole new dbv-md-reader.exe per file. Each window keeps its own
 /// zoom/TOC/search/watcher state, exactly like the original main window — the frontend
@@ -177,8 +196,18 @@ fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<(
         .min_inner_size(640.0, 450.0)
         .resizable(true)
         .center()
-        .initialization_script(&init_script)
-        .build()?;
+        .initialization_script(&init_script);
+    // Misma agrupación que `main`, también para las aperturas explícitas desde
+    // el árbol/Quick Open. Cada documento conserva su WebView y estado propios.
+    #[cfg(target_os = "macos")]
+    let window = window
+        .tabbing_identifier(DOCUMENT_TABBING_IDENTIFIER)
+        .visible(false);
+    let window = window.build()?;
+    // Montar WKWebView antes de mostrar permite que AppKit agrupe la pestaña sin
+    // dibujar el contenedor vacío durante la creación (también en pantalla completa).
+    #[cfg(target_os = "macos")]
+    window.show()?;
     focus_window(&window);
     Ok(())
 }
@@ -947,7 +976,9 @@ pub fn run() {
                     .find(|w| w.is_focused().unwrap_or(false))
                     .or_else(|| main_or_first_window(&windows));
                 if let Some(window) = target {
-                    let _ = window.emit(event_name, ());
+                    // `emit` difunde a todas las ventanas aunque se invoque sobre
+                    // una de ellas. El menú debe actuar solo sobre la seleccionada.
+                    let _ = window.emit_to(window.label(), event_name, ());
                 }
             }
         });
@@ -1044,7 +1075,16 @@ pub fn run() {
             #[cfg(desktop)]
             commands::open_in_new_window
         ])
-        .build(tauri::generate_context!())
+        .build({
+            let context = tauri::generate_context!();
+            #[cfg(target_os = "macos")]
+            let context = {
+                let mut context = context;
+                configure_macos_document_tabs(context.config_mut());
+                context
+            };
+            context
+        })
         .expect("error while building tauri application")
         .run(|_app_handle, _event| {
             // macOS delivers "Open With"/double-click as an Apple Event, surfaced only through
@@ -1111,6 +1151,48 @@ mod tests {
             file_name: "f.md".to_string(),
             last_opened,
         }
+    }
+
+    /// La configuración compartida no debe perder geometría, restricciones ni permisos
+    /// al habilitar las pestañas de la ventana inicial (issue #27).
+    /// @spec RF-14
+    #[test]
+    fn macos_tabs_conserva_la_configuracion_de_la_ventana_principal() {
+        let mut config: tauri::Config =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let mut before = serde_json::to_value(&config).unwrap();
+        configure_macos_document_tabs(&mut config);
+        assert_eq!(
+            config.app.windows[0].tabbing_identifier.as_deref(),
+            Some(DOCUMENT_TABBING_IDENTIFIER)
+        );
+        let mut after = serde_json::to_value(&config).unwrap();
+        before["app"]["windows"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("tabbingIdentifier");
+        after["app"]["windows"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("tabbingIdentifier");
+        assert_eq!(before, after);
+    }
+
+    /// Las ventanas auxiliares no deben pasar a ser pestañas de documentos; tampoco
+    /// se crea una ventana implícita si una configuración no declara `main`.
+    /// @spec RF-14
+    #[test]
+    fn macos_tabs_no_modifica_ventanas_ajenas_a_documentos() {
+        let mut config: tauri::Config =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        config.app.windows[0].label = "settings".to_string();
+        config.app.windows[0].tabbing_identifier = Some("settings-group".to_string());
+        let before = serde_json::to_value(&config).unwrap();
+        configure_macos_document_tabs(&mut config);
+        assert_eq!(before, serde_json::to_value(&config).unwrap());
+        config.app.windows.clear();
+        configure_macos_document_tabs(&mut config);
+        assert!(config.app.windows.is_empty());
     }
 
     // ── resolve_relative_path (RF-08A / RF-07) ────────────────────────────
