@@ -20,6 +20,9 @@ use tauri::{WebviewUrl, WebviewWindowBuilder};
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
+#[cfg(target_os = "macos")]
+mod macos_titlebar;
+
 // v0.18.0 «AI Native»: IA integrada (RF-31 a RF-36). Solo de escritorio: en Android no hay Modo
 // Edición, ni `keyring`, ni procesos hijos para los agentes.
 #[cfg(desktop)]
@@ -219,6 +222,8 @@ fn open_document_window(
         .tabbing_identifier(DOCUMENT_TABBING_IDENTIFIER)
         .visible(false);
     let window = window.build()?;
+    #[cfg(target_os = "macos")]
+    macos_titlebar::install(&window)?;
     // Montar WKWebView antes de mostrar permite que AppKit agrupe la pestaña sin
     // dibujar el contenedor vacío durante la creación (también en pantalla completa).
     #[cfg(target_os = "macos")]
@@ -974,6 +979,9 @@ pub fn run() {
             {
                 let menu = macos_menu::build(_app.handle())?;
                 _app.handle().set_menu(menu)?;
+                if let Some(window) = _app.get_webview_window("main") {
+                    macos_titlebar::install(&window)?;
+                }
             }
             // RF-42: colocar la ventana principal donde estaba (ver window_state.rs).
             #[cfg(desktop)]
