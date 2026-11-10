@@ -34,11 +34,14 @@
   // ─── Detección de plataforma vía tauri-plugin-os (Slice 4) ────────────────
   // ─── Detección de plataforma vía UserAgent y tauri-plugin-os (Slice 4) ───
   var isAndroid = /android/i.test(navigator.userAgent);
+  var nativePlatform = isAndroid ? 'android' : /Mac/.test(navigator.platform || navigator.userAgent || '') ? 'macos' : 'other';
   try {
     if (!isAndroid && window.__TAURI__ && window.__TAURI__.os && typeof window.__TAURI__.os.platform === 'function') {
-      isAndroid = window.__TAURI__.os.platform() === 'android';
+      nativePlatform = window.__TAURI__.os.platform();
+      isAndroid = nativePlatform === 'android';
     } else if (!isAndroid && window.__TAURI_OS_PLUGIN_INTERNALS__ && window.__TAURI_OS_PLUGIN_INTERNALS__.platform) {
-      isAndroid = window.__TAURI_OS_PLUGIN_INTERNALS__.platform === 'android';
+      nativePlatform = window.__TAURI_OS_PLUGIN_INTERNALS__.platform;
+      isAndroid = nativePlatform === 'android';
     }
   } catch (_) {}
 
@@ -416,9 +419,24 @@
       : invoke('resolve_relative_path', { baseDir: baseDir, relativePath: relativePath });
   }
 
+  function scrollDocumentToAnchor(anchor) {
+    var id = anchor.replace(/^#/, '');
+    var target = document.getElementById(id) || document.getElementsByName(id)[0];
+    if (target) scrollElementIntoView(target);
+  }
+
   function loadDocument(filePath, opts) {
     if (!filePath) return;
     opts = opts || {};
+    // Finder, diálogo, árbol, recientes, enlaces y arrastre comparten la política.
+    // No se descartan las ediciones de esta vista al abrir otra en macOS.
+    if (window.DBVDocumentOpen.opensNewView(nativePlatform, !!currentDoc, opts)) {
+      invoke('open_in_new_window', {
+        path: filePath,
+        options: { startInEditMode: !!opts.startInEditMode, scrollAnchor: opts.scrollAnchor || null }
+      }).catch(function (err) { showError('[open_in_new_window] ' + err); });
+      return;
+    }
     var isHistory     = opts.isHistory;
     var scrollAnchor  = opts.scrollAnchor;
     var isPrimaryOpen = opts.isPrimaryOpen;
@@ -458,7 +476,7 @@
           breadcrumb.title = doc.path;
           // En macOS el título de la ventana es también la etiqueta de su pestaña
           // nativa. Se actualiza tras cada carga, incluso al navegar en la misma.
-          if (!isAndroid && /Mac/.test(navigator.platform || navigator.userAgent || '')) {
+          if (nativePlatform === 'macos') {
             window.__TAURI__.window.getCurrentWindow().setTitle(doc.file_name).catch(function (err) {
               console.warn('[document-title]', err);
             });
@@ -476,13 +494,7 @@
           if (scrollAnchor) {
             container.scrollTop = 0;
             setTimeout(function () {
-              var anchorId = scrollAnchor.replace(/^#/, '');
-              var target = document.getElementById(anchorId);
-              if (!target) {
-                // Buscar por name attribute también
-                target = document.querySelector('[name="' + anchorId + '"]');
-              }
-              if (target) scrollElementIntoView(target);
+              scrollDocumentToAnchor(scrollAnchor);
             }, 120);
           } else {
             container.scrollTop = 0;
@@ -579,9 +591,8 @@
   // apertura de documento, detección de URL remota y mecanismo de panel
   // flotante que ya tiene app.js, en vez de reimplementarlos.
   window.DBVApp = {
-    // Abre un documento en la ventana actual sin conocer los detalles internos
-    // de loadDocument() — cuenta como apertura explícita (isPrimaryOpen), igual
-    // que un clic en Recientes.
+    // Apertura explícita: en macOS crea o enfoca una vista según el sistema;
+    // las demás plataformas conservan la sustitución en la ventana actual.
     openDocument: function (path) { loadDocument(path, { isPrimaryOpen: true }); },
     isRemoteUrl: isRemoteUrl,
     setTocVisible: setTocVisible,
@@ -2536,6 +2547,11 @@
   window.__TAURI__.event.listen('menu-new-file', createNewFile, menuEventOptions);
   window.__TAURI__.event.listen('menu-save', saveCurrentDocument, menuEventOptions);
   window.__TAURI__.event.listen('menu-toggle-edit-mode', toggleEditMode, menuEventOptions);
+  window.__TAURI__.event.listen('document-open-options', function (event) {
+    var options = event.payload || {};
+    if (options.startInEditMode && !editMode) setEditMode(true);
+    if (options.scrollAnchor) scrollDocumentToAnchor(options.scrollAnchor);
+  }, menuEventOptions);
 
   // =========================================================================
   // Apertura de documento remoto por URL (RF-08A)
@@ -4122,7 +4138,12 @@
     // open_document_window) trae su ruta inicial inyectada aquí en vez de en el argv del
     // proceso — get_cli_argument() siempre devolvería la del arranque original.
     if (window.__DBV_INITIAL_PATH__) {
-      loadDocument(window.__DBV_INITIAL_PATH__, { isPrimaryOpen: true });
+      var initialOptions = window.__DBV_INITIAL_OPTIONS__ || {};
+      loadDocument(window.__DBV_INITIAL_PATH__, {
+        isPrimaryOpen: true,
+        startInEditMode: !!initialOptions.startInEditMode,
+        scrollAnchor: initialOptions.scrollAnchor
+      });
     } else {
       invoke('get_cli_argument')
         .then(function (cliPath) {

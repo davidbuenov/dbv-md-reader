@@ -158,6 +158,17 @@ static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(0);
 #[cfg(any(target_os = "macos", test))]
 const DOCUMENT_TABBING_IDENTIFIER: &str = "com.davidbuenov.dbv-md-reader.documents";
 
+/// Opciones que deben viajar a la vista nueva sin recargar el documento de origen.
+/// @spec RF-14, RF-29
+#[cfg(any(desktop, test))]
+#[derive(Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentOpenOptions {
+    #[serde(default)]
+    pub start_in_edit_mode: bool,
+    pub scroll_anchor: Option<String>,
+}
+
 /// La primera ventana también debe ser elegible antes de crearla: Tauri desactiva
 /// el agrupamiento automático si se crea sin identificador. macOS decide si agrupa
 /// según la preferencia del sistema; no se modifica esa preferencia (issue #27).
@@ -184,11 +195,15 @@ fn configure_macos_document_tabs(config: &mut tauri::Config) {
 /// modelo de una sola Activity no tiene equivalente a "ventana adicional del mismo proceso"
 /// — ver SPECIFICATIONS.md RF-14/RF-25 en Android.
 #[cfg(desktop)]
-fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<()> {
+fn open_document_window(
+    app: &tauri::AppHandle,
+    path: String,
+    options: DocumentOpenOptions,
+) -> tauri::Result<()> {
     let label = format!("doc-{}", WINDOW_COUNTER.fetch_add(1, Ordering::SeqCst));
     let init_script = format!(
-        "window.__DBV_INITIAL_PATH__ = {};",
-        serde_json::to_string(&path).unwrap_or_else(|_| "null".to_string())
+        "[window.__DBV_INITIAL_PATH__, window.__DBV_INITIAL_OPTIONS__] = {};",
+        serde_json::to_string(&(path, options))?
     );
     let window = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .title("dbv-md-reader")
@@ -219,7 +234,7 @@ fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<(
 /// same file always converges on one window instead of accumulating copies. Desktop-only:
 /// every caller (instancia única, `RunEvent::Opened` de macOS, `open_in_new_window`) lo es.
 #[cfg(desktop)]
-fn open_or_focus_document(app: &tauri::AppHandle, path: String) {
+fn open_or_focus_document(app: &tauri::AppHandle, path: String, options: DocumentOpenOptions) {
     let canonical = canonical_path_str(&path);
     let existing_label = app
         .state::<OpenDocumentsState>()
@@ -231,10 +246,11 @@ fn open_or_focus_document(app: &tauri::AppHandle, path: String) {
     if let Some(label) = existing_label {
         if let Some(window) = app.webview_windows().get(&label) {
             focus_window(window);
+            let _ = window.emit_to(window.label(), "document-open-options", options);
             return;
         }
     }
-    let _ = open_document_window(app, path);
+    let _ = open_document_window(app, path, options);
 }
 
 /// Converts a `file://` URL delivered by macOS's `RunEvent::Opened` (Finder "Open With") to a
@@ -714,10 +730,16 @@ pub mod commands {
     /// nueva" — ver SPECIFICATIONS.md RF-14/RF-25 en Android.
     #[cfg(desktop)]
     #[tauri::command]
-    pub fn open_in_new_window(app: tauri::AppHandle, path: String) {
+    pub fn open_in_new_window(
+        app: tauri::AppHandle,
+        path: String,
+        options: Option<DocumentOpenOptions>,
+    ) {
         tauri::async_runtime::spawn(async move {
             let app_handle = app.clone();
-            let _ = app.run_on_main_thread(move || open_or_focus_document(&app_handle, path));
+            let _ = app.run_on_main_thread(move || {
+                open_or_focus_document(&app_handle, path, options.unwrap_or_default())
+            });
         });
     }
 }
@@ -919,7 +941,7 @@ pub fn run() {
             let app_handle = app.clone();
             let path = first_path_argument(argv);
             let _ = app_handle.clone().run_on_main_thread(move || match path {
-                Some(path) => open_or_focus_document(&app_handle, path),
+                Some(path) => open_or_focus_document(&app_handle, path, DocumentOpenOptions::default()),
                 None => {
                     let windows = app_handle.webview_windows();
                     if let Some(window) = main_or_first_window(&windows) {
@@ -1096,7 +1118,7 @@ pub fn run() {
                     if _app_handle.webview_windows().is_empty() {
                         *_app_handle.state::<OpenedFileState>().0.lock().unwrap() = Some(path);
                     } else {
-                        open_or_focus_document(_app_handle, path);
+                        open_or_focus_document(_app_handle, path, DocumentOpenOptions::default());
                     }
                 }
             }
@@ -1193,6 +1215,26 @@ mod tests {
         config.app.windows.clear();
         configure_macos_document_tabs(&mut config);
         assert!(config.app.windows.is_empty());
+    }
+
+    /// Los llamantes existentes no mandan opciones; una apertura normal sigue en lectura.
+    /// @spec RF-14, RF-29
+    #[test]
+    fn document_open_options_admite_llamantes_sin_opciones() {
+        let options: DocumentOpenOptions = serde_json::from_str("{}").unwrap();
+        assert!(!options.start_in_edit_mode);
+        assert!(options.scroll_anchor.is_none());
+    }
+
+    /// Nuevo documento y enlaces con ancla conservan las opciones al cruzar IPC.
+    /// @spec RF-14, RF-29
+    #[test]
+    fn document_open_options_conserva_edicion_y_anclas_en_camel_case() {
+        let input = serde_json::json!({ "startInEditMode": true, "scrollAnchor": "#sección" });
+        let options: DocumentOpenOptions = serde_json::from_value(input.clone()).unwrap();
+        assert!(options.start_in_edit_mode);
+        assert_eq!(options.scroll_anchor.as_deref(), Some("#sección"));
+        assert_eq!(serde_json::to_value(options).unwrap(), input);
     }
 
     // ── resolve_relative_path (RF-08A / RF-07) ────────────────────────────
