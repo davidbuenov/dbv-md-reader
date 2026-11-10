@@ -75,10 +75,11 @@ El panel lateral y la posición y tamaño de la ventana se **recuerdan** al cerr
 
 ## 4. Moverse entre documentos
 
-- **Enlaces**: un enlace a otro `.md` lo abre en la misma ventana; uno a una página web, en tu navegador. Los enlaces a una sección del mismo documento hacen scroll hasta ella.
+- **Enlaces**: un enlace a otro `.md` lo abre en otra pestaña o ventana en macOS y en la misma vista en las demás plataformas; uno a una página web, en tu navegador. Los enlaces a una sección del mismo documento hacen scroll hasta ella.
 - **Atrás y adelante**: `Alt + ←` y `Alt + →` recorren los documentos que has ido abriendo.
 - **Buscar archivo** (`Ctrl/Cmd + K`): escribe parte del nombre de cualquier archivo de la carpeta y pulsa `Enter`; con `↑` y `↓` eliges entre los resultados.
-- **Pestaña Archivos**: clic abre el archivo; `Ctrl/Cmd + clic` lo abre en una **ventana nueva**. El clic derecho ofrece *Abrir en ventana nueva* y *Revelar en el Explorador*.
+- **Pestaña Archivos**: clic abre el archivo; `Ctrl/Cmd + clic` pide una vista adicional. El clic derecho ofrece *Abrir en ventana nueva* y *Revelar en el Explorador*.
+- **macOS**: abrir otro archivo desde el diálogo, Recientes, el árbol, un enlace o al arrastrarlo sigue **Escritorio y Dock → Preferir pestañas al abrir documentos**. «Siempre» agrupa pestañas; «Nunca» abre ventanas; «En pantalla completa» sigue ese contexto. También se aplica a *Abrir en ventana nueva* y `Cmd + clic`. La primera apertura aprovecha la ventana vacía; el historial y la recarga siguen dentro de cada documento.
 - **Inicio** y **Fin** llevan al principio o al final del documento.
 
 ---

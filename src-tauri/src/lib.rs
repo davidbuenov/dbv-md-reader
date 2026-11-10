@@ -20,6 +20,9 @@ use tauri::{WebviewUrl, WebviewWindowBuilder};
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
+#[cfg(target_os = "macos")]
+mod macos_titlebar;
+
 // v0.18.0 «AI Native»: IA integrada (RF-31 a RF-36). Solo de escritorio: en Android no hay Modo
 // Edición, ni `keyring`, ni procesos hijos para los agentes.
 #[cfg(desktop)]
@@ -74,10 +77,10 @@ pub struct WatcherState(pub Mutex<Option<notify::RecommendedWatcher>>);
 /// like it already reads `std::env::args()` on Windows.
 pub struct OpenedFileState(pub Mutex<Option<String>>);
 
-/// Maps a document's canonical path to the label of the window currently displaying it, so a
-/// repeat "Open With" on the same file focuses that window instead of stacking a duplicate.
-/// Resolved live against `app_handle.webview_windows()` on lookup, so a closed window's stale
-/// entry is simply ignored rather than requiring explicit cleanup on window-close.
+/// Asocia cada ruta canónica a la ventana que la muestra o está cargándola. Se
+/// reserva al crear la ventana para evitar duplicados antes de arrancar el frontend.
+/// La consulta comprueba que la ventana siga viva; las entradas de ventanas cerradas
+/// se ignoran sin necesitar limpieza explícita al cerrar.
 pub struct OpenDocumentsState(pub Mutex<HashMap<String, String>>);
 
 /// Instala el proveedor criptográfico por defecto de rustls antes de que ninguna otra parte
@@ -122,6 +125,20 @@ fn canonical_path_str(path: &str) -> String {
         .unwrap_or_else(|_| path.to_string())
 }
 
+impl OpenDocumentsState {
+    /// Actualiza el documento de una vista; `None` libera una apertura fallida.
+    /// Solo elimina las entradas de esa vista, sin afectar a otros documentos.
+    fn register(&self, label: &str, path: Option<&str>) -> Result<(), String> {
+        let canonical = path.map(canonical_path_str);
+        let mut map = self.0.lock().map_err(|e| e.to_string())?;
+        map.retain(|_, owner| owner != label);
+        if let Some(path) = canonical {
+            map.insert(path, label.to_string());
+        }
+        Ok(())
+    }
+}
+
 /// Restores `window` if minimized and brings it to the front. Best-effort (`set_focus` can fail
 /// if the window is mid-teardown) — shared by every "bring this window to the user" case: an
 /// already-open document being reopened, an already-running app receiving no path, and a
@@ -155,6 +172,36 @@ fn first_path_argument<I: IntoIterator<Item = String>>(args: I) -> Option<String
 #[cfg(desktop)]
 static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(0);
 
+#[cfg(any(target_os = "macos", test))]
+const DOCUMENT_TABBING_IDENTIFIER: &str = "com.davidbuenov.dbv-md-reader.documents";
+
+/// Opciones que deben viajar a la vista nueva sin recargar el documento de origen.
+/// @spec RF-14, RF-29
+#[cfg(any(desktop, test))]
+#[derive(Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentOpenOptions {
+    #[serde(default)]
+    pub start_in_edit_mode: bool,
+    pub scroll_anchor: Option<String>,
+}
+
+/// La primera ventana también debe ser elegible antes de crearla: Tauri desactiva
+/// el agrupamiento automático si se crea sin identificador. macOS decide si agrupa
+/// según la preferencia del sistema; no se modifica esa preferencia (issue #27).
+/// @spec RF-14
+#[cfg(any(target_os = "macos", test))]
+fn configure_macos_document_tabs(config: &mut tauri::Config) {
+    if let Some(window) = config
+        .app
+        .windows
+        .iter_mut()
+        .find(|window| window.label == "main")
+    {
+        window.tabbing_identifier = Some(DOCUMENT_TABBING_IDENTIFIER.to_string());
+    }
+}
+
 /// Opens `path` in a brand-new window of the *same* process (RF-14), instead of the OS
 /// launching a whole new dbv-md-reader.exe per file. Each window keeps its own
 /// zoom/TOC/search/watcher state, exactly like the original main window — the frontend
@@ -165,11 +212,15 @@ static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(0);
 /// modelo de una sola Activity no tiene equivalente a "ventana adicional del mismo proceso"
 /// — ver SPECIFICATIONS.md RF-14/RF-25 en Android.
 #[cfg(desktop)]
-fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<()> {
+fn open_document_window(
+    app: &tauri::AppHandle,
+    path: String,
+    options: DocumentOpenOptions,
+) -> tauri::Result<()> {
     let label = format!("doc-{}", WINDOW_COUNTER.fetch_add(1, Ordering::SeqCst));
     let init_script = format!(
-        "window.__DBV_INITIAL_PATH__ = {};",
-        serde_json::to_string(&path).unwrap_or_else(|_| "null".to_string())
+        "[window.__DBV_INITIAL_PATH__, window.__DBV_INITIAL_OPTIONS__] = {};",
+        serde_json::to_string(&(&path, options))?
     );
     let window = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .title("dbv-md-reader")
@@ -177,8 +228,25 @@ fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<(
         .min_inner_size(640.0, 450.0)
         .resizable(true)
         .center()
-        .initialization_script(&init_script)
-        .build()?;
+        .initialization_script(&init_script);
+    // Misma agrupación que `main`, también para las aperturas explícitas desde
+    // el árbol/Quick Open. Cada documento conserva su WebView y estado propios.
+    #[cfg(target_os = "macos")]
+    let window = window
+        .tabbing_identifier(DOCUMENT_TABBING_IDENTIFIER)
+        .visible(false);
+    let window = window.build()?;
+    #[cfg(target_os = "macos")]
+    macos_titlebar::install(&window)?;
+    // Montar WKWebView antes de mostrar permite que AppKit agrupe la pestaña sin
+    // dibujar el contenedor vacío durante la creación (también en pantalla completa).
+    #[cfg(target_os = "macos")]
+    window.show()?;
+    // No esperar al registro del frontend: otro evento de apertura puede llegar
+    // mientras esta vista todavía está leyendo y renderizando su documento.
+    app.state::<OpenDocumentsState>()
+        .register(window.label(), Some(&path))
+        .map_err(std::io::Error::other)?;
     focus_window(&window);
     Ok(())
 }
@@ -190,22 +258,27 @@ fn open_document_window(app: &tauri::AppHandle, path: String) -> tauri::Result<(
 /// same file always converges on one window instead of accumulating copies. Desktop-only:
 /// every caller (instancia única, `RunEvent::Opened` de macOS, `open_in_new_window`) lo es.
 #[cfg(desktop)]
-fn open_or_focus_document(app: &tauri::AppHandle, path: String) {
+fn open_or_focus_document(
+    app: &tauri::AppHandle,
+    path: String,
+    options: DocumentOpenOptions,
+) -> tauri::Result<()> {
     let canonical = canonical_path_str(&path);
     let existing_label = app
         .state::<OpenDocumentsState>()
         .0
         .lock()
-        .unwrap()
+        .map_err(|error| std::io::Error::other(error.to_string()))?
         .get(&canonical)
         .cloned();
-    if let Some(label) = existing_label {
-        if let Some(window) = app.webview_windows().get(&label) {
-            focus_window(window);
-            return;
-        }
+    let existing_window = existing_label.and_then(|label| app.get_webview_window(&label));
+    if let Some(window) = existing_window {
+        focus_window(&window);
+        window.emit_to(window.label(), "document-open-options", options)?;
+    } else {
+        open_document_window(app, path, options)?;
     }
-    let _ = open_document_window(app, path);
+    Ok(())
 }
 
 /// Converts a `file://` URL delivered by macOS's `RunEvent::Opened` (Finder "Open With") to a
@@ -353,20 +426,15 @@ pub mod commands {
             .or_else(|| app.state::<OpenedFileState>().0.lock().unwrap().take())
     }
 
-    /// Records that `window` is currently displaying the document at `path` (RF-14 dedupe),
-    /// called from the frontend after every successful document load. Lets a later "Open With"
-    /// on the same file focus this window instead of opening a duplicate.
+    /// Confirma el documento cargado por el frontend (RF-14). Una ruta nula libera
+    /// la reserva si falla la lectura inicial, para permitir otro intento de apertura.
     #[tauri::command]
     pub fn register_open_document(
         window: tauri::WebviewWindow,
         state: tauri::State<OpenDocumentsState>,
-        path: String,
-    ) {
-        let canonical = canonical_path_str(&path);
-        let label = window.label().to_string();
-        let mut map = state.0.lock().unwrap();
-        map.retain(|_, v| v != &label);
-        map.insert(canonical, label);
+        path: Option<String>,
+    ) -> Result<(), String> {
+        state.register(window.label(), path.as_deref())
     }
 
     /// Returns the app version declared in Cargo.toml, for the "About" panel.
@@ -657,39 +725,27 @@ pub mod commands {
         Ok(())
     }
 
-    /// Punto de entrada del frontend para "abrir en ventana nueva" desde dentro de la app
-    /// (RF-25 árbol + RF-26 Quick Open, ambos vía Ctrl/Cmd+clic) — la primera excepción
-    /// consciente a que las aperturas internas sustituyan la ventana actual (ver la
-    /// ampliación de RF-14 en `SPECIFICATIONS.md`). Envuelve `open_or_focus_document`, nunca
-    /// `open_document_window` directo, para que un archivo ya abierto en otra ventana se
-    /// enfoque en vez de duplicarse (mismo bug que se corrigió en la Fase 26).
-    /// **Bug real encontrado por el usuario (ventana nueva en blanco/colgada al probar
-    /// Ctrl+clic en el árbol, RF-25) y su causa exacta:** a diferencia del callback de
-    /// instancia única o `RunEvent::Opened` (que llegan en una iteración *nueva* y ya
-    /// asentada del bucle de eventos), este `#[tauri::command]` síncrono se despacha
-    /// *ya sobre el hilo principal*, dentro de la misma pasada que atiende el propio
-    /// mensaje IPC que lo invocó. Llamar a `run_on_main_thread` directamente desde ahí
-    /// detecta "ya estoy en el hilo principal" y ejecuta el cierre de forma reentrante
-    /// e inline — creando la `WebviewWindowBuilder` anidada dentro del propio despacho
-    /// del mensaje que la originó, lo que cuelga `.build()` (necesita bombear mensajes
-    /// para completar la inicialización asíncrona de WebView2, y no puede mientras el
-    /// hilo sigue ocupado procesando el mensaje exterior). Confirmado con trazas: sin
-    /// forzar un hilo distinto, `.build()` nunca retornaba; forzándolo, `run_on_main_thread`
-    /// se invoca desde un hilo genuinamente distinto, forzando un envío real (no inline) que
-    /// se procesa en una vuelta *posterior y ya libre* del bucle principal.
-    /// `tauri::async_runtime::spawn` (no `std::thread::spawn`) logra ese "hilo distinto"
-    /// reutilizando el pool de Tokio que Tauri ya tiene en marcha, sin crear/destruir un
-    /// hilo de sistema operativo por cada `Ctrl+clic`.
-    ///
-    /// Desktop-only: el modelo de una sola Activity de Android no tiene equivalente a "ventana
-    /// nueva" — ver SPECIFICATIONS.md RF-14/RF-25 en Android.
+    /// Abre o enfoca otra vista (RF-14/25/26), siguiendo las preferencias de macOS.
+    /// Tauri ejecuta los comandos async en su pool: así `run_on_main_thread` encola
+    /// la creación en otra vuelta del bucle, sin anidarla en el despacho IPC (lo que
+    /// bloquea WebView2). El canal devuelve el resultado real al frontend.
+    /// Android no tiene ventanas adicionales; conserva su única Activity.
     #[cfg(desktop)]
     #[tauri::command]
-    pub fn open_in_new_window(app: tauri::AppHandle, path: String) {
-        tauri::async_runtime::spawn(async move {
-            let app_handle = app.clone();
-            let _ = app.run_on_main_thread(move || open_or_focus_document(&app_handle, path));
-        });
+    pub async fn open_in_new_window(
+        app: tauri::AppHandle,
+        path: String,
+        options: Option<DocumentOpenOptions>,
+    ) -> Result<(), String> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let app_handle = app.clone();
+        app.run_on_main_thread(move || {
+            let result = open_or_focus_document(&app_handle, path, options.unwrap_or_default())
+                .map_err(|error| error.to_string());
+            let _ = sender.send(result);
+        })
+        .map_err(|error| error.to_string())?;
+        receiver.await.map_err(|error| error.to_string())?
     }
 }
 
@@ -889,15 +945,23 @@ pub fn run() {
             // ventana más en este mismo proceso (o, sin ruta, enfoca una existente).
             let app_handle = app.clone();
             let path = first_path_argument(argv);
-            let _ = app_handle.clone().run_on_main_thread(move || match path {
-                Some(path) => open_or_focus_document(&app_handle, path),
+            if let Err(error) = app_handle.clone().run_on_main_thread(move || match path {
+                Some(path) => {
+                    if let Err(error) =
+                        open_or_focus_document(&app_handle, path, DocumentOpenOptions::default())
+                    {
+                        eprintln!("[open_document] {error}");
+                    }
+                }
                 None => {
                     let windows = app_handle.webview_windows();
                     if let Some(window) = main_or_first_window(&windows) {
                         focus_window(window);
                     }
                 }
-            });
+            }) {
+                eprintln!("[open_document] {error}");
+            }
         }));
     }
 
@@ -923,6 +987,9 @@ pub fn run() {
             {
                 let menu = macos_menu::build(_app.handle())?;
                 _app.handle().set_menu(menu)?;
+                if let Some(window) = _app.get_webview_window("main") {
+                    macos_titlebar::install(&window)?;
+                }
             }
             // RF-42: colocar la ventana principal donde estaba (ver window_state.rs).
             #[cfg(desktop)]
@@ -947,7 +1014,9 @@ pub fn run() {
                     .find(|w| w.is_focused().unwrap_or(false))
                     .or_else(|| main_or_first_window(&windows));
                 if let Some(window) = target {
-                    let _ = window.emit(event_name, ());
+                    // `emit` difunde a todas las ventanas aunque se invoque sobre
+                    // una de ellas. El menú debe actuar solo sobre la seleccionada.
+                    let _ = window.emit_to(window.label(), event_name, ());
                 }
             }
         });
@@ -1044,7 +1113,16 @@ pub fn run() {
             #[cfg(desktop)]
             commands::open_in_new_window
         ])
-        .build(tauri::generate_context!())
+        .build({
+            let context = tauri::generate_context!();
+            #[cfg(target_os = "macos")]
+            let context = {
+                let mut context = context;
+                configure_macos_document_tabs(context.config_mut());
+                context
+            };
+            context
+        })
         .expect("error while building tauri application")
         .run(|_app_handle, _event| {
             // macOS delivers "Open With"/double-click as an Apple Event, surfaced only through
@@ -1056,7 +1134,13 @@ pub fn run() {
                     if _app_handle.webview_windows().is_empty() {
                         *_app_handle.state::<OpenedFileState>().0.lock().unwrap() = Some(path);
                     } else {
-                        open_or_focus_document(_app_handle, path);
+                        if let Err(error) = open_or_focus_document(
+                            _app_handle,
+                            path,
+                            DocumentOpenOptions::default(),
+                        ) {
+                            eprintln!("[open_document] {error}");
+                        }
                     }
                 }
             }
@@ -1111,6 +1195,68 @@ mod tests {
             file_name: "f.md".to_string(),
             last_opened,
         }
+    }
+
+    /// La configuración compartida no debe perder geometría, restricciones ni permisos
+    /// al habilitar las pestañas de la ventana inicial (issue #27).
+    /// @spec RF-14
+    #[test]
+    fn macos_tabs_conserva_la_configuracion_de_la_ventana_principal() {
+        let mut config: tauri::Config =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let mut before = serde_json::to_value(&config).unwrap();
+        configure_macos_document_tabs(&mut config);
+        assert_eq!(
+            config.app.windows[0].tabbing_identifier.as_deref(),
+            Some(DOCUMENT_TABBING_IDENTIFIER)
+        );
+        let mut after = serde_json::to_value(&config).unwrap();
+        before["app"]["windows"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("tabbingIdentifier");
+        after["app"]["windows"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("tabbingIdentifier");
+        assert_eq!(before, after);
+    }
+
+    /// Las ventanas auxiliares no deben pasar a ser pestañas de documentos; tampoco
+    /// se crea una ventana implícita si una configuración no declara `main`.
+    /// @spec RF-14
+    #[test]
+    fn macos_tabs_no_modifica_ventanas_ajenas_a_documentos() {
+        let mut config: tauri::Config =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        config.app.windows[0].label = "settings".to_string();
+        config.app.windows[0].tabbing_identifier = Some("settings-group".to_string());
+        let before = serde_json::to_value(&config).unwrap();
+        configure_macos_document_tabs(&mut config);
+        assert_eq!(before, serde_json::to_value(&config).unwrap());
+        config.app.windows.clear();
+        configure_macos_document_tabs(&mut config);
+        assert!(config.app.windows.is_empty());
+    }
+
+    /// Los llamantes existentes no mandan opciones; una apertura normal sigue en lectura.
+    /// @spec RF-14, RF-29
+    #[test]
+    fn document_open_options_admite_llamantes_sin_opciones() {
+        let options: DocumentOpenOptions = serde_json::from_str("{}").unwrap();
+        assert!(!options.start_in_edit_mode);
+        assert!(options.scroll_anchor.is_none());
+    }
+
+    /// Nuevo documento y enlaces con ancla conservan las opciones al cruzar IPC.
+    /// @spec RF-14, RF-29
+    #[test]
+    fn document_open_options_conserva_edicion_y_anclas_en_camel_case() {
+        let input = serde_json::json!({ "startInEditMode": true, "scrollAnchor": "#sección" });
+        let options: DocumentOpenOptions = serde_json::from_value(input.clone()).unwrap();
+        assert!(options.start_in_edit_mode);
+        assert_eq!(options.scroll_anchor.as_deref(), Some("#sección"));
+        assert_eq!(serde_json::to_value(options).unwrap(), input);
     }
 
     // ── resolve_relative_path (RF-08A / RF-07) ────────────────────────────
@@ -1247,6 +1393,69 @@ mod tests {
     fn canonical_path_str_falls_back_to_input_for_missing_file() {
         let missing = "C:\\definitely\\not\\a\\real\\path\\gone.md";
         assert_eq!(canonical_path_str(missing), missing);
+    }
+
+    /// La reserva existe durante la carga y navegar reemplaza solo la ruta de esa vista.
+    /// @spec RF-14
+    #[test]
+    fn documentos_reserva_y_sustituye_solo_el_documento_de_su_vista() {
+        let state = OpenDocumentsState(Mutex::new(HashMap::new()));
+        state
+            .register("main", Some("https://example.com/a.md"))
+            .unwrap();
+        state
+            .register("doc-1", Some("https://example.com/b.md"))
+            .unwrap();
+        assert_eq!(
+            state
+                .0
+                .lock()
+                .unwrap()
+                .get("https://example.com/b.md")
+                .unwrap(),
+            "doc-1"
+        );
+
+        state
+            .register("doc-1", Some("https://example.com/c.md"))
+            .unwrap();
+        let map = state.0.lock().unwrap();
+        assert_eq!(map.len(), 2);
+        assert_eq!(map.get("https://example.com/a.md").unwrap(), "main");
+        assert_eq!(map.get("https://example.com/c.md").unwrap(), "doc-1");
+        assert!(!map.contains_key("https://example.com/b.md"));
+    }
+
+    /// Un fallo libera su reserva sin borrar documentos de otras vistas, incluso
+    /// si otra vista ya ha confirmado la ruta que falló inicialmente.
+    /// @spec RF-14
+    #[test]
+    fn documentos_libera_reservas_fallidas_sin_borrar_otras_vistas() {
+        let state = OpenDocumentsState(Mutex::new(HashMap::new()));
+        state
+            .register("main", Some("https://example.com/a.md"))
+            .unwrap();
+        state
+            .register("doc-1", Some("https://example.com/b.md"))
+            .unwrap();
+        state.register("doc-1", None).unwrap();
+        assert!(!state
+            .0
+            .lock()
+            .unwrap()
+            .contains_key("https://example.com/b.md"));
+
+        state
+            .register("doc-1", Some("https://example.com/b.md"))
+            .unwrap();
+        state
+            .register("doc-2", Some("https://example.com/b.md"))
+            .unwrap();
+        state.register("doc-1", None).unwrap();
+        let map = state.0.lock().unwrap();
+        assert_eq!(map.len(), 2);
+        assert_eq!(map.get("https://example.com/a.md").unwrap(), "main");
+        assert_eq!(map.get("https://example.com/b.md").unwrap(), "doc-2");
     }
 
     // ── write_file (RF-20) ─────────────────────────────────────────────────

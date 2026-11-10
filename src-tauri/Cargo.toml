@@ -62,6 +62,17 @@ base64 = "0.22"
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin-saf = { path = "plugins/tauri-plugin-saf" }
 
+# Cabecera nativa fija sin alterar el título documental que usan pestañas y Dock.
+# Estos crates ya forman parte del árbol de Tauri; se declaran sus APIs directamente.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["NSString", "NSGeometry"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = [
+    "NSColor", "NSControl", "NSFont", "NSLayoutConstraint", "NSResponder",
+    "NSTextField", "NSTitlebarAccessoryViewController", "NSView", "NSViewController",
+    "NSWindow", "objc2-core-foundation",
+] }
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

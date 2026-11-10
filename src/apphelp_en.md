@@ -75,10 +75,11 @@ The side panel and the window's position and size are **remembered** when you cl
 
 ## 4. Moving between documents
 
-- **Links**: a link to another `.md` opens it in the same window; one to a web page opens in your browser. Links to a section of the same document scroll to it.
+- **Links**: a link to another `.md` opens it in another tab or window on macOS and in the current view on other platforms; one to a web page opens in your browser. Links to a section of the same document scroll to it.
 - **Back and forward**: `Alt + ←` and `Alt + →` walk through the documents you have opened.
 - **Find file** (`Ctrl/Cmd + K`): type part of the name of any file in the folder and press `Enter`; use `↑` and `↓` to choose among the results.
-- **Files tab**: a click opens the file; `Ctrl/Cmd + click` opens it in a **new window**. Right-click offers *Open in new window* and *Reveal in File Explorer*.
+- **Files tab**: a click opens the file; `Ctrl/Cmd + click` requests an additional view. Right-click offers *Open in new window* and *Reveal in File Explorer*.
+- **macOS**: opening another file from the dialog, Recent Files, the tree, a link or a drop follows **Desktop & Dock → Prefer tabs when opening documents**. Always groups tabs, Never opens windows, and In Full Screen follows that context. This also applies to *Open in new window* and `Cmd + click`. The first file uses the empty window; history and reloading stay within each document.
 - **Home** and **End** go to the start or the end of the document.
 
 ---
