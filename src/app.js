@@ -540,6 +540,13 @@
         })
         .catch(function (err) {
           endBoot();
+          // Una vista nueva reserva su ruta antes de cargarla. Si falla la lectura,
+          // liberar esa reserva permite reabrir el archivo cuando vuelva a estar disponible.
+          if (!currentDoc && !isAndroid) {
+            invoke('register_open_document', { path: null }).catch(function (registrationError) {
+              console.warn('[register_open_document]', registrationError);
+            });
+          }
           if (opts.isAutoRestore) {
             console.warn('[autoRestore]', err);
             try { localStorage.removeItem('dbv-md-last-doc'); } catch (_) {}
@@ -2540,18 +2547,18 @@
   // en vez de reimplementar el diálogo.
   // Un listener global recibe incluso eventos emit_to de otra ventana. Acotar
   // también la recepción para que los menús no actúen sobre todas las pestañas.
-  var menuEventOptions = { target: window.__TAURI__.window.getCurrentWindow().label };
-  window.__TAURI__.event.listen('menu-open-file', openFileDialog, menuEventOptions);
+  var windowEventOptions = { target: window.__TAURI__.window.getCurrentWindow().label };
+  window.__TAURI__.event.listen('menu-open-file', openFileDialog, windowEventOptions);
   // "Nuevo documento" (RF-29), "Guardar" y "Alternar Modo Edición" del menú nativo de macOS (File/View):
   // mismo patrón, el menú vive en Rust y avisa por evento a la ventana enfocada.
-  window.__TAURI__.event.listen('menu-new-file', createNewFile, menuEventOptions);
-  window.__TAURI__.event.listen('menu-save', saveCurrentDocument, menuEventOptions);
-  window.__TAURI__.event.listen('menu-toggle-edit-mode', toggleEditMode, menuEventOptions);
+  window.__TAURI__.event.listen('menu-new-file', createNewFile, windowEventOptions);
+  window.__TAURI__.event.listen('menu-save', saveCurrentDocument, windowEventOptions);
+  window.__TAURI__.event.listen('menu-toggle-edit-mode', toggleEditMode, windowEventOptions);
   window.__TAURI__.event.listen('document-open-options', function (event) {
     var options = event.payload || {};
     if (options.startInEditMode && !editMode) setEditMode(true);
     if (options.scrollAnchor) scrollDocumentToAnchor(options.scrollAnchor);
-  }, menuEventOptions);
+  }, windowEventOptions);
 
   // =========================================================================
   // Apertura de documento remoto por URL (RF-08A)
@@ -2587,6 +2594,8 @@
   // Drag & Drop nativo de Tauri v2
   // =========================================================================
 
+  // El evento nativo pertenece a la vista receptora. Un listener global lo repetiría
+  // en todas las pestañas, también al soltar imágenes o carpetas.
   window.__TAURI__.event.listen('tauri://drag-drop', function (event) {
     var paths = event.payload && event.payload.paths;
     if (paths && paths.length > 0) {
@@ -2604,7 +2613,7 @@
         window.DBVFileTree.setRootFromDrop(fp);
       }
     }
-  }).catch(function (err) {
+  }, windowEventOptions).catch(function (err) {
     showError('[drag-drop listener] ' + err);
   });
 

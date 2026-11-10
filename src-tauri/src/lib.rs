@@ -77,10 +77,10 @@ pub struct WatcherState(pub Mutex<Option<notify::RecommendedWatcher>>);
 /// like it already reads `std::env::args()` on Windows.
 pub struct OpenedFileState(pub Mutex<Option<String>>);
 
-/// Maps a document's canonical path to the label of the window currently displaying it, so a
-/// repeat "Open With" on the same file focuses that window instead of stacking a duplicate.
-/// Resolved live against `app_handle.webview_windows()` on lookup, so a closed window's stale
-/// entry is simply ignored rather than requiring explicit cleanup on window-close.
+/// Asocia cada ruta canónica a la ventana que la muestra o está cargándola. Se
+/// reserva al crear la ventana para evitar duplicados antes de arrancar el frontend.
+/// La consulta comprueba que la ventana siga viva; las entradas de ventanas cerradas
+/// se ignoran sin necesitar limpieza explícita al cerrar.
 pub struct OpenDocumentsState(pub Mutex<HashMap<String, String>>);
 
 /// Instala el proveedor criptográfico por defecto de rustls antes de que ninguna otra parte
@@ -123,6 +123,20 @@ fn canonical_path_str(path: &str) -> String {
     fs::canonicalize(path)
         .map(|p| path_to_string(&p))
         .unwrap_or_else(|_| path.to_string())
+}
+
+impl OpenDocumentsState {
+    /// Actualiza el documento de una vista; `None` libera una apertura fallida.
+    /// Solo elimina las entradas de esa vista, sin afectar a otros documentos.
+    fn register(&self, label: &str, path: Option<&str>) -> Result<(), String> {
+        let canonical = path.map(canonical_path_str);
+        let mut map = self.0.lock().map_err(|e| e.to_string())?;
+        map.retain(|_, owner| owner != label);
+        if let Some(path) = canonical {
+            map.insert(path, label.to_string());
+        }
+        Ok(())
+    }
 }
 
 /// Restores `window` if minimized and brings it to the front. Best-effort (`set_focus` can fail
@@ -206,7 +220,7 @@ fn open_document_window(
     let label = format!("doc-{}", WINDOW_COUNTER.fetch_add(1, Ordering::SeqCst));
     let init_script = format!(
         "[window.__DBV_INITIAL_PATH__, window.__DBV_INITIAL_OPTIONS__] = {};",
-        serde_json::to_string(&(path, options))?
+        serde_json::to_string(&(&path, options))?
     );
     let window = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .title("dbv-md-reader")
@@ -228,6 +242,11 @@ fn open_document_window(
     // dibujar el contenedor vacío durante la creación (también en pantalla completa).
     #[cfg(target_os = "macos")]
     window.show()?;
+    // No esperar al registro del frontend: otro evento de apertura puede llegar
+    // mientras esta vista todavía está leyendo y renderizando su documento.
+    app.state::<OpenDocumentsState>()
+        .register(window.label(), Some(&path))
+        .map_err(std::io::Error::other)?;
     focus_window(&window);
     Ok(())
 }
@@ -403,20 +422,15 @@ pub mod commands {
             .or_else(|| app.state::<OpenedFileState>().0.lock().unwrap().take())
     }
 
-    /// Records that `window` is currently displaying the document at `path` (RF-14 dedupe),
-    /// called from the frontend after every successful document load. Lets a later "Open With"
-    /// on the same file focus this window instead of opening a duplicate.
+    /// Confirma el documento cargado por el frontend (RF-14). Una ruta nula libera
+    /// la reserva si falla la lectura inicial, para permitir otro intento de apertura.
     #[tauri::command]
     pub fn register_open_document(
         window: tauri::WebviewWindow,
         state: tauri::State<OpenDocumentsState>,
-        path: String,
-    ) {
-        let canonical = canonical_path_str(&path);
-        let label = window.label().to_string();
-        let mut map = state.0.lock().unwrap();
-        map.retain(|_, v| v != &label);
-        map.insert(canonical, label);
+        path: Option<String>,
+    ) -> Result<(), String> {
+        state.register(window.label(), path.as_deref())
     }
 
     /// Returns the app version declared in Cargo.toml, for the "About" panel.
@@ -1379,6 +1393,69 @@ mod tests {
     fn canonical_path_str_falls_back_to_input_for_missing_file() {
         let missing = "C:\\definitely\\not\\a\\real\\path\\gone.md";
         assert_eq!(canonical_path_str(missing), missing);
+    }
+
+    /// La reserva existe durante la carga y navegar reemplaza solo la ruta de esa vista.
+    /// @spec RF-14
+    #[test]
+    fn documentos_reserva_y_sustituye_solo_el_documento_de_su_vista() {
+        let state = OpenDocumentsState(Mutex::new(HashMap::new()));
+        state
+            .register("main", Some("https://example.com/a.md"))
+            .unwrap();
+        state
+            .register("doc-1", Some("https://example.com/b.md"))
+            .unwrap();
+        assert_eq!(
+            state
+                .0
+                .lock()
+                .unwrap()
+                .get("https://example.com/b.md")
+                .unwrap(),
+            "doc-1"
+        );
+
+        state
+            .register("doc-1", Some("https://example.com/c.md"))
+            .unwrap();
+        let map = state.0.lock().unwrap();
+        assert_eq!(map.len(), 2);
+        assert_eq!(map.get("https://example.com/a.md").unwrap(), "main");
+        assert_eq!(map.get("https://example.com/c.md").unwrap(), "doc-1");
+        assert!(!map.contains_key("https://example.com/b.md"));
+    }
+
+    /// Un fallo libera su reserva sin borrar documentos de otras vistas, incluso
+    /// si otra vista ya ha confirmado la ruta que falló inicialmente.
+    /// @spec RF-14
+    #[test]
+    fn documentos_libera_reservas_fallidas_sin_borrar_otras_vistas() {
+        let state = OpenDocumentsState(Mutex::new(HashMap::new()));
+        state
+            .register("main", Some("https://example.com/a.md"))
+            .unwrap();
+        state
+            .register("doc-1", Some("https://example.com/b.md"))
+            .unwrap();
+        state.register("doc-1", None).unwrap();
+        assert!(!state
+            .0
+            .lock()
+            .unwrap()
+            .contains_key("https://example.com/b.md"));
+
+        state
+            .register("doc-1", Some("https://example.com/b.md"))
+            .unwrap();
+        state
+            .register("doc-2", Some("https://example.com/b.md"))
+            .unwrap();
+        state.register("doc-1", None).unwrap();
+        let map = state.0.lock().unwrap();
+        assert_eq!(map.len(), 2);
+        assert_eq!(map.get("https://example.com/a.md").unwrap(), "main");
+        assert_eq!(map.get("https://example.com/b.md").unwrap(), "doc-2");
     }
 
     // ── write_file (RF-20) ─────────────────────────────────────────────────
