@@ -192,11 +192,11 @@ pub struct DocumentOpenOptions {
 /// @spec RF-14
 #[cfg(any(target_os = "macos", test))]
 fn configure_macos_document_tabs(config: &mut tauri::Config) {
-    for window in config
+    if let Some(window) = config
         .app
         .windows
         .iter_mut()
-        .filter(|window| window.label == "main")
+        .find(|window| window.label == "main")
     {
         window.tabbing_identifier = Some(DOCUMENT_TABBING_IDENTIFIER.to_string());
     }
@@ -258,23 +258,27 @@ fn open_document_window(
 /// same file always converges on one window instead of accumulating copies. Desktop-only:
 /// every caller (instancia única, `RunEvent::Opened` de macOS, `open_in_new_window`) lo es.
 #[cfg(desktop)]
-fn open_or_focus_document(app: &tauri::AppHandle, path: String, options: DocumentOpenOptions) {
+fn open_or_focus_document(
+    app: &tauri::AppHandle,
+    path: String,
+    options: DocumentOpenOptions,
+) -> tauri::Result<()> {
     let canonical = canonical_path_str(&path);
     let existing_label = app
         .state::<OpenDocumentsState>()
         .0
         .lock()
-        .unwrap()
+        .map_err(|error| std::io::Error::other(error.to_string()))?
         .get(&canonical)
         .cloned();
-    if let Some(label) = existing_label {
-        if let Some(window) = app.webview_windows().get(&label) {
-            focus_window(window);
-            let _ = window.emit_to(window.label(), "document-open-options", options);
-            return;
-        }
+    let existing_window = existing_label.and_then(|label| app.get_webview_window(&label));
+    if let Some(window) = existing_window {
+        focus_window(&window);
+        window.emit_to(window.label(), "document-open-options", options)?;
+    } else {
+        open_document_window(app, path, options)?;
     }
-    let _ = open_document_window(app, path, options);
+    Ok(())
 }
 
 /// Converts a `file://` URL delivered by macOS's `RunEvent::Opened` (Finder "Open With") to a
@@ -721,45 +725,27 @@ pub mod commands {
         Ok(())
     }
 
-    /// Punto de entrada del frontend para "abrir en ventana nueva" desde dentro de la app
-    /// (RF-25 árbol + RF-26 Quick Open, ambos vía Ctrl/Cmd+clic) — la primera excepción
-    /// consciente a que las aperturas internas sustituyan la ventana actual (ver la
-    /// ampliación de RF-14 en `SPECIFICATIONS.md`). Envuelve `open_or_focus_document`, nunca
-    /// `open_document_window` directo, para que un archivo ya abierto en otra ventana se
-    /// enfoque en vez de duplicarse (mismo bug que se corrigió en la Fase 26).
-    /// **Bug real encontrado por el usuario (ventana nueva en blanco/colgada al probar
-    /// Ctrl+clic en el árbol, RF-25) y su causa exacta:** a diferencia del callback de
-    /// instancia única o `RunEvent::Opened` (que llegan en una iteración *nueva* y ya
-    /// asentada del bucle de eventos), este `#[tauri::command]` síncrono se despacha
-    /// *ya sobre el hilo principal*, dentro de la misma pasada que atiende el propio
-    /// mensaje IPC que lo invocó. Llamar a `run_on_main_thread` directamente desde ahí
-    /// detecta "ya estoy en el hilo principal" y ejecuta el cierre de forma reentrante
-    /// e inline — creando la `WebviewWindowBuilder` anidada dentro del propio despacho
-    /// del mensaje que la originó, lo que cuelga `.build()` (necesita bombear mensajes
-    /// para completar la inicialización asíncrona de WebView2, y no puede mientras el
-    /// hilo sigue ocupado procesando el mensaje exterior). Confirmado con trazas: sin
-    /// forzar un hilo distinto, `.build()` nunca retornaba; forzándolo, `run_on_main_thread`
-    /// se invoca desde un hilo genuinamente distinto, forzando un envío real (no inline) que
-    /// se procesa en una vuelta *posterior y ya libre* del bucle principal.
-    /// `tauri::async_runtime::spawn` (no `std::thread::spawn`) logra ese "hilo distinto"
-    /// reutilizando el pool de Tokio que Tauri ya tiene en marcha, sin crear/destruir un
-    /// hilo de sistema operativo por cada `Ctrl+clic`.
-    ///
-    /// Desktop-only: el modelo de una sola Activity de Android no tiene equivalente a "ventana
-    /// nueva" — ver SPECIFICATIONS.md RF-14/RF-25 en Android.
+    /// Abre o enfoca otra vista (RF-14/25/26), siguiendo las preferencias de macOS.
+    /// Tauri ejecuta los comandos async en su pool: así `run_on_main_thread` encola
+    /// la creación en otra vuelta del bucle, sin anidarla en el despacho IPC (lo que
+    /// bloquea WebView2). El canal devuelve el resultado real al frontend.
+    /// Android no tiene ventanas adicionales; conserva su única Activity.
     #[cfg(desktop)]
     #[tauri::command]
-    pub fn open_in_new_window(
+    pub async fn open_in_new_window(
         app: tauri::AppHandle,
         path: String,
         options: Option<DocumentOpenOptions>,
-    ) {
-        tauri::async_runtime::spawn(async move {
-            let app_handle = app.clone();
-            let _ = app.run_on_main_thread(move || {
-                open_or_focus_document(&app_handle, path, options.unwrap_or_default())
-            });
-        });
+    ) -> Result<(), String> {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let app_handle = app.clone();
+        app.run_on_main_thread(move || {
+            let result = open_or_focus_document(&app_handle, path, options.unwrap_or_default())
+                .map_err(|error| error.to_string());
+            let _ = sender.send(result);
+        })
+        .map_err(|error| error.to_string())?;
+        receiver.await.map_err(|error| error.to_string())?
     }
 }
 
@@ -959,15 +945,23 @@ pub fn run() {
             // ventana más en este mismo proceso (o, sin ruta, enfoca una existente).
             let app_handle = app.clone();
             let path = first_path_argument(argv);
-            let _ = app_handle.clone().run_on_main_thread(move || match path {
-                Some(path) => open_or_focus_document(&app_handle, path, DocumentOpenOptions::default()),
+            if let Err(error) = app_handle.clone().run_on_main_thread(move || match path {
+                Some(path) => {
+                    if let Err(error) =
+                        open_or_focus_document(&app_handle, path, DocumentOpenOptions::default())
+                    {
+                        eprintln!("[open_document] {error}");
+                    }
+                }
                 None => {
                     let windows = app_handle.webview_windows();
                     if let Some(window) = main_or_first_window(&windows) {
                         focus_window(window);
                     }
                 }
-            });
+            }) {
+                eprintln!("[open_document] {error}");
+            }
         }));
     }
 
@@ -1140,7 +1134,13 @@ pub fn run() {
                     if _app_handle.webview_windows().is_empty() {
                         *_app_handle.state::<OpenedFileState>().0.lock().unwrap() = Some(path);
                     } else {
-                        open_or_focus_document(_app_handle, path, DocumentOpenOptions::default());
+                        if let Err(error) = open_or_focus_document(
+                            _app_handle,
+                            path,
+                            DocumentOpenOptions::default(),
+                        ) {
+                            eprintln!("[open_document] {error}");
+                        }
                     }
                 }
             }
