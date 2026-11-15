@@ -26,7 +26,7 @@ import { AI_TRANSLATIONS } from './translations.js';
 import { proposeNudge, runAgent } from './agentLoop.js';
 import { createProposalApplier } from './applyProposal.js';
 import { createChatPanel, mentionedPaths } from './chatPanel.js';
-import { createConnectWizard } from './connectWizard.js';
+import { createConnectWizard, DEFAULT_AGENT_MODELS, resolveAgentModel } from './connectWizard.js';
 import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
 import { buildContext, estimateTokens, systemPrompt } from './context.js';
@@ -37,6 +37,8 @@ import { createModelClient } from './modelClient.js';
 import { applyChange, createProposal, looksLikeEdit, overrides, parseChangeBlocks } from './proposal.js';
 import { createReviewCard } from './reviewView.js';
 import { createTools, describeCheck } from './tools.js';
+import { AUTONOMY_STORAGE_KEY, acpPermissionPolicy, acpReadPolicy, guardTools, normalizeAutonomy, offeredTools } from './autonomy.js';
+import { createAttentionNotifier } from './attention.js';
 import { createInlineAi } from './inline.js';
 
 // Los textos de la IA llegan con ella, no con el paquete inicial (RNF-IA.1).
@@ -141,10 +143,73 @@ export function createAiApp(deps) {
   const conversation = () => projectState?.conversations.find((c) => c.id === projectState.activeId) ?? null;
   const isCloud = (connection) => CLOUD.has(connection?.provider);
 
+  // ── RF-58: nivel de autonomía (se aplica en el código: herramientas, permisos ACP y lecturas) ──
+  // @spec RF-58
+  let autonomy = 'askOnWrite';
+  try { autonomy = normalizeAutonomy(localStorage.getItem(AUTONOMY_STORAGE_KEY)); } catch { /* sin almacenamiento */ }
+  /** Lecturas ya permitidas en esta conversación («Permitir en esta conversación»). */
+  const allowedReads = new Map();
+  const readAllowedHere = () => {
+    const id = conversation()?.id ?? '';
+    if (!allowedReads.has(id)) allowedReads.set(id, new Set());
+    return allowedReads.get(id);
+  };
+  // ── RF-59: aviso en la barra de tareas cuando la IA espera tu decisión y la ventana no está delante ──
+  // @spec RF-59
+  let attention = null;
+  try {
+    const win = window.__TAURI__?.window?.getCurrentWindow?.();
+    if (win) {
+      attention = createAttentionNotifier(win, window.__TAURI__.window.UserAttentionType?.Informational ?? 2);
+      window.addEventListener('focus', () => attention.clear());
+    }
+  } catch { attention = null; }
+  let attentionSeq = 0;
+  const requestAttention = () => attention?.notify(`req-${++attentionSeq}`);
+
+  /** Tarjeta «¿Dejas que la IA lea…?» (RF-58, «Preguntar todo»). Solo texto (`textContent`): el nombre viene del modelo. */
+  function askToRead(what) {
+    if (readAllowedHere().has(what)) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const card = document.createElement('div');
+      card.className = 'ai-note ai-note--info ai-permission';
+      const text = document.createElement('p');
+      text.textContent = t('ai.autonomy.askRead').replace('{what}', what);
+      const actions = document.createElement('div');
+      actions.className = 'ai-permission__actions';
+      const choose = (allowed, remember) => {
+        if (remember) readAllowedHere().add(what);
+        actions.replaceChildren();
+        const done = document.createElement('span');
+        done.textContent = t(allowed ? 'ai.autonomy.allowed' : 'ai.autonomy.denied');
+        actions.append(done);
+        attention?.clear();
+        resolve(allowed);
+      };
+      for (const [key, allowed, remember, cls] of [['ai.autonomy.allowOnce', true, false, 'button--primary'], ['ai.autonomy.allowConversation', true, true, ''], ['ai.autonomy.deny', false, false, 'button--ghost']]) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = `button button--compact ${cls}`.trim();
+        b.textContent = t(key);
+        b.addEventListener('click', () => choose(allowed, remember));
+        actions.append(b);
+      }
+      card.append(text, actions);
+      panel.addNode(card);
+      requestAttention();
+    });
+  }
+
   const panel = createChatPanel({
     host: host.elements.panel,
     renderMarkdown: host.renderMarkdown,
     callbacks: {
+      getAutonomy: () => autonomy,
+      onSelectAutonomy: (level) => {
+        autonomy = normalizeAutonomy(level);
+        try { localStorage.setItem(AUTONOMY_STORAGE_KEY, autonomy); } catch { /* sin almacenamiento */ }
+        panel.addNote(t('ai.autonomy.changed').replace('{level}', t(`ai.autonomy.${autonomy}`)));
+      },
       onSend: (text) => ask(text),
       onStop: () => stop(),
       onSelectConnection: async (id) => {
@@ -444,6 +509,7 @@ export function createAiApp(deps) {
 
   function showProposal(proposal, check) {
     panel.addNode(buildReviewCard(proposal, check));
+    requestAttention(); // RF-59: hay una propuesta esperando tu revisión
   }
 
   // ─── Petición (RF-33, RF-35) ───────────────────────────────────────────────
@@ -576,7 +642,7 @@ export function createAiApp(deps) {
       ];
       const proposal = createProposal();
       const check = makeChecker();
-      const toolset = createTools({
+      const allTools = createTools({
         listFiles: async () => files,
         readText,
         search: async (query) => {
@@ -587,12 +653,19 @@ export function createAiApp(deps) {
         checkProposal: check,
         getProposal: () => proposal,
       });
+      // RF-58: lo denegado no se anuncia al modelo, y el nivel se vuelve a aplicar al ejecutar.
+      const toolset = guardTools(() => autonomy, offeredTools(autonomy, allTools), {
+        ask: (name, args) => askToRead(name === 'read_file' ? String(args?.path ?? '') : t(`ai.autonomy.tool.${name}`)),
+        openDocument: () => activeSource()?.path ?? null,
+      });
+      const canPropose = toolset.some((tool) => tool.name === 'propose_changes');
+      if (!canPropose) messages.splice(1, 0, { role: 'system', content: 'Autonomy level: READ-ONLY. You cannot propose or make changes to any file. Answer, explain or suggest in text only.' });
       const result = await runAgent({
         tools: toolset,
         messages,
         useTools: tools,
         isCancelled: () => cancelled,
-        followUp: (reply) => (tools && proposal.files.size === 0 ? proposeNudge(reply) : null),
+        followUp: (reply) => (tools && canPropose && proposal.files.size === 0 ? proposeNudge(reply) : null),
         onStep: (step) => panel.addStep(step.label),
         onNotice: (notice) => {
           // Una respuesta vacía, cortada por el tope o con la llamada rota: el panel dice qué pasó, nunca se queda mudo.
@@ -692,8 +765,18 @@ export function createAiApp(deps) {
   const acp = createAcpSession({
     backend,
     getRoot: () => projectRoot,
-    readText,
+    // RF-58: en «Preguntar todo», leer algo distinto del documento abierto pide permiso.
+    readText: async (relative) => {
+      const allowed = acpReadPolicy(autonomy, relative, activeSource()?.path ?? null) === 'allow' || (await askToRead(relative));
+      return allowed ? readText(relative) : null;
+    },
     askPermission: async (params) => {
+      // RF-58: en «Solo lectura» se rechaza sin tarjeta lo que modifica o ejecuta (y lo de tipo desconocido).
+      if (acpPermissionPolicy(autonomy, params?.toolCall?.kind) === 'deny') {
+        panel.addNote(t('ai.autonomy.blocked').replace('{what}', params?.toolCall?.title ?? params?.toolCall?.kind ?? '?'), 'error');
+        return (params?.options ?? []).find((option) => option.kind?.startsWith('reject'))?.optionId ?? null;
+      }
+      requestAttention(); // RF-59
       const toRelative = (absolute) => insideProject(projectRoot, absolute);
       const permission = createPermissionCard(params, {
         toRelative,
@@ -722,8 +805,15 @@ export function createAiApp(deps) {
     },
     stageWrite: async (relative, content) => {
       if (!agentTurn) return;
+      // RF-58: en «Solo lectura» una escritura del agente ni siquiera entra en la propuesta.
+      if (autonomy === 'readOnly') {
+        panel.addNote(t('ai.autonomy.blocked').replace('{what}', relative), 'error');
+        return;
+      }
       await applyChange(agentTurn.proposal, { path: relative, action: 'replace_all', content }, readText);
     },
+    // RF-57: el agente pide iniciar sesión (OAuth de su CLI): se avisa en el panel.
+    onAuthenticate: (method) => panel.addStep(t('ai.agentSigningIn').replace('{method}', method?.name ?? method?.id ?? '')),
     onUpdate: (update) => {
       if (!agentTurn) return;
       if (update.type === 'text') agentTurn.bubble.append(update.text);
@@ -775,9 +865,11 @@ export function createAiApp(deps) {
     agentTurn = { proposal: createProposal(), bubble };
     let finalText = '';
     try {
-      const spec = { id: agentId(connection) };
+      // RF-57: modelo y nivel de razonamiento elegidos con ⚙️ en el asistente de conexión.
+      const id = agentId(connection);
+      const spec = { id, model: resolveAgentModel(id, connection.model) || undefined, reasoningEffort: connection.reasoningEffort || 'medium' };
       panel.addStep(t('ai.agentStarting').replace('{agent}', providerName(connection)));
-      const session = await acp.ensureSession(spec);
+      const session = await acp.ensureSession(spec, conversation()?.id ?? null);
       const active = activeSource();
       const context = [
         agentPreamble(session.fresh),
@@ -825,7 +917,8 @@ export function createAiApp(deps) {
       name: t(`ai.agent.${tool.name}`),
       provider: 'agent',
       baseUrl: `acp:${tool.name}`,
-      model: tool.name,
+      model: DEFAULT_AGENT_MODELS[tool.name] ?? tool.name,
+      reasoningEffort: 'medium',
       hasKey: false,
       contextTokens: null,
       supportsTools: true,

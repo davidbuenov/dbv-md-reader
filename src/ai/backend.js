@@ -7,7 +7,7 @@
 //
 // Ningún comando devuelve una clave de API: la clave solo viaja de ida, al
 // guardar una conexión, y vive en el almacén de credenciales del sistema
-// (RNF-IA.4). Todo devuelve `{ok, value}` o `{ok: false, error: {kind, message}}`,
+//. Todo devuelve `{ok, value}` o `{ok: false, error: {kind, message}}`,
 // nunca una excepción, para que la interfaz pueda explicar cada fallo.
 
 const tauri = () => window.__TAURI__;
@@ -31,16 +31,24 @@ export function on(eventName, handler) {
   return tauri().event.listen(eventName, (event) => handler(event.payload));
 }
 
-/** Abre una dirección en el navegador del sistema. */
-export const openExternalUrl = async (url) => {
+/**
+ * Abre una dirección en el navegador del sistema con el plugin `opener` (el
+ * único cargado: `shell` no existe y `window.open` no hace nada en la WebView).
+ * Fuera de Tauri (navegador de desarrollo) recurre a `window.open`.
+ */
+export async function openExternalUrl(url) {
+  const opener = tauri()?.opener;
+  let result = { ok: true, value: undefined };
   try {
-    await tauri().shell.open(url);
-  } catch {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    if (opener) await opener.openUrl(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
+  } catch (error) {
+    result = { ok: false, error: normalizeError(error) };
   }
-};
+  return result;
+}
 
-// ─── Conexiones y modelos (RF-31) ────────────────────────────────────────────
+// ─── Conexiones y modelos ────────────────────────────────────────────
 export const aiConnections = () => call('ai_connections');
 /** `apiKey`: `null` no la toca, `''` la borra, otro valor la guarda en el almacén del sistema. */
 export const aiSaveConnection = (connection, apiKey, activate = false) =>
@@ -50,26 +58,29 @@ export const aiSetPreferences = ({ active, showAi } = {}) => call('ai_set_prefer
 export const aiProviders = () => call('ai_providers');
 export const aiDetect = () => call('ai_detect');
 export const aiListModels = (connection, apiKey) => call('ai_list_models', { connection, apiKey: apiKey ?? null });
+/** Modelos disponibles para un agente CLI específico (antigravity, claude, codex, etc.). */
+export const aiListAgentModels = (agentId, forceRefresh = false) =>
+  call('ai_list_agent_models', { agentId, forceRefresh: Boolean(forceRefresh) });
 /** Tamaño, contexto máximo y capacidades del modelo (solo Ollama; `null` en el resto). */
 export const aiModelInfo = (connection) => call('ai_model_info', { connection });
 /** Lanza una petición; la respuesta llega por el evento `ai-stream` con este `requestId`. */
 export const aiChat = (requestId, connectionId, request) => call('ai_chat', { requestId, connectionId, request });
 export const aiCancel = (requestId) => call('ai_cancel', { requestId });
 
-// ─── Documentos de la carpeta, confinados en Rust (RNF-IA.3) ─────────────────
+// ─── Documentos de la carpeta, confinados en Rust ─────────────────
 export const aiListFiles = (root) => call('ai_list_files', { root });
 export const aiReadFile = (root, relative) => call('ai_read_file', { root, relative });
 export const aiSearchFiles = (root, query) => call('ai_search_files', { root, query });
-/** Escribe un documento TRAS la revisión del usuario (RF-34.4). */
+/** Escribe un documento TRAS la revisión del usuario. */
 export const aiWriteFile = (root, relative, content) => call('ai_write_file', { root, relative, content });
 /** Deshace la creación de un documento: solo lo borra si sigue como lo dejó la aplicación. */
 export const aiDeleteCreated = (root, relative, expected) => call('ai_delete_created', { root, relative, expected });
-/** Problemas que tendría la carpeta con `files` (`{path, content}`) en memoria (RF-34.3). */
+/** Problemas que tendría la carpeta con `files` (`{path, content}`) en memoria. */
 export const aiCheckProposal = (root, files) => call('ai_check_proposal', { root, files });
 export const aiProjectStateLoad = (root) => call('ai_project_state_load', { root });
 export const aiProjectStateSave = (root, value) => call('ai_project_state_save', { root, value });
 
-// ─── Agentes por ACP (RF-32) ─────────────────────────────────────────────────
+// ─── Agentes por ACP ─────────────────────────────────────────────────
 // Transporte: Rust lanza el agente y reenvía sus mensajes como `acp-message`.
 export const acpStart = (spec, cwd) => call('acp_start', { spec, cwd });
 export const acpRequest = (method, params) => call('acp_request', { method, params });

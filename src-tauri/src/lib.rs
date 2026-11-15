@@ -1117,6 +1117,8 @@ pub fn run() {
             #[cfg(desktop)]
             ai::commands::ai_detect,
             #[cfg(desktop)]
+            ai::commands::ai_list_agent_models, // RF-57: modelos y razonamiento de cada agente (⚙️)
+            #[cfg(desktop)]
             ai::commands::ai_list_models,
             #[cfg(desktop)]
             ai::commands::ai_model_info,

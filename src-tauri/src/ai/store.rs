@@ -62,8 +62,9 @@ pub fn save(data_dir: &Path, root: &str, value: &Value) -> Result<(), AiError> {
         std::fs::create_dir_all(parent).map_err(|error| AiError::Config(error.to_string()))?;
     }
     let temp = path.with_extension("json.tmp");
-    std::fs::write(&temp, text).map_err(|error| AiError::Config(error.to_string()))?;
-    std::fs::rename(&temp, &path).map_err(|error| AiError::Config(error.to_string()))
+    // RF-57 / D10: en la versión de la Microsoft Store, `%APPDATA%` está virtualizado y el renombrado entre la carpeta
+    // virtual y la real falla con «os error 17»; `replace_file` escribe directamente si eso pasa.
+    super::connections::replace_file(&temp, &path, text.as_bytes()).map_err(|error| AiError::Config(error.to_string()))
 }
 
 #[cfg(test)]

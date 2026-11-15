@@ -4,11 +4,9 @@
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
-//
-// @spec RF-32
 
 import { describe, expect, it, vi } from 'vitest';
-import { createAcpSession, describeUpdate, insideProject, sliceLines } from '../../src/ai/acpSession.js';
+import { createAcpSession, describeUpdate, insideProject, pickAuthMethod, sliceLines } from '../../src/ai/acpSession.js';
 import { createChangesCard, createPermissionCard, permissionDiffs } from '../../src/ai/acpView.js';
 
 /** Transporte simulado: guarda lo que se envía y deja inyectar mensajes del agente. */
@@ -52,6 +50,8 @@ function setup(overrides = {}) {
     askPermission: overrides.askPermission ?? (async (params) => params.options[0].optionId),
     stageWrite: async (relative, content) => staged.push({ relative, content }),
     onUpdate: (update) => updates.push(update),
+    ...(overrides.mcpServers ? { mcpServers: overrides.mcpServers } : {}),
+    ...(overrides.onAuthenticate ? { onAuthenticate: overrides.onAuthenticate } : {}),
   });
   return { backend, session, updates, staged };
 }
@@ -82,7 +82,42 @@ describe('funciones puras', () => {
   });
 });
 
-describe('sesión con un agente simulado (RF-91.11)', () => {
+describe('sesión con un agente simulado', () => {
+  it('una consulta suelta va en otra sesión, sin herramientas, y devuelve solo su texto', async () => {
+    const { backend, session, updates } = setup();
+    await session.ensureSession({ id: 'agy' });
+    backend.acpSnapshot.mockClear();
+    backend.acpRequest = vi.fn(async (method, params) => {
+      backend.sent.push({ method, params });
+      if (method === 'session/new') return { ok: true, value: { sessionId: 'aside-1' } };
+      if (method === 'session/prompt') {
+        await backend.emit({ kind: 'notification', method: 'session/update', params: { sessionId: 'aside-1', update: { sessionUpdate: 'agent_thought_chunk', content: { type: 'text', text: 'pienso' } } } });
+        await backend.emit({ kind: 'notification', method: 'session/update', params: { sessionId: 'aside-1', update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'A futuristic ' } } } });
+        await backend.emit({ kind: 'notification', method: 'session/update', params: { sessionId: 'aside-1', update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'boulevard' } } } });
+        await backend.emit({ kind: 'request', id: 31, method: 'session/request_permission', params: { sessionId: 'aside-1', options: [{ optionId: 'allow' }] } });
+        await backend.emit({ kind: 'request', id: 32, method: 'fs/read_text_file', params: { sessionId: 'aside-1', path: 'D:/libro/main.typ' } });
+        return { ok: true, value: { stopReason: 'end_turn' } };
+      }
+      return { ok: false, error: { kind: 'badRequest', message: 'x' } };
+    });
+    expect(await session.askAside('mejora esto')).toBe('A futuristic boulevard');
+    expect(backend.sent.find((m) => m.method === 'session/new' && m.params.mcpServers.length === 0)).toBeTruthy();
+    expect(backend.sent.find((m) => m.method === 'session/prompt').params).toEqual({ sessionId: 'aside-1', prompt: [{ type: 'text', text: 'mejora esto' }] });
+    expect(backend.acpSnapshot).not.toHaveBeenCalled();
+    expect(backend.responses.find((r) => r.id === 31).result).toEqual({ outcome: { outcome: 'cancelled' } });
+    expect(backend.responses.find((r) => r.id === 32).error).toMatch(/consulta suelta/);
+    expect(updates).toEqual([]);
+    expect(session.sessionId).toBe('s1');
+  });
+
+  it('una consulta suelta que no responde se cancela', async () => {
+    const { backend, session } = setup();
+    await session.ensureSession({ id: 'agy' });
+    backend.acpRequest = vi.fn(async (method) => (method === 'session/new' ? { ok: true, value: { sessionId: 'aside-2' } } : new Promise(() => {})));
+    await expect(session.askAside('hola', 10)).rejects.toMatchObject({ kind: 'timeout' });
+    expect(backend.acpNotify).toHaveBeenCalledWith('session/cancel', { sessionId: 'aside-2' });
+  });
+
   it('inicia, abre sesión en la carpeta del proyecto y no ofrece terminal', async () => {
     const { backend, session } = setup();
     const opened = await session.ensureSession({ id: 'claude' });
@@ -92,12 +127,25 @@ describe('sesión con un agente simulado (RF-91.11)', () => {
     expect(backend.sent.find((m) => m.method === 'session/new').params).toEqual({ cwd: 'D:/libro', mcpServers: [] });
   });
 
-  it('no ofrece ningún servidor MCP: md-reader no tiene (decidido en /spec de la 0.18.0)', async () => {
+  it('no ofrece ningún servidor MCP (el agente usa sus propias herramientas) y conserva images en turnos sucesivos', async () => {
     const { backend, session } = setup();
     backend.mcpServerSpec = async () => ({ ok: true, value: { name: 'dbv' } });
-    await session.ensureSession({ id: 'claude' });
+    await session.ensureSession({ id: 'claude' }, 'conv-1');
     expect(backend.sent.find((m) => m.method === 'session/new').params.mcpServers).toEqual([]);
-    expect((await session.ensureSession({ id: 'claude' })).fresh).toBe(false);
+    const secondTurn = await session.ensureSession({ id: 'claude' }, 'conv-1');
+    expect(secondTurn).toMatchObject({ fresh: false, images: true });
+  });
+
+  it('cambiar de conversación reinicia la sesión ACP para no arrastrar el contexto anterior', async () => {
+    const { backend, session } = setup();
+    const first = await session.ensureSession({ id: 'claude', model: 'claude', reasoningEffort: 'medium' }, 'conv-1');
+    expect(first).toMatchObject({ fresh: true, images: true });
+    expect(backend.sent.find((m) => m.method === 'session/set_config_option' && m.params.configId === 'model')?.params.value).toBe('claude-sonnet-5-5');
+    backend.acpStop.mockClear();
+    const second = await session.ensureSession({ id: 'claude', model: 'claude', reasoningEffort: 'medium' }, 'conv-2');
+    expect(second).toMatchObject({ fresh: true, images: true });
+    expect(backend.acpStop).toHaveBeenCalledTimes(1);
+    expect(backend.sent.filter((m) => m.method === 'session/new')).toHaveLength(2);
   });
 
   it('un turno toma punto de restauración y devuelve los cambios en disco', async () => {
@@ -175,5 +223,68 @@ describe('tarjetas de permiso y de cambios', () => {
     );
     [...card.querySelectorAll('button')].at(-1).click();
     await vi.waitFor(() => expect(undo).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('servidores MCP que la app ofrece al agente', () => {
+  it('session/new recibe el servidor MCP propio de la app', async () => {
+    const server = { name: 'mi-app', command: 'C:/app/mi-app.exe', args: ['--mcp', '--port', '8000'], env: [] };
+    const { backend, session } = setup({ mcpServers: async () => [server] });
+    await session.ensureSession({ id: 'claude' });
+    expect(backend.sent.find((m) => m.method === 'session/new').params.mcpServers).toEqual([server]);
+  });
+
+  it('si el host no da una lista válida, se manda una vacía', async () => {
+    const { backend, session } = setup({ mcpServers: async () => null });
+    await session.ensureSession({ id: 'claude' });
+    expect(backend.sent.find((m) => m.method === 'session/new').params.mcpServers).toEqual([]);
+  });
+});
+
+describe('inicio de sesión que pide el agente (ACP `authenticate`)', () => {
+  const METHODS = [{ id: 'oauth-personal', name: 'Log in with Google' }, { id: 'gemini-api-key', name: 'Gemini API key' }];
+
+  /** Agente que exige `authenticate` antes de `session/new`, como `agy_acp_server`. */
+  function requireAuth(backend, { authOk = true } = {}) {
+    let authenticated = false;
+    backend.acpRequest = vi.fn(async (method, params) => {
+      backend.sent.push({ method, params });
+      if (method === 'initialize') return { ok: true, value: { authMethods: METHODS } };
+      if (method === 'authenticate') {
+        authenticated = authOk;
+        return authOk ? { ok: true, value: {} } : { ok: false, error: { kind: 'badRequest', message: 'inicio de sesión cancelado' } };
+      }
+      if (method === 'session/new') return authenticated ? { ok: true, value: { sessionId: 's1' } } : { ok: false, error: { kind: 'badRequest', message: 'Authentication required' } };
+      return { ok: false, error: { kind: 'badRequest', message: 'x' } };
+    });
+  }
+
+  it('elige el primer método que anuncia el agente', () => {
+    expect(pickAuthMethod(METHODS)).toEqual(METHODS[0]);
+    expect(pickAuthMethod([])).toBeNull();
+    expect(pickAuthMethod(undefined)).toBeNull();
+  });
+
+  it('si session/new pide autenticarse, avisa, llama a authenticate y reintenta', async () => {
+    const onAuthenticate = vi.fn();
+    const { backend, session } = setup({ onAuthenticate });
+    requireAuth(backend);
+    await expect(session.ensureSession({ id: 'antigravity' })).resolves.toMatchObject({ fresh: true });
+    expect(onAuthenticate).toHaveBeenCalledWith(METHODS[0]);
+    expect(backend.sent.map((m) => m.method)).toEqual(['initialize', 'session/new', 'authenticate', 'session/new']);
+    expect(backend.sent.find((m) => m.method === 'authenticate').params).toEqual({ methodId: 'oauth-personal' });
+  });
+
+  it('si el inicio de sesión falla, el error es de autenticación y no se reintenta', async () => {
+    const { backend, session } = setup();
+    requireAuth(backend, { authOk: false });
+    await expect(session.ensureSession({ id: 'antigravity' })).rejects.toMatchObject({ kind: 'auth', message: 'inicio de sesión cancelado' });
+    expect(backend.sent.filter((m) => m.method === 'session/new')).toHaveLength(1);
+  });
+
+  it('un agente que no pide autenticarse no recibe authenticate', async () => {
+    const { backend, session } = setup();
+    await session.ensureSession({ id: 'claude' });
+    expect(backend.sent.some((m) => m.method === 'authenticate')).toBe(false);
   });
 });

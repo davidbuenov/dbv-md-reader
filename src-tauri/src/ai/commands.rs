@@ -5,7 +5,6 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 //
-// @spec RF-31
 //
 // Frontera con el frontend. Reglas que se cumplen aquí:
 //   · Ningún comando devuelve una clave: como mucho, `hasKey`.
@@ -108,7 +107,7 @@ pub fn ai_save_connection(app: AppHandle, state: State<'_, AiState>, request: Sa
     Ok(SavedConnection { file, key_storage })
 }
 
-/// Elimina la conexión y su clave del almacén (RF-31.4).
+/// Elimina la conexión y su clave del almacén.
 #[tauri::command]
 pub fn ai_delete_connection(app: AppHandle, state: State<'_, AiState>, id: String) -> Result<ConnectionsFile, AiError> {
     let dir = config_dir(&app)?;
@@ -145,7 +144,7 @@ pub struct ProviderInfo {
     pub base_url: &'static str,
     pub cloud: bool,
     pub context_tokens: u32,
-    /// Tope de tokens por respuesta por defecto (RF-107.1); `None` en las nubes.
+    /// Tope de tokens por respuesta por defecto; `None` en las nubes.
     pub max_output_tokens: Option<u32>,
 }
 
@@ -182,6 +181,16 @@ pub async fn ai_list_models(app: AppHandle, state: State<'_, AiState>, connectio
         .map_err(|error| AiError::Server(error.to_string()))?
 }
 
+/// Consulta los modelos disponibles para un agente CLI específico en tiempo real,
+/// usando la caché de sesión salvo que `force_refresh` sea `Some(true)`.
+#[tauri::command]
+pub async fn ai_list_agent_models(agent_id: String, force_refresh: Option<bool>) -> Result<Vec<detect::AgentModelOption>, AiError> {
+    let refresh = force_refresh.unwrap_or(false);
+    tauri::async_runtime::spawn_blocking(move || detect::agent_model_options(&agent_id, refresh))
+        .await
+        .map_err(|error| AiError::Server(error.to_string()))
+}
+
 /// Evento `ai-stream`: un trozo de la respuesta de la petición `request_id`.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -200,7 +209,7 @@ pub enum StreamOrError {
 
 /// Lanza una petición de chat con la conexión `connection_id`. Vuelve en
 /// seguida; la respuesta llega por `ai-stream` y termina con `done` o `error`.
-/// Tamaño, contexto máximo y capacidades del modelo de una conexión (solo Ollama; RF-101, RF-103).
+/// Tamaño, contexto máximo y capacidades del modelo de una conexión (solo Ollama).
 #[tauri::command]
 pub async fn ai_model_info(connection: Connection) -> Result<Option<providers::ModelInfo>, AiError> {
     connection.validate()?;
@@ -239,7 +248,7 @@ pub fn ai_chat(app: AppHandle, state: State<'_, AiState>, request_id: String, co
     Ok(())
 }
 
-/// Detiene una petición en curso (RF-33.5).
+/// Detiene una petición en curso.
 #[tauri::command]
 pub fn ai_cancel(state: State<'_, AiState>, request_id: String) {
     if let Some(flag) = state.running.lock().unwrap_or_else(|p| p.into_inner()).get(&request_id) {
@@ -247,7 +256,7 @@ pub fn ai_cancel(state: State<'_, AiState>, request_id: String) {
     }
 }
 
-/// Problemas que tendría la carpeta con `files` sustituidos (RF-34.3). Barato, pero toca el
+/// Problemas que tendría la carpeta con `files` sustituidos. Barato, pero toca el
 /// disco para comprobar enlaces: fuera del hilo de la interfaz.
 #[tauri::command]
 pub async fn ai_check_proposal(root: String, files: Vec<FileContent>) -> Result<check::CheckOutcome, AiError> {
@@ -281,6 +290,7 @@ mod tests {
             supports_tools: None,
             supports_images: None,
             reasoning: None,
+            reasoning_effort: None,
             max_output_tokens: None,
         }
     }

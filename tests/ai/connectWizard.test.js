@@ -4,8 +4,6 @@
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
-//
-// @spec RF-31
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerTranslations } from '../../src/ai/i18nBridge.js';
@@ -60,7 +58,7 @@ const saveButton = (host) => [...host.querySelectorAll('.ai-form__actions button
 
 beforeEach(() => setLanguage('es'));
 
-describe('avisos del modelo en el formulario (RF-103)', () => {
+describe('avisos del modelo en el formulario', () => {
   it('un modelo pequeño con un contexto de 4 096 avisa de las dos cosas, con los números', async () => {
     const context = await setup({ info: SMALL });
     await openOllamaForm(context);
@@ -92,7 +90,7 @@ describe('avisos del modelo en el formulario (RF-103)', () => {
   });
 });
 
-describe('contexto y máximo por respuesta (RF-107.1, RF-107.4)', () => {
+describe('contexto y máximo por respuesta', () => {
   it('con los campos vacíos muestran el valor real que se usará, y en la nube no hay tope', async () => {
     const context = await setup({ info: THINKER });
     await openOllamaForm(context);
@@ -126,7 +124,7 @@ describe('contexto y máximo por respuesta (RF-107.1, RF-107.4)', () => {
   });
 });
 
-describe('interruptor «Razonamiento» (RF-101)', () => {
+describe('interruptor «Razonamiento»', () => {
   it('un modelo que razona: desactivado por defecto, activable, y se guarda en la conexión', async () => {
     const context = await setup({ info: THINKER });
     await openOllamaForm(context);
@@ -233,3 +231,261 @@ describe('elegir el modelo de la lista del proveedor', () => {
     expect(modelInput(context.host).classList.contains('hidden')).toBe(false);
   });
 });
+
+describe('estado de conexión de agentes CLI', () => {
+  it('un agente instalado no conectado muestra el botón Conectar', async () => {
+    document.body.innerHTML = '<div id="host"></div>';
+    const backend = {
+      aiProviders: vi.fn(async () => ok(providers)),
+      aiConnections: vi.fn(async () => ok({ connections: [], active: null, showAi: true })),
+      aiDetect: vi.fn(async () =>
+        ok({
+          servers: [],
+          tools: [
+            { name: 'claude', path: 'C:\\claude.exe' },
+            { name: 'node', path: 'C:\\node.exe' },
+          ],
+        }),
+      ),
+      aiSaveConnection: vi.fn(),
+      aiSetPreferences: vi.fn(),
+      openExternalUrl: vi.fn(),
+    };
+    const host = document.getElementById('host');
+    const wizard = createConnectWizard({ host, backend, onChanged: vi.fn(), onAgent: vi.fn(), notify: vi.fn() });
+    await wizard.open();
+    await vi.waitFor(() => expect(host.querySelector('.ai-cat-card--agent')).not.toBeNull());
+
+    const claudeItem = [...host.querySelectorAll('.ai-cat-card--agent .ai-detect__item')].find((li) => li.textContent.includes('Claude Code'));
+    expect(claudeItem).toBeTruthy();
+    const connectBtn = claudeItem.querySelector('button');
+    expect(connectBtn).toBeTruthy();
+    expect(connectBtn.textContent).toBe('Conectar');
+  });
+
+  it('un agente ya conectado no muestra el botón Conectar sino el badge Conectada o Activa', async () => {
+    document.body.innerHTML = '<div id="host"></div>';
+    const existing = {
+      id: 'agent-claude-123',
+      name: 'Claude Code (agente)',
+      provider: 'agent',
+      baseUrl: 'acp:claude',
+      model: 'claude',
+    };
+    const backend = {
+      aiProviders: vi.fn(async () => ok(providers)),
+      aiConnections: vi.fn(async () => ok({ connections: [existing], active: 'agent-claude-123', showAi: true })),
+      aiDetect: vi.fn(async () =>
+        ok({
+          servers: [],
+          tools: [
+            { name: 'claude', path: 'C:\\claude.exe' },
+            { name: 'node', path: 'C:\\node.exe' },
+          ],
+        }),
+      ),
+      aiSaveConnection: vi.fn(),
+      aiSetPreferences: vi.fn(),
+      openExternalUrl: vi.fn(),
+    };
+    const host = document.getElementById('host');
+    const wizard = createConnectWizard({ host, backend, onChanged: vi.fn(), onAgent: vi.fn(), notify: vi.fn() });
+    await wizard.open();
+    await vi.waitFor(() => expect(host.querySelector('.ai-cat-card--agent')).not.toBeNull());
+
+    const claudeItem = [...host.querySelectorAll('.ai-cat-card--agent .ai-detect__item')].find((li) => li.textContent.includes('Claude Code'));
+    expect(claudeItem).toBeTruthy();
+    // No debe tener botón Conectar
+    const connectBtn = [...claudeItem.querySelectorAll('button')].find((b) => b.textContent.includes('Conectar'));
+    expect(connectBtn).toBeUndefined();
+    // Debe tener el botón de ajustes ⚙️
+    expect(claudeItem.querySelector('.ai-agent-gear')).toBeTruthy();
+    // Debe tener el badge de activa
+    const badge = claudeItem.querySelector('.ai-badge');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toBe('✓ Activa');
+  });
+
+  it('el botón de ajustes ⚙️ despliega los modelos dinámicos y el nivel de razonamiento', async () => {
+    const backend = {
+      aiDetect: () => Promise.resolve({
+        ok: true,
+        value: {
+          servers: [],
+          tools: [{ name: 'agy_acp_server', path: 'C:/agy_acp_server.exe' }, { name: 'node', path: 'C:/node.exe' }],
+        },
+      }),
+      aiProviders: () => Promise.resolve({ ok: true, value: [] }),
+      aiConnections: () => Promise.resolve({
+        ok: true,
+        value: {
+          connections: [{ id: 'c1', name: 'Antigravity', provider: 'agent', baseUrl: 'acp:antigravity', model: 'antigravity' }],
+          active: 'c1',
+          showAi: true,
+        },
+      }),
+      aiListAgentModels: vi.fn(() => Promise.resolve({ ok: true, value: ['gemini-3.8-flash', 'gemini-3.8-pro', 'gemini-3.8-flash-lite'] })),
+      aiSaveConnection: vi.fn(() => Promise.resolve({ ok: true, value: { file: { connections: [], active: null } } })),
+      aiSetPreferences: vi.fn(),
+      openExternalUrl: vi.fn(),
+    };
+    const host = document.getElementById('host');
+    const wizard = createConnectWizard({ host, backend, onChanged: vi.fn(), onAgent: vi.fn(), notify: vi.fn() });
+    await wizard.open();
+    await vi.waitFor(() => expect(host.querySelector('.ai-cat-card--agent')).not.toBeNull());
+
+    const agyItem = [...host.querySelectorAll('.ai-cat-card--agent .ai-detect__item')].find((li) => li.textContent.includes('Antigravity'));
+    expect(agyItem).toBeTruthy();
+    const gear = agyItem.querySelector('.ai-agent-gear');
+    expect(gear).toBeTruthy();
+
+    gear.click();
+    await vi.waitFor(() => expect(backend.aiListAgentModels).toHaveBeenCalledWith('antigravity'));
+    const panel = host.querySelector('.ai-agent-settings');
+    expect(panel).toBeTruthy();
+    const selects = panel.querySelectorAll('select');
+    expect(selects.length).toBe(2);
+    // Verifica que el modelo contiene gemini-3.8-flash
+    const modelOpts = [...selects[0].options].map((o) => o.value);
+    expect(modelOpts).toContain('gemini-3.8-flash');
+  });
+
+  it('muestra el resumen estilo Visual Studio ("Gemini 4 Argon Medium"), cachea en sesión y permite refrescar manualmente', async () => {
+    const richModels = [
+      { id: 'gemini-4-argon', label: 'Gemini 4 Argon', efforts: ['low', 'medium', 'high'], defaultEffort: 'medium' },
+      { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', efforts: ['low', 'medium', 'high'], defaultEffort: 'medium' },
+      { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', efforts: ['low', 'medium', 'high', 'xhigh', 'max'], defaultEffort: 'medium' },
+    ];
+    const backend = {
+      aiDetect: () => Promise.resolve({
+        ok: true,
+        value: {
+          servers: [],
+          tools: [
+            { name: 'agy_acp_server', path: 'C:/agy_acp_server.exe' },
+            { name: 'codex', path: 'C:/codex.exe' },
+            { name: 'node', path: 'C:/node.exe' },
+          ],
+        },
+      }),
+      aiProviders: () => Promise.resolve({ ok: true, value: [] }),
+      aiConnections: () => Promise.resolve({
+        ok: true,
+        value: {
+          connections: [
+            { id: 'c1', name: 'Antigravity', provider: 'agent', baseUrl: 'acp:antigravity', model: 'antigravity', reasoningEffort: 'medium' },
+          ],
+          active: 'c1',
+          showAi: true,
+        },
+      }),
+      aiListAgentModels: vi.fn(() => Promise.resolve({ ok: true, value: richModels })),
+      aiSaveConnection: vi.fn((conn) => Promise.resolve({
+        ok: true,
+        value: { file: { connections: [conn], active: conn.id, showAi: true } },
+      })),
+      aiSetPreferences: vi.fn(),
+      openExternalUrl: vi.fn(),
+    };
+    const host = document.getElementById('host');
+    const notify = vi.fn();
+    const wizard = createConnectWizard({ host, backend, onChanged: vi.fn(), onAgent: vi.fn(), notify });
+    await wizard.open();
+    await vi.waitFor(() => expect(host.querySelector('.ai-cat-card--agent')).not.toBeNull());
+    await vi.waitFor(() => expect(backend.aiListAgentModels).toHaveBeenCalledTimes(1));
+
+    const summary = host.querySelector('[data-agent-summary="antigravity"]');
+    expect(summary).toBeTruthy();
+    expect(summary.textContent).toBe('Gemini 4 Argon Medium');
+
+    const connSummary = host.querySelector('[data-conn-summary="antigravity"]');
+    expect(connSummary).toBeTruthy();
+    expect(connSummary.textContent).toBe('Gemini 4 Argon Medium');
+
+    // Al abrir los ajustes ⚙️ reutiliza la caché de sesión sin volver a invocar al CLI
+    const agyItem = [...host.querySelectorAll('.ai-cat-card--agent .ai-detect__item')].find((li) => li.textContent.includes('Antigravity'));
+    agyItem.querySelector('.ai-agent-gear').click();
+    await settle();
+    expect(backend.aiListAgentModels).toHaveBeenCalledTimes(1);
+
+    const panel = host.querySelector('.ai-agent-settings');
+    const [modelSelect, reasoningSelect] = panel.querySelectorAll('select');
+    expect([...modelSelect.options].map((o) => o.textContent)).toEqual([
+      'Gemini 4 Argon',
+      'Gemini 3.8 Flash',
+      'Claude Sonnet 5.5',
+    ]);
+
+    // Al cambiar a Claude Sonnet 5.5 aparecen sus niveles de esfuerzo específicos (xhigh, max)
+    modelSelect.value = 'claude-sonnet-5-5';
+    modelSelect.dispatchEvent(new Event('change'));
+    const effortValues = [...reasoningSelect.options].map((o) => o.value);
+    expect(effortValues).toEqual(['off', 'low', 'medium', 'high', 'xhigh', 'max']);
+
+    // El botón 🔄 fuerza la recarga (forceRefresh = true)
+    const refreshBtn = panel.querySelector('.ai-agent-refresh');
+    expect(refreshBtn).toBeTruthy();
+    refreshBtn.click();
+    await vi.waitFor(() => expect(backend.aiListAgentModels).toHaveBeenCalledWith('antigravity', true));
+    await vi.waitFor(() => expect(notify).toHaveBeenCalled());
+  });
+
+  it('con la CLI agy pero sin agy_acp_server, Antigravity no se puede conectar y abre la guía en su sección', async () => {
+    const backend = {
+      aiDetect: () => Promise.resolve({
+        ok: true,
+        value: { servers: [], tools: [{ name: 'agy', path: 'C:/agy.exe' }, { name: 'node', path: 'C:/node.exe' }] },
+      }),
+      aiProviders: () => Promise.resolve({ ok: true, value: [] }),
+      aiConnections: () => Promise.resolve({ ok: true, value: { connections: [], active: null, showAi: true } }),
+      aiSetPreferences: vi.fn(),
+      openExternalUrl: vi.fn(),
+    };
+    const host = document.getElementById('host');
+    const wizard = createConnectWizard({ host, backend, onChanged: vi.fn(), onAgent: vi.fn(), notify: vi.fn() });
+    await wizard.open();
+    await vi.waitFor(() => expect(host.querySelector('.ai-cat-card--agent')).not.toBeNull());
+
+    const agyItem = [...host.querySelectorAll('.ai-cat-card--agent .ai-detect__item')].find((li) => li.textContent.includes('Antigravity'));
+    expect(agyItem.classList.contains('is-ok')).toBe(false);
+    expect(agyItem.textContent).toContain('agy_acp_server');
+    expect([...agyItem.querySelectorAll('button')].map((b) => b.textContent)).not.toContain('Conectar');
+    Element.prototype.scrollIntoView = vi.fn();
+    agyItem.querySelector('button').click();
+    await vi.waitFor(() => expect(document.querySelector('.ai-guide')).not.toBeNull());
+    await vi.waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+    expect(Element.prototype.scrollIntoView.mock.contexts[0].dataset.anchor).toBe('google-antigravity-instalar-su-servidor-acp');
+    expect(backend.openExternalUrl).not.toHaveBeenCalled();
+    document.querySelector('.ai-guide').remove();
+  });
+
+  it('el enlace de ayuda abre la guía dentro de la app; Copilot sin CLI enlaza a su sección', async () => {
+    const backend = {
+      aiDetect: () => Promise.resolve({
+        ok: true,
+        value: { servers: [], tools: [{ name: 'copilot', path: null }, { name: 'node', path: 'C:/node.exe' }] },
+      }),
+      aiProviders: () => Promise.resolve({ ok: true, value: [] }),
+      aiConnections: () => Promise.resolve({ ok: true, value: { connections: [], active: null, showAi: true } }),
+      aiSetPreferences: vi.fn(),
+      openExternalUrl: vi.fn(),
+    };
+    const host = document.getElementById('host');
+    const wizard = createConnectWizard({ host, backend, onChanged: vi.fn(), onAgent: vi.fn(), notify: vi.fn() });
+    await wizard.open();
+    await vi.waitFor(() => expect(host.querySelector('.ai-help-link')).not.toBeNull());
+
+    host.querySelector('.ai-help-link').click();
+    await vi.waitFor(() => expect(document.querySelector('.ai-guide')).not.toBeNull());
+    document.querySelector('.ai-guide').remove();
+
+    Element.prototype.scrollIntoView = vi.fn();
+    const copilotItem = [...host.querySelectorAll('.ai-cat-card--agent .ai-detect__item')].find((li) => li.textContent.includes('Copilot'));
+    copilotItem.querySelector('button').click();
+    await vi.waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+    expect(Element.prototype.scrollIntoView.mock.contexts[0].dataset.anchor).toBe('github-copilot-el-comando-copilot-de-vs-code-no-es-la-cli');
+    expect(backend.openExternalUrl).not.toHaveBeenCalled();
+    document.querySelector('.ai-guide').remove();
+  });
+});
+

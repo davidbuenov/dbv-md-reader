@@ -5,7 +5,6 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 //
-// @spec RF-31
 //
 // Lista de conexiones configuradas (`ai-connections.json` en la carpeta de
 // configuración): proveedor, URL, modelo y capacidades. NUNCA la clave: esa
@@ -18,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use super::AiError;
 
-/// Proveedor de una conexión directa (RF-31.2).
+/// Proveedor de una conexión directa.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ProviderKind {
@@ -29,7 +28,7 @@ pub enum ProviderKind {
     Anthropic,
     Gemini,
     OpenRouter,
-    /// Agente instalado por ACP (RF-32): `base_url` = `acp:<agente>` y, si es
+    /// Agente instalado por ACP: `base_url` = `acp:<agente>` y, si es
     /// `acp:custom`, `model` lleva la orden completa.
     Agent,
 }
@@ -60,16 +59,14 @@ impl ProviderKind {
         }
     }
 
-    /// ¿Los datos salen del equipo? (aviso de RNF-IA.2).
+    /// ¿Los datos salen del equipo? (aviso).
     pub fn is_cloud(self) -> bool {
         // Un agente (Claude Code, Gemini CLI…) habla con su nube.
         matches!(self, Self::OpenAi | Self::Anthropic | Self::Gemini | Self::OpenRouter | Self::Agent)
     }
 
-    /// Contexto prudente si el proveedor no lo informa (ADR-V0130-002). Ollama
-    /// arranca con 4 096, que deja un presupuesto útil de ≈1 600 tokens
-    /// (RF-103.2): DBV pide 8 192, el mínimo con el que el asistente funciona
-    /// (ADR-V0140-002, D2).
+    /// Contexto prudente si el proveedor no lo informa. Ollama arranca con 4 096, que deja un
+    /// presupuesto útil de ≈1 600 tokens: la app pide 8 192, el mínimo con el que el asistente funciona.
     pub fn default_context(self) -> u32 {
         match self {
             Self::Ollama | Self::LmStudio | Self::OpenAiCompatible => 8192,
@@ -77,7 +74,7 @@ impl ProviderKind {
         }
     }
 
-    /// Tope de tokens por respuesta si la conexión no fija uno (RF-107.1): un
+    /// Tope de tokens por respuesta si la conexión no fija uno: un
     /// modelo local que se desboca no debe generar hasta llenar el contexto
     /// (la prueba de `qwen3:8b` del 2026-10-04 gastó ≈7 000 tokens en 4 min 17 s
     /// sin mostrar nada). 8 192 cubre ≈14 páginas de una sola llamada y corta un
@@ -108,11 +105,15 @@ pub struct Connection {
     pub supports_tools: Option<bool>,
     #[serde(default)]
     pub supports_images: Option<bool>,
-    /// El modelo «piensa» antes de responder (RF-101). `None` = desactivado: más
+    /// El modelo «piensa» antes de responder. `None` = desactivado: más
     /// rápido, y es lo que ya hacían las conexiones anteriores a la 0.13.1.
     #[serde(default)]
     pub reasoning: Option<bool>,
-    /// Máximo de tokens que el modelo puede generar en una respuesta (RF-107.1).
+    /// Nivel de esfuerzo de razonamiento / pensamiento para agentes CLI
+    /// ("off", "low", "medium", "high").
+    #[serde(default)]
+    pub reasoning_effort: Option<String>,
+    /// Máximo de tokens que el modelo puede generar en una respuesta.
     /// `None` = el de su proveedor (`default_max_output`).
     #[serde(default)]
     pub max_output_tokens: Option<u32>,
@@ -133,7 +134,7 @@ impl Connection {
     }
 
     /// Tope de tokens por respuesta (el configurado o el de su proveedor), nunca
-    /// mayor que el contexto: generar más no cabría (RF-107.1).
+    /// mayor que el contexto: generar más no cabría.
     pub fn output_cap(&self) -> Option<u32> {
         self.max_output_tokens.or_else(|| self.provider.default_max_output()).map(|cap| cap.min(self.context()))
     }
@@ -142,7 +143,7 @@ impl Connection {
     pub fn validate(&self) -> Result<(), AiError> {
         let url = self.base_url.trim();
         if self.provider == ProviderKind::Agent {
-            let known = ["acp:claude", "acp:gemini", "acp:codex", "acp:copilot", "acp:custom"];
+            let known = ["acp:claude", "acp:gemini", "acp:codex", "acp:copilot", "acp:antigravity", "acp:agy", "acp:cursor", "acp:opencode", "acp:custom"];
             if !known.contains(&url) {
                 return Err(AiError::Config(format!("agente no reconocido ({url})")));
             }
@@ -164,7 +165,7 @@ pub struct ConnectionsFile {
     pub connections: Vec<Connection>,
     #[serde(default)]
     pub active: Option<String>,
-    /// RNF-IA.1: «Mostrar las funciones de IA». Por defecto, sí (si hay conexión).
+    /// «Mostrar las funciones de IA». Por defecto, sí (si hay conexión).
     #[serde(default = "yes")]
     pub show_ai: bool,
 }
@@ -192,13 +193,57 @@ pub fn save(config_dir: &Path, file: &ConnectionsFile) -> Result<(), AiError> {
     let path = file_path(config_dir);
     let temp = path.with_extension("json.tmp");
     let text = serde_json::to_string_pretty(file).map_err(|error| AiError::Config(error.to_string()))?;
-    std::fs::write(&temp, text).map_err(|error| AiError::Config(error.to_string()))?;
-    std::fs::rename(&temp, &path).map_err(|error| AiError::Config(error.to_string()))
+    replace_file(&temp, &path, text.as_bytes()).map_err(|error| AiError::Config(format!("no se pudo guardar «{}»: {error}", path.display())))
+}
+
+/// Sustituye `path` por `content` sin dejarlo a medias: escribe el temporal `tmp` (en la misma carpeta) y lo renombra.
+/// Si el renombrado falla, escribe directamente sobre `path`. Pasa en dos casos vistos: en la versión de la Microsoft
+/// Store (MSIX), `%APPDATA%` está virtualizado y renombrar entre la carpeta virtual y la real da `os error 17`
+/// («no se puede mover el archivo a otra unidad»; un usuario no podía conectar Claude, 2026-11-14); y en Windows,
+/// si otro programa tiene el destino abierto sin permitir borrarlo (un antivirus, un editor). Común a las apps DBV (`dbv-tauri-starter`).
+pub fn replace_file(tmp: &Path, path: &Path, content: &[u8]) -> std::io::Result<()> {
+    std::fs::write(tmp, content)?;
+    match std::fs::rename(tmp, path) {
+        Ok(()) => Ok(()),
+        Err(_) => {
+            let _ = std::fs::remove_file(tmp);
+            std::fs::write(path, content)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Si el renombrado no se puede hacer (aquí, el destino abierto por otro programa sin permitir borrarlo; en la
+    /// Store, `os error 17`), el fichero se escribe igual y no queda el temporal.
+    #[cfg(windows)]
+    #[test]
+    fn si_no_se_puede_renombrar_escribe_directamente() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("ai-connections.json");
+        let tmp = dir.path().join("ai-connections.json.tmp");
+        std::fs::write(&path, "viejo").unwrap();
+        // FILE_SHARE_READ | FILE_SHARE_WRITE, sin FILE_SHARE_DELETE: el renombrado encima falla, la escritura no.
+        let _held = std::fs::OpenOptions::new().read(true).share_mode(0x1 | 0x2).open(&path).unwrap();
+        assert!(std::fs::rename(&path, dir.path().join("x")).is_err(), "el bloqueo impide renombrar");
+        replace_file(&tmp, &path, b"nuevo").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "nuevo");
+        assert!(!tmp.exists(), "no deja el temporal");
+    }
+
+    /// El caso normal: temporal y renombrado.
+    #[test]
+    fn sustituye_el_fichero_por_completo() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.json");
+        std::fs::write(&path, "un contenido largo de antes").unwrap();
+        replace_file(&dir.path().join("a.json.tmp"), &path, b"{}").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{}");
+        assert!(!dir.path().join("a.json.tmp").exists());
+    }
 
     fn sample() -> Connection {
         Connection {
@@ -212,6 +257,7 @@ mod tests {
             supports_tools: Some(true),
             supports_images: Some(true),
             reasoning: None,
+            reasoning_effort: None,
             max_output_tokens: None,
         }
     }
@@ -245,7 +291,7 @@ mod tests {
 
     #[test]
     fn el_tope_de_salida_es_de_8192_en_locales_y_no_existe_en_la_nube() {
-        // RF-107.1 / D1: lo que se midió (una propuesta de ~1 200 palabras son 1 409 tokens) cabe de sobra.
+        // / D1: lo que se midió (una propuesta de ~1 200 palabras son 1 409 tokens) cabe de sobra.
         for local in [ProviderKind::Ollama, ProviderKind::LmStudio, ProviderKind::OpenAiCompatible] {
             assert_eq!(with(local, None, None).output_cap(), Some(8192), "{local:?}");
         }
@@ -265,7 +311,7 @@ mod tests {
 
     #[test]
     fn ollama_pide_8192_de_contexto_por_defecto() {
-        // ADR-V0140-002 D2: con 4 096 el presupuesto útil era de ≈1 600 tokens.
+        // Con 4 096 el presupuesto útil era de ≈1 600 tokens.
         assert_eq!(with(ProviderKind::Ollama, None, None).context(), 8192);
         assert_eq!(with(ProviderKind::Ollama, Some(32768), None).context(), 32768);
     }
@@ -290,6 +336,8 @@ mod tests {
         connection.id = "a1".into();
         connection.provider = ProviderKind::Agent;
         connection.base_url = "acp:claude".into();
+        assert!(connection.validate().is_ok());
+        connection.base_url = "acp:antigravity".into();
         assert!(connection.validate().is_ok());
         connection.base_url = "acp:../../x".into();
         assert!(connection.validate().is_err());

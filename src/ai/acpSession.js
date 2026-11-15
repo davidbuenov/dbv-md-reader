@@ -8,15 +8,25 @@
 // Habla el protocolo con el agente a través del transporte de Rust:
 // `initialize` → `session/new` (con la carpeta del proyecto) → un
 // `session/prompt` por mensaje del usuario. Atiende lo que pide el agente:
-//   · `session/request_permission` → la interfaz decide (nunca solo, RF-32.7);
+//   · `session/request_permission` → la interfaz decide (nunca solo);
 //   · `fs/read_text_file` → contenido del editor si está abierto, confinado al
 //     proyecto;
-//   · `fs/write_text_file` → NO escribe: pasa a la propuesta del turno (RF-32.5).
+//   · `fs/write_text_file` → NO escribe: pasa a la propuesta del turno.
 // Antes de cada turno se toma un punto de restauración; al acabar, se piden
-// los cambios que el agente hizo en disco por su cuenta (RF-32.6).
+// los cambios que el agente hizo en disco por su cuenta.
+// Las consultas sueltas (`askAside`, p. ej. «Mejorar con IA») van en otra sesión
+// del mismo agente, sin servidores MCP: solo devuelven texto, nunca tocan nada.
 
-/** Versión del protocolo que habla DBV. */
+import { APP_NAME } from './appInfo.js';
+
+/** Versión del protocolo ACP que habla la app. */
 export const PROTOCOL_VERSION = 1;
+
+/** Espera máxima de una consulta suelta (ms): luego se cancela. */
+export const ASIDE_TIMEOUT_MS = 120_000;
+
+/** Lo que se responde a una sesión de consulta suelta que pide algo: no tiene acceso a nada. */
+const ASIDE_REFUSAL = 'consulta suelta: sin acceso a ficheros ni herramientas';
 
 /**
  * Traduce una actualización de sesión (`session/update`) a algo que pintar.
@@ -49,6 +59,15 @@ export function insideProject(root, absolute) {
   return result;
 }
 
+/**
+ * Método de inicio de sesión que se pide al agente cuando `session/new` exige autenticarse: el primero
+ * que anuncia en `initialize` (`authMethods`), que es el habitual de cada agente (p. ej. `oauth-personal`,
+ * «Log in with Google», en Antigravity y Gemini CLI). `null` si no anuncia ninguno.
+ */
+export function pickAuthMethod(methods) {
+  return Array.isArray(methods) && methods[0]?.id ? methods[0] : null;
+}
+
 /** Las líneas `line` (1-indexada) a `line + limit - 1` de `text`. */
 export function sliceLines(text, line, limit) {
   if (!line && !limit) return text;
@@ -65,12 +84,28 @@ export function sliceLines(text, line, limit) {
  * @param {(params: object) => Promise<string|null>} deps.askPermission optionId elegido, o `null` (cancelado).
  * @param {(relative: string, content: string) => Promise<void>} deps.stageWrite
  * @param {(update: object) => void} deps.onUpdate
+ * @param {() => Promise<Array>|Array} [deps.mcpServers] Servidores MCP que recibe el agente en `session/new`.
  */
-export function createAcpSession({ backend, getRoot, readText, askPermission, stageWrite, onUpdate }) {
+export function createAcpSession({ backend, getRoot, readText, askPermission, stageWrite, onUpdate, mcpServers = () => [], onAuthenticate = () => {} }) {
   let spec = null;
   let sessionId = null;
   let root = null;
+  let conversationId = null;
+  let agentInfo = null;
+  let images = false;
   let listening = null;
+  /** Sesiones de consulta suelta abiertas: id → recoge su texto. */
+  const asides = new Map();
+
+  function effectiveModelOf(targetSpec) {
+    const raw = targetSpec?.model;
+    if (!raw) return '';
+    if (targetSpec.id === 'claude' && (raw === 'claude' || raw === 'claude-sonnet' || raw === 'default')) {
+      return 'claude-sonnet-5-5';
+    }
+    if (raw === targetSpec.id || raw === 'antigravity' || raw === 'agy') return '';
+    return raw;
+  }
 
   async function respond(id, result, error = null) {
     await backend.acpRespond(id, result ?? null, error);
@@ -79,27 +114,32 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
   async function handle(message) {
     if (message.kind === 'notification') {
       if (message.method === 'session/update' && message.params?.sessionId === sessionId) onUpdate(describeUpdate(message.params.update));
+      else if (message.method === 'session/update') asides.get(message.params?.sessionId)?.(describeUpdate(message.params.update));
       return;
     }
     const { id, method, params } = message;
     try {
-      if (method === 'session/request_permission') {
+      // Una consulta suelta no pide permisos ni toca ficheros: se le deniega todo sin preguntar.
+      if (asides.has(params?.sessionId)) {
+        if (method === 'session/request_permission') await respond(id, { outcome: { outcome: 'cancelled' } });
+        else await respond(id, null, ASIDE_REFUSAL);
+      } else if (method === 'session/request_permission') {
         const optionId = await askPermission(params);
         await respond(id, { outcome: optionId ? { outcome: 'selected', optionId } : { outcome: 'cancelled' } });
       } else if (method === 'fs/read_text_file') {
         const relative = insideProject(root, params.path);
         const content = relative === null ? null : await readText(relative);
-        if (content === null) await respond(id, null, relative === null ? 'fuera del proyecto: DBV no da acceso' : 'el fichero no existe');
+        if (content === null) await respond(id, null, relative === null ? 'fuera del proyecto: la app no da acceso' : 'el fichero no existe');
         else await respond(id, { content: sliceLines(content, params.line, params.limit) });
       } else if (method === 'fs/write_text_file') {
         const relative = insideProject(root, params.path);
-        if (relative === null) await respond(id, null, 'fuera del proyecto: DBV no da acceso');
+        if (relative === null) await respond(id, null, 'fuera del proyecto: la app no da acceso');
         else {
           await stageWrite(relative, String(params.content ?? ''));
           await respond(id, null);
         }
       } else {
-        await respond(id, null, `método no admitido por DBV: ${method}`);
+        await respond(id, null, `método no admitido por la app: ${method}`);
       }
     } catch (error) {
       await respond(id, null, error?.message ?? String(error));
@@ -111,28 +151,70 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
     await listening;
   }
 
-  /** Arranca el agente y abre una sesión en el proyecto (si no lo estaba ya). */
-  async function ensureSession(nextSpec) {
+  /** Arranca el agente y abre una sesión en el proyecto (si no lo estaba ya para esta conversación). */
+  async function ensureSession(nextSpec, nextConversationId = null) {
     await ensureListener();
     const currentRoot = getRoot();
-    if (sessionId && spec && spec.id === nextSpec.id && spec.command === nextSpec.command && root === currentRoot) return { fresh: false };
+    const targetConversationId = nextConversationId ?? conversationId;
+    if (
+      sessionId &&
+      spec &&
+      spec.id === nextSpec.id &&
+      spec.model === nextSpec.model &&
+      spec.reasoningEffort === nextSpec.reasoningEffort &&
+      spec.command === nextSpec.command &&
+      root === currentRoot &&
+      conversationId === targetConversationId
+    ) {
+      return { fresh: false, agentInfo, images };
+    }
     await backend.acpStop();
     const started = await backend.acpStart(nextSpec, currentRoot);
     if (!started.ok) throw Object.assign(new Error(started.error.message), { kind: started.error.kind });
     const init = await backend.acpRequest('initialize', {
       protocolVersion: PROTOCOL_VERSION,
       clientCapabilities: { fs: { readTextFile: true, writeTextFile: true }, terminal: false },
-      clientInfo: { name: 'dbv-md-reader', title: 'DBV Markdown Reader' },
+      clientInfo: { name: APP_NAME, title: APP_NAME },
     });
     if (!init.ok) throw Object.assign(new Error(init.error.message), { kind: 'network' });
-    // Sin servidor MCP propio (decidido en /spec de la 0.18.0): el agente usa sus propias herramientas
-    // y DBV le deja leer y proponer ficheros por el protocolo.
-    const session = await backend.acpRequest('session/new', { cwd: currentRoot, mcpServers: [] });
+    // Servidores MCP para el agente, si el host los da.
+    const servers = await mcpServers();
+    const newSession = () => backend.acpRequest('session/new', { cwd: currentRoot, mcpServers: Array.isArray(servers) ? servers : [] });
+    let session = await newSession();
+    // «Authentication required»: se pide al agente que inicie sesión con su método habitual (puede abrir
+    // el navegador) y se reintenta. La app nunca ve las credenciales: las guarda el agente.
+    const method = pickAuthMethod(init.value?.authMethods);
+    if (!session.ok && method && /auth/i.test(session.error.message)) {
+      onAuthenticate(method);
+      const auth = await backend.acpRequest('authenticate', { methodId: method.id });
+      if (!auth.ok) throw Object.assign(new Error(auth.error.message), { kind: 'auth' });
+      session = await newSession();
+    }
     if (!session.ok) throw Object.assign(new Error(session.error.message), { kind: session.error.kind === 'badRequest' ? 'auth' : session.error.kind });
     spec = nextSpec;
     root = currentRoot;
+    conversationId = targetConversationId;
     sessionId = session.value.sessionId;
-    return { fresh: true, agentInfo: init.value?.agentInfo ?? null, images: Boolean(init.value?.agentCapabilities?.promptCapabilities?.image) };
+    agentInfo = init.value?.agentInfo ?? null;
+    images = Boolean(init.value?.agentCapabilities?.promptCapabilities?.image);
+    const cleanModel = effectiveModelOf(nextSpec);
+    if (cleanModel) {
+      await backend.acpRequest('session/set_config_option', {
+        sessionId,
+        configId: 'model',
+        value: cleanModel,
+      });
+    }
+    if (nextSpec.reasoningEffort && nextSpec.reasoningEffort !== 'off') {
+      const options = Array.isArray(session.value?.configOptions) ? session.value.configOptions : [];
+      const effortConfigId = options.find((o) => o.id === 'effort' || o.id === 'reasoning_effort' || o.category === 'thought_level')?.id ?? 'effort';
+      await backend.acpRequest('session/set_config_option', {
+        sessionId,
+        configId: effortConfigId,
+        value: nextSpec.reasoningEffort,
+      });
+    }
+    return { fresh: true, agentInfo, images };
   }
 
   /**
@@ -146,13 +228,50 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
     return { result, changes: changes.ok ? changes.value : [] };
   }
 
+  /**
+   * Una pregunta suelta, fuera de la conversación: otra sesión del mismo agente (ya arrancado con
+   * `ensureSession`), sin servidores MCP, sin punto de restauración y sin panel. Devuelve el texto del agente.
+   */
+  async function askAside(text, timeoutMs = ASIDE_TIMEOUT_MS) {
+    const opened = await backend.acpRequest('session/new', { cwd: root, mcpServers: [] });
+    if (!opened.ok) throw Object.assign(new Error(opened.error.message), { kind: opened.error.kind });
+    const asideId = opened.value.sessionId;
+    const cleanModel = effectiveModelOf(spec);
+    if (cleanModel) {
+      await backend.acpRequest('session/set_config_option', { sessionId: asideId, configId: 'model', value: cleanModel });
+    }
+    let reply = '';
+    asides.set(asideId, (update) => {
+      if (update.type === 'text') reply += update.text;
+    });
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        backend.acpNotify('session/cancel', { sessionId: asideId });
+        reject(Object.assign(new Error('el agente no respondió a tiempo'), { kind: 'timeout' }));
+      }, timeoutMs);
+    });
+    try {
+      const result = await Promise.race([backend.acpRequest('session/prompt', { sessionId: asideId, prompt: [{ type: 'text', text }] }), timeout]);
+      if (!result.ok) throw Object.assign(new Error(result.error.message), { kind: result.error.kind });
+    } finally {
+      clearTimeout(timer);
+      asides.delete(asideId);
+    }
+    return reply;
+  }
+
   return {
     ensureSession,
     prompt,
+    askAside,
     cancel: () => sessionId && backend.acpNotify('session/cancel', { sessionId }),
     stop: async () => {
       sessionId = null;
       spec = null;
+      conversationId = null;
+      agentInfo = null;
+      images = false;
       await backend.acpStop();
     },
     get sessionId() {

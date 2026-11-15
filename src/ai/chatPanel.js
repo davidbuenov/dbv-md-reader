@@ -13,6 +13,7 @@
 // `aiApp.js` a través de los callbacks.
 
 import { t } from './i18nBridge.js';
+import { AUTONOMY_LEVELS } from './autonomy.js';
 import { looksLikeEdit } from './proposal.js';
 
 /** Cada cuántos ms se pinta el razonamiento acumulado (agrupa los trozos que llegan muy seguidos). */
@@ -76,7 +77,21 @@ export function createChatPanel({ host, callbacks, renderMarkdown }) {
   headerRow.append(title, settingsButton, closeButton);
   const selectorsRow = el('div', 'ai-panel__row');
   selectorsRow.append(connection, conversations, newButton, deleteButton);
-  header.append(headerRow, selectorsRow);
+  // RF-58: nivel de autonomía. El `title` aclara que en los agentes controla lo que piden a la app.
+  // @spec RF-58
+  const autonomy = el('select', 'form-row__input ai-panel__select ai-panel__autonomy');
+  autonomy.setAttribute('aria-label', t('ai.autonomy.label'));
+  autonomy.title = t('ai.autonomy.hint');
+  for (const level of AUTONOMY_LEVELS) {
+    const option = el('option', '', t(`ai.autonomy.${level}`));
+    option.value = level;
+    autonomy.append(option);
+  }
+  autonomy.value = callbacks.getAutonomy?.() ?? AUTONOMY_LEVELS[AUTONOMY_LEVELS.length - 1];
+  autonomy.addEventListener('change', () => callbacks.onSelectAutonomy?.(autonomy.value));
+  const autonomyRow = el('div', 'ai-panel__row');
+  autonomyRow.append(el('span', 'ai-panel__label', t('ai.autonomy.label')), autonomy);
+  header.append(headerRow, selectorsRow, autonomyRow);
 
   const destination = el('div', 'ai-panel__destination');
   const warning = el('div', 'ai-panel__warning');
@@ -383,6 +398,10 @@ export function createChatPanel({ host, callbacks, renderMarkdown }) {
     addNode(node) {
       messages.append(node);
       scrollToEnd();
+    },
+    /** RF-58: refleja el nivel de autonomía activo en el selector. */
+    setAutonomy(level) {
+      autonomy.value = level;
     },
     focus() {
       input.focus();

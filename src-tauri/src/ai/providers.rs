@@ -1043,6 +1043,7 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
             supports_tools: None,
             supports_images: None,
             reasoning: None,
+            reasoning_effort: None,
             max_output_tokens: None,
         }
     }

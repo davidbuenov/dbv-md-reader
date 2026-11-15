@@ -294,3 +294,162 @@
 .ai-inline__status { font-size: 12px; color: var(--text-secondary); margin-right: auto; }
 .ai-inline__status--warn { color: var(--status-warn); }
 .ai-inline-explain__body { font-size: 13px; max-height: 40vh; overflow: auto; }
+
+/* ── RF-57: estilos de la conexión canónica de dbv-tauri-starter template-v0.5.1 (tarjetas por categoría,
+   insignias, ajustes ⚙️ de agente y ventana de la guía). Los colores fijos del starter, pensados para tema
+   oscuro, se cambian por los tokens de alertas de cada tema, para que se lean en los 11 (RF-49). ── */
+.ai-cat-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ai-cat-card__header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+
+.ai-cat-card__title { margin: 0; font-size: 13px; font-weight: 600; }
+
+.ai-cat-card--agent .ai-cat-card__title { color: var(--alert-important); }
+
+.ai-cat-card--cloud .ai-cat-card__title { color: var(--alert-warning); }
+
+.ai-cat-card--local .ai-cat-card__title { color: var(--alert-tip); }
+
+.ai-cat-card__hint { margin: 0; font-size: 11px; color: var(--text-muted); }
+
+.ai-help-link { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; text-align: left; }
+
+.ai-help-link:hover { color: var(--accent-hover); }
+
+.ai-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.ai-badge--agent { background: color-mix(in srgb, var(--alert-important) 18%, transparent); color: var(--alert-important); border: 1px solid color-mix(in srgb, var(--alert-important) 35%, transparent); }
+
+.ai-badge--cloud { background: color-mix(in srgb, var(--alert-warning) 18%, transparent); color: var(--alert-warning); border: 1px solid color-mix(in srgb, var(--alert-warning) 35%, transparent); }
+
+.ai-badge--local { background: color-mix(in srgb, var(--alert-tip) 18%, transparent); color: var(--alert-tip); border: 1px solid color-mix(in srgb, var(--alert-tip) 35%, transparent); }
+
+.ai-badge--connected {
+  background: color-mix(in srgb, var(--alert-tip) 15%, transparent);
+  color: var(--alert-tip);
+  border: 1px solid color-mix(in srgb, var(--alert-tip) 35%, transparent);
+  text-transform: none;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.ai-badge--active {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  text-transform: none;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.ai-agent-summary {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ai-agent-settings {
+  display: grid;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-top: 2px;
+  margin-bottom: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ai-agent-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ai-agent-settings__label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 130px;
+}
+
+.ai-agent-settings__control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  max-width: 340px;
+}
+
+.ai-agent-settings__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ai-guide {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.ai-guide__card {
+  display: flex;
+  flex-direction: column;
+  width: min(880px, 100%);
+  max-height: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px var(--shadow);
+}
+
+.ai-guide__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ai-guide__title { margin: 0; font-size: 15px; }
+
+.ai-guide__content { overflow: auto; padding: 4px 20px 20px; }
+
+/* RF-58: nivel de autonomía en la cabecera del Asistente y botones de la tarjeta «¿Dejas que lea…?». */
+.ai-panel__label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.ai-panel__autonomy { flex: 1; min-width: 0; }
+.ai-permission__actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
