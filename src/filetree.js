@@ -124,10 +124,8 @@
 
   function openFromTree(path, e) {
     var openInNewWindow = !isAndroidPlatform() && !!(e && (e.ctrlKey || e.metaKey));
-    if (openInNewWindow) {
-      invoke('open_in_new_window', { path: path }).catch(function (err) {
-        console.warn('[open_in_new_window]', err);
-      });
+    if (openInNewWindow && window.DBVApp) {
+      window.DBVApp.openInNewWindow(path); // @spec RF-60 — con el error real si falla
     } else if (window.DBVApp) {
       window.DBVApp.openDocument(path);
     }
@@ -178,11 +176,7 @@
   });
   treeOpenNewWinBtn.addEventListener('click', function () {
     var path = treeContextMenu.dataset.path;
-    if (path) {
-      invoke('open_in_new_window', { path: path }).catch(function (err) {
-        console.warn('[open_in_new_window]', err);
-      });
-    }
+    if (path && window.DBVApp) window.DBVApp.openInNewWindow(path); // @spec RF-60
     hideTreeContextMenu();
   });
 

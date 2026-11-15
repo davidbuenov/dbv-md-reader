@@ -456,6 +456,7 @@
           }
           breadcrumb.textContent = doc.file_name;
           breadcrumb.title = doc.path;
+          setWindowTitle(doc.file_name);
           updateNavButtons();
           renderMarkdown(doc.content);
           emptyEl.classList.add('hidden');
@@ -468,15 +469,7 @@
           var container = document.getElementById('reader-container');
           if (scrollAnchor) {
             container.scrollTop = 0;
-            setTimeout(function () {
-              var anchorId = scrollAnchor.replace(/^#/, '');
-              var target = document.getElementById(anchorId);
-              if (!target) {
-                // Buscar por name attribute también
-                target = document.querySelector('[name="' + anchorId + '"]');
-              }
-              if (target) scrollElementIntoView(target);
-            }, 120);
+            setTimeout(function () { scrollDocumentToAnchor(scrollAnchor); }, 120);
           } else {
             container.scrollTop = 0;
           }
@@ -521,6 +514,11 @@
         })
         .catch(function (err) {
           endBoot();
+          // RF-60.1: una ventana nueva reserva su ruta en Rust antes de cargarla; si la lectura
+          // falla, se libera para que el fichero se pueda volver a abrir cuando esté disponible.
+          if (!currentDoc && !isAndroid) {
+            invoke('register_open_document', { path: null }).catch(function (e) { console.warn('[register_open_document]', e); });
+          }
           if (opts.isAutoRestore) {
             console.warn('[autoRestore]', err);
             try { localStorage.removeItem('dbv-md-last-doc'); } catch (_) {}
@@ -571,7 +569,40 @@
   // `src/filetree.js`, cargado DESPUÉS de este script) — reutilizan la misma
   // apertura de documento, detección de URL remota y mecanismo de panel
   // flotante que ya tiene app.js, en vez de reimplementarlos.
+  // ─── Ventanas de documento (RF-60) ─────────────────────────────────────────
+  // Ancla de un documento (`#seccion`) por id o por `name`, con la colocación de siempre.
+  // @spec RF-60
+  function scrollDocumentToAnchor(anchor) {
+    var id = String(anchor).replace(/^#/, '');
+    var target = document.getElementById(id) || document.getElementsByName(id)[0];
+    if (target) scrollElementIntoView(target);
+  }
+
+  // Título de la ventana con el documento (RF-60.4): en macOS solo el nombre, que es también
+  // el texto de su pestaña nativa (RF-61); en el resto, «archivo — DBV Markdown Reader».
+  // @spec RF-60
+  var APP_TITLE = 'DBV Markdown Reader';
+  function setWindowTitle(fileName) {
+    if (isAndroid) return;
+    var platform = '';
+    try { platform = window.__TAURI__.os.platform(); } catch (_) {}
+    var title = !fileName ? APP_TITLE : (platform === 'macos' ? fileName : fileName + ' — ' + APP_TITLE);
+    try {
+      window.__TAURI__.window.getCurrentWindow().setTitle(title).catch(function (e) { console.warn('[setTitle]', e); });
+    } catch (e) { console.warn('[setTitle]', e); }
+  }
+
+  // «Abrir en ventana nueva» (RF-25/26, RF-60.3): Rust devuelve el error real; se avisa en vez de callar.
+  // @spec RF-60
+  function openInNewWindow(path, options) {
+    return invoke('open_in_new_window', { path: path, options: options || null }).catch(function (err) {
+      console.warn('[open_in_new_window]', err);
+      showToast(t('errors.loadFailed', { error: err }), 'error');
+    });
+  }
+
   window.DBVApp = {
+    openInNewWindow: openInNewWindow,
     // Abre un documento en la ventana actual sin conocer los detalles internos
     // de loadDocument() — cuenta como apertura explícita (isPrimaryOpen), igual
     // que un clic en Recientes.
@@ -1047,14 +1078,63 @@
     return readerContainer;
   }
 
-  function scrollElementIntoView(el, opts) {
-    var host = findScrollHost(el);
+  function scrollTargetTop(el, host, opts) {
     var origin = host.getBoundingClientRect().top - host.scrollTop;
     var targetTop = el.getBoundingClientRect().top - origin;
     if (opts && opts.align === 'center') {
       targetTop -= (host.clientHeight - el.getBoundingClientRect().height) / 2;
     }
-    host.scrollTo({ top: targetTop, behavior: 'smooth' });
+    return targetTop;
+  }
+
+  function scrollElementIntoView(el, opts) {
+    var host = findScrollHost(el);
+    host.scrollTo({ top: scrollTargetTop(el, host, opts), behavior: 'smooth' });
+    keepAnchored(el, host, opts);
+  }
+
+  // RF-63 (issue #25): si lo que hay ENCIMA del destino crece después del salto (imágenes que terminan de cargar, un
+  // diagrama Mermaid, una fórmula), el destino se desplaza. Chromium lo compensa solo («scroll anchoring»), pero
+  // WebKitGTK y WKWebView no: medido sin él, el encabezado quedaba 1.900–3.600 px por debajo según el ancho. Aquí se
+  // recoloca mientras el contenido cambia de tamaño, durante 3 s como máximo, y se deja de hacer en cuanto el usuario
+  // toma el control (rueda, tecla, toque o clic en el panel) o pide otro salto.
+  // @spec RF-63
+  var anchorKeeper = null;
+  function stopAnchorKeeper() {
+    var keeper = anchorKeeper;
+    if (!keeper) return;
+    anchorKeeper = null;
+    keeper.observer.disconnect();
+    clearTimeout(keeper.timer);
+    keeper.host.removeEventListener('load', keeper.reposition, true);
+    ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (type) {
+      window.removeEventListener(type, stopAnchorKeeper, true);
+    });
+  }
+  function keepAnchored(el, host, opts) {
+    stopAnchorKeeper();
+    var keeper = {
+      host: host,
+      reposition: function () {
+        if (anchorKeeper !== keeper || !el.isConnected) return;
+        var top = scrollTargetTop(el, host, opts);
+        if (Math.abs(top - host.scrollTop) > 1) host.scrollTo({ top: top, behavior: 'auto' });
+      },
+      timer: setTimeout(stopAnchorKeeper, 3000)
+    };
+    // Una imagen que termina de cargar no cambia el tamaño de la caja de `#content` (medido: el ResizeObserver solo
+    // avisa al empezar), así que se escucha su `load` en fase de captura (el evento no burbujea). El observador queda
+    // para lo demás que cambia de alto sin cargar nada (Mermaid, KaTeX); su primer aviso, al empezar, se ignora.
+    var primed = false;
+    keeper.observer = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(function () { if (primed) keeper.reposition(); primed = true; })
+      : { observe: function () {}, disconnect: function () {} };
+    anchorKeeper = keeper;
+    host.addEventListener('load', keeper.reposition, true);
+    keeper.observer.observe(contentEl);
+    ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (type) {
+      window.addEventListener(type, stopAnchorKeeper, true);
+    });
   }
 
   /** Mensaje tenue dentro de un contenedor. Con `textContent`, no `innerHTML`: el texto sale de un diccionario de idioma, que
@@ -1717,27 +1797,10 @@
   // ─── Buscar actualizaciones (bajo demanda, nunca al arrancar) ─────────────
   var btnCheckUpdate = document.getElementById('btn-check-update');
   var updateStatus   = document.getElementById('update-status');
-  var pendingUpdate  = null; // Update de @tauri-apps/plugin-updater, ya descargable
 
   function setUpdateStatus(text, isAvailable) {
     updateStatus.textContent = text;
     updateStatus.classList.toggle('is-available', !!isAvailable);
-  }
-
-  function installPendingUpdate() {
-    if (!pendingUpdate) return;
-    btnCheckUpdate.disabled = true;
-    setUpdateStatus(t('update.downloading'), true);
-    pendingUpdate.downloadAndInstall()
-      .then(function () {
-        setUpdateStatus(t('update.installed'), true);
-        return window.__TAURI__.process.relaunch();
-      })
-      .catch(function (err) {
-        console.warn('[updater] downloadAndInstall', err);
-        btnCheckUpdate.disabled = false;
-        setUpdateStatus(t('update.installFailed'), false);
-      });
   }
 
   // Instalado vía MSIX (Microsoft Store) o en Android (Google Play Store): las
@@ -1754,28 +1817,42 @@
         return;
       }
 
+    // RF-62 (issue #26): desde la 0.16.0 no se publica `latest.json` (ADR-047) y el updater
+    // respondía 404, mostrado como «revisa tu conexión». Fuera de las tiendas se consulta la última
+    // Release de GitHub y, si es más nueva, se ofrece su página; no se instala nada (ADR-019).
+    // @spec RF-62
+    var releaseUrl = null;
     btnCheckUpdate.addEventListener('click', function () {
-      if (pendingUpdate) { installPendingUpdate(); return; }
-
+      if (releaseUrl) { openExternal(releaseUrl); return; }
+      var RC = window.DBVReleaseCheck;
       btnCheckUpdate.disabled = true;
       setUpdateStatus(t('update.checking'), false);
-
-      window.__TAURI__.updater.check()
-        .then(function (update) {
-          btnCheckUpdate.disabled = false;
-          if (!update) {
-            setUpdateStatus(t('update.upToDate'), false);
-            return;
-          }
-          pendingUpdate = update;
-          btnCheckUpdate.textContent = t('update.button');
-          setUpdateStatus(t('update.available', { version: update.version }), true);
-        })
-        .catch(function (err) {
-          console.warn('[updater] check', err);
-          btnCheckUpdate.disabled = false;
-          setUpdateStatus(t('update.checkFailed'), false);
-        });
+      Promise.all([
+        invoke('get_app_version'),
+        fetch(RC.LATEST_API, { headers: { Accept: 'application/vnd.github+json' } })
+          .then(function (res) {
+            return res.json().catch(function () { return null; })
+              .then(function (body) { return { status: res.status, body: body }; });
+          }, function () { return { offline: true }; })
+      ]).then(function (both) {
+        var outcome = RC.interpretRelease(both[1], both[0]);
+        btnCheckUpdate.disabled = false;
+        if (outcome.kind === 'newer') {
+          releaseUrl = outcome.url;
+          btnCheckUpdate.textContent = t('update.download');
+          setUpdateStatus(t('update.available', { version: outcome.version }), true);
+        } else if (outcome.kind === 'upToDate') {
+          setUpdateStatus(t('update.upToDate'), false);
+        } else {
+          releaseUrl = outcome.kind === 'githubError' ? outcome.url : null;
+          if (releaseUrl) btnCheckUpdate.textContent = t('update.releasesPage');
+          setUpdateStatus(t(outcome.kind === 'offline' ? 'update.offline' : 'update.githubError'), false);
+        }
+      }).catch(function (err) {
+        console.warn('[releasecheck]', err);
+        btnCheckUpdate.disabled = false;
+        setUpdateStatus(t('update.githubError'), false);
+      });
     });
   });
 }
@@ -2517,15 +2594,32 @@
     });
   })();
 
+  // RF-60.2: un `listen` sin `target` recibe los eventos de CUALQUIER ventana. Confirmado por el usuario con dos
+  // ventanas (2026-11-16): soltar un fichero en una lo abría en las dos. Los eventos que van a una ventana concreta
+  // (soltar, menú nativo de macOS, opciones de apertura) se escuchan solo con la etiqueta de esta ventana.
+  // @spec RF-60
+  var currentWindowLabel = null;
+  try { currentWindowLabel = window.__TAURI__.window.getCurrentWindow().label; } catch (_) {}
+  function listenHere(name, handler) {
+    return window.__TAURI__.event.listen(name, handler, currentWindowLabel ? { target: currentWindowLabel } : undefined);
+  }
+
   // "Abrir archivo…" del menú nativo File de macOS (Cmd+O): el menú vive en
   // Rust (no hay DOM ahí), así que emite este evento a la ventana enfocada
   // en vez de reimplementar el diálogo.
-  window.__TAURI__.event.listen('menu-open-file', openFileDialog);
+  listenHere('menu-open-file', openFileDialog);
   // "Nuevo documento" (RF-29), "Guardar" y "Alternar Modo Edición" del menú nativo de macOS (File/View):
   // mismo patrón, el menú vive en Rust y avisa por evento a la ventana enfocada.
-  window.__TAURI__.event.listen('menu-new-file', createNewFile);
-  window.__TAURI__.event.listen('menu-save', saveCurrentDocument);
-  window.__TAURI__.event.listen('menu-toggle-edit-mode', toggleEditMode);
+  listenHere('menu-new-file', createNewFile);
+  listenHere('menu-save', saveCurrentDocument);
+  listenHere('menu-toggle-edit-mode', toggleEditMode);
+  // RF-60.3: si el documento pedido ya estaba abierto en esta ventana, Rust la enfoca y le manda las
+  // opciones de la apertura (Modo Edición, ancla).
+  listenHere('document-open-options', function (event) {
+    var options = (event && event.payload) || {};
+    if (options.startInEditMode && !editMode && currentDoc && !isRemoteDoc(currentDoc)) setEditMode(true);
+    if (options.scrollAnchor) scrollDocumentToAnchor(options.scrollAnchor);
+  });
 
   // =========================================================================
   // Apertura de documento remoto por URL (RF-08A)
@@ -2561,7 +2655,7 @@
   // Drag & Drop nativo de Tauri v2
   // =========================================================================
 
-  window.__TAURI__.event.listen('tauri://drag-drop', function (event) {
+  listenHere('tauri://drag-drop', function (event) {
     var paths = event.payload && event.payload.paths;
     if (paths && paths.length > 0) {
       var fp = paths[0];
@@ -3049,18 +3143,28 @@
 
   // ─── Sincronización de scroll editor↔preview (línea real vía anclas de
   // encabezado, ver "Sincronización de scroll" más abajo) ───────────────────
+  // RF-63: qué panel movió el usuario por última vez, para volver a alinear el OTRO cuando cambian las anclas.
+  var lastScrollSource = 'preview';
+  function syncPreviewFromEditor() {
+    var line = editorTextarea.scrollTop / editorLineHeightPx();
+    var top = interpolateScroll(fullScrollAnchors(), 'line', line, 'top');
+    withScrollLock(contentEl, function () { contentEl.scrollTop = top; });
+  }
+  function syncEditorFromPreview() {
+    var line = interpolateScroll(fullScrollAnchors(), 'top', contentEl.scrollTop, 'line');
+    withScrollLock(editorTextarea, function () { editorTextarea.scrollTop = line * editorLineHeightPx(); });
+  }
   editorTextarea.addEventListener('scroll', function () {
     editorLineNumbers.scrollTop = editorTextarea.scrollTop;
     updateEditorHit();
     if (syncingScroll || !editMode) return;
-    var line = editorTextarea.scrollTop / editorLineHeightPx();
-    var top = interpolateScroll(fullScrollAnchors(), 'line', line, 'top');
-    withScrollLock(contentEl, function () { contentEl.scrollTop = top; });
+    lastScrollSource = 'editor';
+    syncPreviewFromEditor();
   });
   contentEl.addEventListener('scroll', function () {
     if (syncingScroll || !editMode) return;
-    var line = interpolateScroll(fullScrollAnchors(), 'top', contentEl.scrollTop, 'line');
-    withScrollLock(editorTextarea, function () { editorTextarea.scrollTop = line * editorLineHeightPx(); });
+    lastScrollSource = 'preview';
+    syncEditorFromPreview();
   });
 
   // Las anclas se miden con la altura ya pintada, que cambia sin que se re-renderice el documento: al cargar una imagen,
@@ -3070,7 +3174,12 @@
     if (!editMode || anchorRefreshTimer) return;
     anchorRefreshTimer = setTimeout(function () {
       anchorRefreshTimer = null;
-      if (editMode) updateHeadingAnchors();
+      if (!editMode) return;
+      updateHeadingAnchors();
+      // RF-63 (issue #25): un panel se sincronizó con anclas medidas antes de que cargaran las imágenes; con las
+      // nuevas, se vuelve a alinear el panel que el usuario NO movió (medido: el editor quedaba 40–57 líneas lejos).
+      // @spec RF-63
+      if (lastScrollSource === 'preview') syncEditorFromPreview(); else syncPreviewFromEditor();
     }, 120);
   }
   contentEl.addEventListener('load', scheduleAnchorRefresh, true);
@@ -4112,7 +4221,13 @@
     // open_document_window) trae su ruta inicial inyectada aquí en vez de en el argv del
     // proceso — get_cli_argument() siempre devolvería la del arranque original.
     if (window.__DBV_INITIAL_PATH__) {
-      loadDocument(window.__DBV_INITIAL_PATH__, { isPrimaryOpen: true });
+      // RF-60.3: las opciones con las que se pidió la ventana (Modo Edición, ancla).
+      var initialOptions = window.__DBV_INITIAL_OPTIONS__ || {};
+      loadDocument(window.__DBV_INITIAL_PATH__, {
+        isPrimaryOpen: true,
+        startInEditMode: !!initialOptions.startInEditMode,
+        scrollAnchor: initialOptions.scrollAnchor || null
+      });
     } else {
       invoke('get_cli_argument')
         .then(function (cliPath) {
