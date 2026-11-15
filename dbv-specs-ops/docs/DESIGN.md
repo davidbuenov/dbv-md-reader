@@ -10,6 +10,8 @@
 
 `dbv-md-reader` soporta 3 temas de lectura optimizados:
 
+> **Desde la 0.20.0 (RF-49, RF-50)** hay 10 temas curados más Personalizado, **los mismos de `dbv-typst-editor`** (`src/themes/theme.js`, fuente de las paletas). Los tokens comunes (`--bg-*`, `--text-*`, `--accent*`, `--border`, `--code-*`) toman los valores de typst; el Oscuro de abajo cambia a los suyos. Los tokens propios de esta app (`--quote-bg`, `--shadow`, `--alert-*`) se definen para cada tema. Las tablas de abajo documentan los tres temas originales.
+
 ### ☀️ Tema Claro (GitHub Light Style)
 - **Background (`--bg-primary`):** `#ffffff`
 - **Surface / Sidebar (`--bg-secondary`):** `#f6f8fa`
@@ -70,11 +72,25 @@
 
 ### 🔘 Selector de Temas
 - Discreto botón de icono en la esquina superior derecha o barra superior que conmuta entre Claro, Oscuro y Sepia.
+- **Desde la 0.20.0 (RF-50):** son **tres botones rápidos configurables**, solo con icono y con el nombre como `title`, marcando el activo (por defecto Claro, Oscuro y Sepia, así que la cabecera se ve igual que antes).
+
+### 🎨 Diálogo «Temas y colores…» (0.20.0, RF-50)
+- Se abre desde **Preferencias**. Es un diálogo modal con scroll propio que cabe en 640×520 y copia el de typst (capturas del usuario, 2026-11-15). Tiene tres secciones:
+  1. **Temas disponibles:** cuadrícula de 3 columnas (2 en ventanas estrechas). Cada tarjeta lleva una franja con el fondo del tema y 4 puntos de color (texto, acento, código y cadena), y debajo el icono y el nombre. La activa tiene borde de `--accent` y fondo tintado.
+  2. **Botones rápidos de cabecera:** tres desplegables, «Botón 1/2/3», en una fila.
+  3. **Tema personalizado:** «Copiar paleta desde» con desplegable y botón «Copiar y activar», una nota de contraste (verde si ≥ 4,5:1, ámbar si menos) y una rejilla de dos columnas «etiqueta · muestra de color» para cada token editable.
+
+### ⌨️ Modo Vim, barra de estado y tabla (0.20.0, RF-51, RF-53, RF-55)
+- **Barra de estado:** una franja de ~22 px al pie del panel de código, con `--bg-secondary`, texto `--text-secondary` y tipografía de código a 12 px. A la izquierda va la **insignia de modo** (`NORMAL` con `--accent`, `INSERT` con `--alert-tip`, `VISUAL`/`V-LINE` con `--alert-important`; mayúsculas en una píldora). A la derecha, `Ln X, Col Y` y «(N seleccionados)». La línea `:orden` de Vim y los avisos breves del guardado automático ocupan esa misma franja.
+- **Cursor de bloque** (Normal/Visual): un rectángulo del ancho de un carácter con `--accent` al 40 % de opacidad, pintado en la capa del editor (RF-44), sin tapar el carácter.
+- **Números relativos:** la línea actual en `--text-primary` y negrita, y las demás en `--text-muted`, dentro del mismo canal de números de hoy.
+- **Insertar tabla:** un panel flotante pequeño anclado al botón de la barra de formato, con dos campos numéricos (Filas, Columnas), la casilla «Fila de encabezado» y el botón «Insertar» con el estilo primario.
 
 ### 🧭 Cabecera con menús (0.19.0, RF-38)
 - Tres menús desplegables, en este orden, en la zona derecha de la barra: **Archivo ▾**, **Herramientas ▾**, **Preferencias ▾** (botón fantasma con icono + etiqueta + flecha, como en `dbv-typst-editor`). Cada entrada lleva icono, etiqueta y, si lo tiene, el atajo alineado a la derecha.
 - Lo que depende del contexto se **muestra en gris (deshabilitado)** en lugar de ocultarse, para que el menú no cambie de tamaño. Archivo y Herramientas se cierran al elegir una acción; **Preferencias no se cierra** al marcar una casilla (✓ a la izquierda de la entrada marcada).
 - A la derecha de los menús, **fuera** de ellos: selector de idioma, tema (tres iconos sin texto), Buscar, Modo Edición/Guardar, panel lateral, IA ✨, chincheta, «?» y «i».
+- **Orden desde la 0.20.0 (RF-48), el mismo que typst:** `[Buscar · Edición/Guardar · Panel · IA]` · **Archivo ▾ · Herramientas ▾ · Preferencias ▾** · idioma · 3 temas rápidos · 📌 · ? · ⓘ. Un separador fino va entre el grupo de trabajo y los menús, y otro entre los menús y el idioma.
 
 ### 🌐 Selector de idioma (0.19.0, RF-39)
 - Desplegable compacto con el **código del idioma activo** («ES ▾»); la lista usa los **nombres nativos** (Español, English, 한국어) con ✓ en el activo. Sustituye a los botones ES/EN. Debe admitir más idiomas sin cambiar el diseño (lista con scroll si crece).

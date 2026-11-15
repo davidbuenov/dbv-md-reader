@@ -1,5 +1,28 @@
 # 📋 Backlog & Task Tracking: dbv-md-reader
 
+> ⏭️ **SNAPSHOT DE CONTEXTO (2026-11-15, noche) — Fase 44: `v0.20.0` — `/spec` y `/plan` HECHOS; esperando aprobación del plan para `/build`.** Plan en `implementation_plan.md` (Orquestador, decisiones D1–D11, Architect Review sin ejes en low). Rebanadas: A0 línea base → **I** IA (RF-57/58/59) → **T** temas (RF-49/50) → **H** cabecera (RF-48) → **E** extras del editor (RF-53–56) → **V** Vim (RF-51/52) → **D** documentación y `/test`.
+> **Hecho fuera de este repo:** `dbv-tauri-starter` `template-v0.5.1` (arreglo de los `.cmd` de unreal-ai 0.6.2): commit `b29b63f`, tag y push 2026-11-15 con permiso del usuario. Ya no bloquea RF-57.
+> **Hallazgo de `/plan`:** RF-56.1 ya existía (manejador `wheel` de RF-43); solo falta acumular el pellizco.
+>
+> *(Snapshot del `/spec`, mismo día:)* **Fase 44: `v0.20.0` «convergencia con la colección» — `/spec` HECHO.**
+>
+> **Qué se especificó** (`SPECIFICATIONS.md` §«v0.20.0», RF-48 a RF-59 y RNF-04; `DESIGN.md`; ADR-052):
+> - RF-48: cabecera con la distribución de typst.
+> - RF-49 y RF-50: 10 temas curados + Personalizado, diálogo **Preferencias ▸ Temas y colores…** y 3 botones rápidos.
+> - RF-51: Vim propio en el editor (opción A).
+> - RF-52: navegación Vim en lectura.
+> - RF-53: barra de estado con números relativos.
+> - RF-54: guardado automático.
+> - RF-55: insertar tabla.
+> - RF-56: Ctrl+rueda contextual.
+> - RF-57: IA canónica vía `dbv-tauri-starter` `template-v0.5.1`.
+> - RF-58: niveles de autonomía sin «Automático»/«Total».
+> - RF-59: aviso de aprobación pendiente.
+> **Decidido por el usuario:** Vim **A ahora y B (CodeMirror 6) en la versión siguiente**; temas en Preferencias; historial local fuera.
+> ~~**Bloqueo para `/build` de RF-57**~~ (resuelto, ver arriba): antes había que llevar a `dbv-tauri-starter` el arreglo de `dbv-unreal-ai` 0.6.2 (`.cmd` en rutas con espacios, commit `300a934`) y etiquetar `template-v0.5.1`. Es otro repositorio y lleva su propio ciclo. Medido hoy con `sync-ai.mjs --check` (template-v0.5.0): 15 ficheros divergentes o ausentes y 6 puntos de integración.
+> **Supuestos a confirmar en `/plan`:** la lista (a)–(i) de la sección 8 de `SPECIFICATIONS.md`.
+> **Sin tocar código ni hacer commit en esta fase.** En el árbol había cambios sin commit previos a esta sesión (`ARCHITECTURE.md`: paso final del `/ship`; `task.md`: bloque de sincronización de IA, ahora absorbido por RF-57).
+
 > ⏭️ **SNAPSHOT DE CONTEXTO (2026-10-19, noche) — Fase 43: `v0.19.0` — ciclo COMPLETO (`/spec` → `/plan` → `/build` → `/test` → `/code-simplify` → `/ship`). Versión `0.19.0` (Minor) fijada en `package.json`, `package-lock.json`, `Cargo.toml`, `Cargo.lock` y `tauri.conf.json`; CHANGELOG publicado como `[0.19.0] - 2026-10-19`; README ES/EN con agradecimientos, `walkthrough.md`, fichas de tienda y web actualizados. Commit `d648d93`, tag `v0.19.0` y push hechos (2026-10-19). `.msixbundle` generado en `src-tauri/target/msix/dbv-md-reader_0.19.0.0.msixbundle` (7,4 MB; sin subir). Respondidas y cerradas las PRs #16–#19, #23, #24 y los issues #11, #12, #13, #15, #20, #21 y #22; **#14 (control del PDF) queda abierto** con la explicación (Typst).**
 >
 > **Pendiente del usuario:** subir el `.msixbundle` a Partner Center y una versión de Google Play; comprobar que la Release de GitHub (workflows de Linux y macOS por el tag) sale bien; esperar la confirmación de Víctor sobre `Cmd+N`, la de Park-Young-Seok sobre PowerToys Peek y la de johnblommers sobre AppImage.
@@ -15,6 +38,32 @@
 > **No verificado (solo hay Windows):** PowerToys Peek real (RF-14: además que Peek fije esas variables es un dato de la PR), `Cmd+N` sin doble disparo y el menú nativo real de macOS, Linux/Wayland (posición de ventana), WebKitGTK/WKWebView (`:has`, `canvas`, `setRangeText`), un segundo monitor real, AppImage real (RF-46), y la revisión de las 45 claves coreanas propias por un hablante nativo.
 >
 > **Cuestiones para el usuario al revisar:** (1) el cambio visible de las imágenes sueltas (ahora hasta 1100 px; se desactiva con la casilla); (2) tras mover una sección con el Índice el historial de deshacer nativo anterior se vacía (decisión medida, ADR-051); (3) el coreano de Park-Young-Seok se leyó entero y pasó la puerta de higiene, pero conviene una revisión nativa; (4) la bienvenida tarda ~0,1 s más en aparecer cuando se arranca SIN archivo.
+
+---
+
+## 📌 Próxima Fase: Sincronización del Subsistema Canónico de IA (desde `dbv-tauri-starter` `template-v0.4.0`)
+
+> **2026-11-15: absorbida por RF-57** (versión canónica ahora `template-v0.5.0` → `template-v0.5.1` tras el arreglo de la 0.6.2 de unreal-ai). La lista de abajo es de `template-v0.4.0` y está desactualizada; manda `sync-ai.mjs --check`.
+
+- [ ] **Sincronización del Subsistema Canónico de Conexión a IA de Escritorio (`dbv-tauri-starter` `template-v0.4.0` / `dbv-unreal-ai` `v0.2.2`)**
+  - **Regla de arquitectura**: **NO reimplementar a mano ni divergir.** La implementación canónica única vive en `dbv-tauri-starter` (`d:\Programacion\github-davidbuenov\dbv-tauri-starter`).
+  - **Procedimiento automatizado de sincronización**:
+    1. Ejecutar desde `dbv-tauri-starter`:
+       ```bash
+       node scripts/sync-ai.mjs --check ../dbv-md-reader
+       node scripts/sync-ai.mjs --apply ../dbv-md-reader
+       ```
+       *(Esto sincroniza de forma idéntica los 9 ficheros canónicos: `src-tauri/src/ai/detect.rs`, `src-tauri/src/ai/connections.rs`, `src-tauri/src/ai/acp.rs`, `src-tauri/src/ai/commands.rs`, `src/ai/connectWizard.js`, `src/ai/acpSession.js`, `src/ai/backend.js`, `tests/ai/connectWizard.test.js` y `tests/ai/acp.test.js`, preservando las cabeceras de copyright de `dbv-md-reader`).*
+    2. Registrar el comando Tauri `ai::commands::ai_list_agent_models` en `src-tauri/src/lib.rs` (dentro de `tauri::generate_handler![...]`).
+    3. Sincronizar los 3 ficheros de adaptación de UI tomando como referencia `dbv-tauri-starter`:
+       - `src/ai/aiApp.js`: pasar `listAgentModels: backend.listAgentModels` y `onConfigureAgent` al `createConnectWizard(...)`.
+       - `src/ai/translations.js`: añadir las claves i18n nuevas (`ai.cat.subscription*`, `ai.agent.antigravity*`, `ai.agent.configure*`, `ai.agent.refreshModels`, `ai.agent.loadingModels`, `ai.agent.effort.*`, `ai.agent.ConnectedBadge`, `ai.agent.ActiveBadge`) en `es`, `en` y **`ko` (coreano)** manteniendo las claves específicas de `dbv-md-reader`.
+       - `src/ai/ai.css`: añadir las reglas `.ai-cat-card`, `.ai-badge`, `.ai-agent-model-summary`, `.ai-agent-config-panel`, `.ai-btn-icon` de `dbv-tauri-starter/src/ai/ai.css`.
+  - **Qué incluye esta actualización canónica (`v0.2.2`)**:
+    - UI tripartita de conexiones (IAs Locales, IAs por Suscripción CLI vía ACP, IAs en la nube con API Key).
+    - Soporte completo de Google Antigravity CLI (`agy`), Claude Code (vía JSON-RPC `initialize`), Codex (`debug clear-memories`), Gemini CLI y Copilot CLI.
+    - Descubrimiento en vivo de modelos y niveles de razonamiento desde el CLI con caché de sesión en memoria y botón manual de refresco (`🔄`).
+    - Resumen visual estilo Visual Studio junto al nombre del agente (`"Gemini 4 Argon Medium"`, `"Claude Sonnet 4.6 Medium"`) y propagación de `--model` / `--effort` a la sesión ACP.
 
 ---
 

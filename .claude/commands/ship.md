@@ -1,12 +1,15 @@
 ---
 description: Fase Ship del ciclo SDD (dbv-specs-ops) — versionado, changelog y release
+model: sonnet
 ---
 Ejecuta ahora la fase **Ship** (`/ship`) del ciclo Spec→Plan→Build→Test→Simplify→Ship definido en
 `dbv-specs-ops/docs/MASTER_PROMPT.md` (`<workflow>`, paso 6). No cierres esta fase si quedan hallazgos
 Crítico sin resolver de la revisión de `/code-simplify` (`dbv-specs-ops/docs/REVIEW.md`). Actualiza el
-`README.md` de la raíz, completa `dbv-specs-ops/walkthrough.md`, pregunta el tipo de versión (Patch/Minor/
+`README.md` de la raíz, completa `dbv-specs-ops/walkthrough.md` solo si la versión añade un flujo de uso nuevo, pregunta el tipo de versión (Patch/Minor/
 Major), publica `dbv-specs-ops/CHANGELOG.md` y propone el commit + tag de git (sin hacer push). Si el
 remoto es GitHub, ofrece una vez el Release automático o manual (`dbv-specs-ops/scripts/release-notes.py`).
+Fuentes: la sección `[Sin publicar]` de `CHANGELOG.md` y el último snapshot de `task.md`. No leas enteros
+`SPECIFICATIONS.md`, `memory.md` ni `CHANGELOG.md`; para editar README y walkthrough, lee solo la sección que cambias.
 
 <!-- pg-guide:begin · generado desde docs/PROCEDURAL_GRAPH.json — no lo edites a mano: python dbv-specs-ops/scripts/pg-guide.py --write-commands -->
 ## 🕸️ Grafo de fases — nodo activo: Ship
