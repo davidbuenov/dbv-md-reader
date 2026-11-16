@@ -599,10 +599,16 @@
 - **REJECTED-07** (2026-10-19) · Ancho de lectura — Alinear siempre tablas, líneas, código y Mermaid con la columna de 800 px (PR #17) → los bloques anchos se dejaron sin límite a propósito (menos scroll horizontal) y la PR los estrecha para todos sin opción → En su lugar: casilla «Bloques anchos a todo el ancho» dentro del control de ancho, marcada por defecto (RF-41).
 - **REJECTED-08** (2026-10-19) · Reordenar secciones (RF-45) — Aplicar el movimiento con `execCommand('insertText')` para conservar el deshacer nativo → con texto multilínea Chromium emite ~2 eventos `input` por línea; medido 129 s para 3.000 líneas (1,5 ms/línea en un `<textarea>` limpio) → En su lugar: `setRangeText` más deshacer propio de un nivel.
 - **REJECTED-09** (2026-10-19) · Búsqueda en el editor (RF-44) — Confiar en la selección del `<textarea>` como único resaltado → con el foco en el campo de búsqueda no se pinta en ningún tema (medido con capturas) → En su lugar: capa de resaltado medida con `canvas.measureText`.
+- **REJECTED-10** (2026-11-16) · Latencia por tecla (RNF-04) — Aislar la barra de estado con `contain: strict` y altura fija, suponiendo que su cambio de texto volvía a maquetar el `<textarea>` → sin efecto (25,1 ms frente a 25,4): no era maquetación sino un fotograma de más, pedido en `keyup`. Medir por eliminación (variantes del código con una sola pieza quitada) antes de cambiar CSS.
 
 ---
 
 ## ⚠️ Lecciones Aprendidas & Gotchas
+
+### [2026-11-16] Lección 43: Un `requestAnimationFrame` pedido en `keyup` retrasa un fotograma la letra recién escrita, y el perfil de JS no lo enseña
+
+- **Qué pasó:** en `/test` la latencia por tecla con 5.000 líneas pasó de 13 ms (0.19.0) a 25 ms con todas las preferencias nuevas apagadas. El perfil de CPU daba menos de 0,5 ms de JS por tecla, y aislar la barra con `contain: strict` no cambiaba nada. Bisecar por commits (`git archive` de cada rebanada y el mismo arnés) señaló la rebanada E, y las variantes del código con una sola pieza quitada señalaron el `keyup` que programaba la barra de estado.
+- **Regla:** las actualizaciones de interfaz que siguen al texto se programan con `input`/`selectionchange`, nunca con `keydown`/`keyup`. Para comparar latencia con una versión anterior, extraer su `src` con `git archive` y medir los dos con el mismo arnés en la misma sesión; `editor-latency.e2e.mjs` admite `APP_DIR` para eso.
 
 ### [2026-11-16] Lección 42: Medir una tecla dentro del manejador mide también el `input` de la app, y una línea base que no cambia el texto no es línea base
 

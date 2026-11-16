@@ -3075,7 +3075,10 @@
     if (!editorStatusFrame) editorStatusFrame = requestAnimationFrame(renderEditorStatus);
   }
 
-  ['keydown', 'keyup', 'mousedown', 'mouseup', 'select', 'focus', 'input'].forEach(function (name) {
+  // Sin `keydown`/`keyup` (RNF-04): un fotograma pedido al soltar la tecla coincidía con el de la letra recién escrita
+  // y la retrasaba un fotograma (medido en /test: mediana por tecla de 13 → 25 ms con 5.000 líneas). Escribir ya lanza
+  // `input`, y mover el cursor con flechas (con o sin Mayús) lanza `selectionchange`.
+  ['mousedown', 'mouseup', 'select', 'focus', 'input', 'selectionchange'].forEach(function (name) {
     editorTextarea.addEventListener(name, scheduleEditorStatus);
   });
   editorTextarea.addEventListener('mousemove', function (e) { if (e.buttons) scheduleEditorStatus(); });
