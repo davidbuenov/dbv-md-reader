@@ -92,6 +92,14 @@
   }
   function confirmDiscardUnsavedChanges() {
     if (!(editMode && isDirty)) return Promise.resolve(true);
+    // RF-54.2: con el guardado automático, salir de edición (o navegar, o cerrar) guarda en vez de preguntar.
+    // Si la escritura falla, o hay un conflicto con el disco, se sigue por la confirmación de siempre.
+    if (autoSaveDecision() === 'proceed') {
+      return saveCurrentDocument({ auto: true }).then(function (saved) { return saved ? true : askDiscardUnsavedChanges(); });
+    }
+    return askDiscardUnsavedChanges();
+  }
+  function askDiscardUnsavedChanges() {
     // Ya hay una confirmación en curso (p. ej. Atrás y luego Ctrl+E antes de
     // responder): no pisar el resolver pendiente, o esa primera acción se
     // quedaría esperando para siempre. Declina la segunda en vez de competir.
@@ -621,6 +629,8 @@
     openHelp: function (tab) { openHelp(tab); },
     // RF-50.1: Preferencias ▸ Temas y colores…
     openThemeDialog: function () { themeModalCtrl.open(); },
+    // RF-55: Herramientas ▸ Insertar tabla…
+    openInsertTable: function () { openInsertTable(); },
     // RF-64: Archivo ▸ Guardar como…
     saveAs: function () { saveDocumentAs(); },
     // RF-33.2: el menú contextual del árbol ofrece «Añadir a la conversación» si las funciones de IA están a la vista.
@@ -2921,14 +2931,36 @@
     }, 1200);
   }
 
-  // Ctrl + Rueda de ratón
+  // Ctrl + Rueda de ratón (RF-43, RF-56): zoom del panel bajo el puntero, nunca el de toda la página.
+  // El pellizco de un panel táctil llega como rueda con `ctrlKey` y desplazamientos pequeños: se acumulan hasta
+  // WHEEL_ZOOM_THRESHOLD px, así un paso de rueda y un pellizco equivalente dan UN escalón (D11). Un paso de rueda
+  // clásico se reconoce por `wheelDeltaY` múltiplo de 120 (Chromium y WebKit), o por `deltaMode` en líneas/páginas,
+  // y da su escalón al momento: en WebKit su `deltaY` puede ser mucho menor de 100.
+  var WHEEL_ZOOM_THRESHOLD = 100;
+  var wheelZoomAcc = 0;
+  var wheelZoomPanel = null;
+  var wheelZoomIdle = null;
+
+  /** @spec RF-43, RF-56 */
   window.addEventListener('wheel', function (e) {
     if (!e.ctrlKey) return;
     e.preventDefault();
     var overEditor = editMode && !!e.target.closest && !!e.target.closest('#editor-pane');
-    if (overEditor) editorZoomStep(e.deltaY < 0 ? 1 : -1);
-    else if (e.deltaY < 0) zoomIn();
-    else zoomOut();
+    var panel = overEditor ? 'editor' : 'reading';
+    var legacy = e.wheelDeltaY || 0;
+    var notch = e.deltaMode !== 0 || (legacy !== 0 && legacy % 120 === 0);
+    if (panel !== wheelZoomPanel) wheelZoomAcc = 0;
+    wheelZoomPanel = panel;
+    wheelZoomAcc = notch ? (e.deltaY < 0 ? -WHEEL_ZOOM_THRESHOLD : WHEEL_ZOOM_THRESHOLD) : wheelZoomAcc + e.deltaY;
+    clearTimeout(wheelZoomIdle);
+    wheelZoomIdle = setTimeout(function () { wheelZoomAcc = 0; }, 400);
+    if (Math.abs(wheelZoomAcc) >= WHEEL_ZOOM_THRESHOLD) {
+      var zoomInDir = wheelZoomAcc < 0;
+      wheelZoomAcc = 0;
+      if (overEditor) editorZoomStep(zoomInDir ? 1 : -1);
+      else if (zoomInDir) zoomIn();
+      else zoomOut();
+    }
   }, { passive: false });
 
   // ─── Tamaño de letra del editor (RF-43) ──────────────────────────────────────────────────────────
@@ -2969,21 +3001,62 @@
   // se calculan a partir de los saltos de línea reales y se mantienen alineados
   // porque el textarea no hace wrap (wrap="off"/white-space:pre, 1 línea lógica
   // = 1 línea visual siempre).
-  var lastGutterLineCount = 0;
+  // RF-53.2: con «Números de línea relativos» la columna depende también de la línea del cursor.
+  var CursorStatus = window.DBVCursorStatus;
+  var RELATIVE_LINES_KEY = 'dbv-md-relative-lines';
+  var relativeLines = false;
+  try { relativeLines = localStorage.getItem(RELATIVE_LINES_KEY) === '1'; } catch (_) { /* sin almacenamiento: apagado */ }
+  var lastGutterKey = '';
 
+  /** Desplazamiento del cursor visible: el extremo móvil de la selección (`selectionStart` si va hacia atrás). */
+  function editorCaretOffset() {
+    return editorTextarea.selectionDirection === 'backward' ? editorTextarea.selectionStart : editorTextarea.selectionEnd;
+  }
+
+  /** @spec RF-20, RF-53 */
   function updateEditorLineNumbers() {
-    var lineCount = editorTextarea.value.split('\n').length;
-    // La mayoría de pulsaciones no añaden ni quitan una línea — reconstruir y
-    // reescribir el textContent de la columna en cada una sería trabajo tirado
-    // a la basura para el caso común (editar dentro de la misma línea).
-    if (lineCount !== lastGutterLineCount) {
-      var lines = '';
-      for (var i = 1; i <= lineCount; i++) lines += i + '\n';
-      editorLineNumbers.textContent = lines;
-      lastGutterLineCount = lineCount;
+    var text = editorTextarea.value;
+    var count = CursorStatus.lineCount(text);
+    var current = relativeLines ? CursorStatus.position(text, editorCaretOffset()).line : 0;
+    var key = count + ':' + current;
+    // La mayoría de pulsaciones no cambian ni el número de líneas ni (con relativos) la línea del cursor:
+    // reescribir la columna en cada una sería trabajo tirado para el caso común.
+    if (key !== lastGutterKey) {
+      editorLineNumbers.textContent = CursorStatus.gutterText(count, current, relativeLines);
+      lastGutterKey = key;
     }
     editorLineNumbers.scrollTop = editorTextarea.scrollTop;
   }
+
+  // ─── Barra de estado del editor (RF-53) ──────────────────────────────────
+  // «Ln X, Col Y (N seleccionados)», como mucho una vez por fotograma: varios eventos de la misma pulsación
+  // (keydown, selectionchange, input) se juntan en un solo cálculo.
+  var editorStatusPos = document.getElementById('editor-status-pos');
+  var editorStatusFrame = 0;
+
+  /** @spec RF-53 */
+  function renderEditorStatus() {
+    editorStatusFrame = 0;
+    if (!editMode) return;
+    var text = editorTextarea.value;
+    var pos = CursorStatus.position(text, editorCaretOffset());
+    var selected = CursorStatus.selectionCount(text, editorTextarea.selectionStart, editorTextarea.selectionEnd);
+    var label = t('editor.status.pos', { line: pos.line, col: pos.col }) + (selected ? ' ' + t('editor.status.selected', { count: selected }) : '');
+    if (editorStatusPos.textContent !== label) editorStatusPos.textContent = label;
+    if (relativeLines) updateEditorLineNumbers();
+  }
+
+  function scheduleEditorStatus() {
+    if (!editorStatusFrame) editorStatusFrame = requestAnimationFrame(renderEditorStatus);
+  }
+
+  ['keydown', 'keyup', 'mousedown', 'mouseup', 'select', 'focus', 'input'].forEach(function (name) {
+    editorTextarea.addEventListener(name, scheduleEditorStatus);
+  });
+  editorTextarea.addEventListener('mousemove', function (e) { if (e.buttons) scheduleEditorStatus(); });
+  // Cambios de selección por código (barra de formato, búsqueda, IA en línea) que no lanzan eventos de teclado.
+  document.addEventListener('selectionchange', function () { if (editMode && document.activeElement === editorTextarea) scheduleEditorStatus(); });
+  document.addEventListener('dbv-lang-changed', scheduleEditorStatus);
 
   // ─── Divisores arrastrables: editor↔preview y Tabla de Contenidos ─────────
   // getRect() se evalúa una sola vez al iniciar el arrastre, no en cada
@@ -3185,6 +3258,7 @@
       updateEditorLineNumbers();
       restoreEditorSplit();
       updateHeadingAnchors();
+      scheduleEditorStatus();
     }
     // No solo por si setDirty(false) no bastó: la rama `!on` no toca isDirty
     // en absoluto, así que el badge necesita este empujón propio para
@@ -3204,6 +3278,7 @@
     clearEditorHit(); // el texto cambió: la posición de la coincidencia ya no vale
     if (!applyingSectionEdit) { sectionUndo = null; sectionRedo = null; } // escribir descarta el deshacer del movimiento (RF-45)
     updateEditorLineNumbers();
+    scheduleAutoSave();
     clearTimeout(editDebounceTimer);
     editDebounceTimer = setTimeout(function () {
       renderMarkdown(editorTextarea.value);
@@ -3734,7 +3809,6 @@
     ol:        { kind: 'ordered' },
     link:      { kind: 'link-wrap', isImage: false },
     image:     { kind: 'link-wrap', isImage: true },
-    table:     { kind: 'block-insert', ph: 'editor.format.tableSkeleton' },
     hr:        { kind: 'block-insert', ph: 'editor.format.hrSkeleton' },
     codeblock: { kind: 'fence-wrap' }
   };
@@ -3760,7 +3834,74 @@
 
   editorToolbar.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-format]');
-    if (btn) applyMarkdownFormat(MD_FORMATS[btn.dataset.format]);
+    if (btn && btn.dataset.format === 'table') openInsertTable();
+    else if (btn) applyMarkdownFormat(MD_FORMATS[btn.dataset.format]);
+  });
+
+  // ─── Insertar tabla (RF-55) ──────────────────────────────────────────────
+  // El texto lo genera mdtable.js (puro). Se aplica con `applySectionEdit` (RF-45): una sola edición con su propio
+  // deshacer de un paso, sin `execCommand` (REJECTED-08).
+  var MdTable = window.DBVMdTable;
+  var tableModalEl = document.getElementById('table-modal');
+  var tableRowsEl = document.getElementById('table-rows');
+  var tableColsEl = document.getElementById('table-cols');
+  var tableHeaderEl = document.getElementById('table-header');
+  var tableFromSelRow = document.getElementById('table-from-selection-row');
+  var tableFromSelEl = document.getElementById('table-from-selection');
+  var tableTarget = null; // { start, end, rows } — la selección al abrir, y sus celdas si es TSV/CSV
+
+  function syncTableDims() {
+    var fromSel = !!(tableTarget && tableTarget.rows && tableFromSelEl.checked);
+    tableRowsEl.disabled = fromSel;
+    tableColsEl.disabled = fromSel;
+  }
+
+  var tableModalCtrl = registerPanel(tableModalEl, {
+    onOpen: function () { (tableTarget && tableTarget.rows ? tableFromSelEl : tableRowsEl).focus(); },
+    onClose: function () { if (editMode) editorTextarea.focus(); }
+  });
+  document.getElementById('table-backdrop').addEventListener('click', tableModalCtrl.close);
+  document.getElementById('table-close').addEventListener('click', tableModalCtrl.close);
+  tableFromSelEl.addEventListener('change', syncTableDims);
+
+  /** Abre el panel. Si hay texto seleccionado con tabuladores o comas en todas sus líneas, ofrece convertirlo. @spec RF-55 */
+  function openInsertTable() {
+    if (!editMode) return;
+    var start = editorTextarea.selectionStart, end = editorTextarea.selectionEnd;
+    var rows = start !== end ? MdTable.parseDelimited(editorTextarea.value.slice(start, end)) : null;
+    tableTarget = { start: start, end: end, rows: rows };
+    tableFromSelRow.classList.toggle('hidden', !rows);
+    tableFromSelEl.checked = !!rows;
+    if (rows) {
+      var cols = rows.reduce(function (n, r) { return Math.max(n, r.length); }, 0);
+      document.getElementById('table-from-selection-label').textContent = t('table.fromSelection', { rows: rows.length, cols: cols });
+    }
+    syncTableDims();
+    tableModalCtrl.open();
+  }
+
+  /** @spec RF-55 */
+  function insertTableFromPanel() {
+    if (!editMode || !tableTarget) return;
+    var header = tableHeaderEl.checked;
+    var fromSel = !!(tableTarget.rows && tableFromSelEl.checked);
+    var table = fromSel ? MdTable.fromRows(tableTarget.rows, header) : MdTable.build(tableRowsEl.value, tableColsEl.value, header);
+    // Sin convertir, la tabla vacía va donde está el cursor y el texto seleccionado se conserva delante.
+    var start = fromSel ? tableTarget.start : tableTarget.end;
+    var plan = MdTable.insertion(editorTextarea.value, start, tableTarget.end, table);
+    tableModalCtrl.close();
+    applySectionEdit(plan);
+    editorTextarea.focus();
+    editorTextarea.setSelectionRange(plan.cursor, plan.cursor);
+    scheduleEditorStatus();
+  }
+
+  document.getElementById('table-insert').addEventListener('click', insertTableFromPanel);
+  [tableRowsEl, tableColsEl, tableHeaderEl, tableFromSelEl].forEach(function (el) {
+    el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); insertTableFromPanel(); } });
+  });
+  [tableRowsEl, tableColsEl].forEach(function (el) {
+    el.addEventListener('change', function () { el.value = MdTable.clampDim(el.value); });
   });
 
   // ─── Tab / Shift+Tab: indentar/desindentar en vez de mover el foco (RF-24) ──
@@ -3789,8 +3930,15 @@
     editorTextarea.dispatchEvent(new Event('input', { bubbles: true }));
   });
 
-  function saveCurrentDocument() {
-    if (isAndroid || !currentDoc || !editMode || isRemoteDoc(currentDoc)) return;
+  /**
+   * Guarda el texto del editor en su fichero. Devuelve una promesa con `true` si se escribió.
+   * `opts.auto` (RF-54): el fallo se muestra en la barra de estado, sin ventana emergente en cada intento.
+   * @spec RF-20, RF-54
+   */
+  function saveCurrentDocument(opts) {
+    if (isAndroid || !currentDoc || !editMode || isRemoteDoc(currentDoc)) return Promise.resolve(false);
+    var auto = !!(opts && opts.auto);
+    clearTimeout(autoSaveTimer);
     var path = currentDoc.path;
     var content = editorTextarea.value;
     clearTimeout(editDebounceTimer);
@@ -3809,18 +3957,65 @@
     setDirty(false);
     conflictPending = false;
     conflictBanner.classList.add('hidden');
-    invoke('write_file', { path: path, content: content })
+    return invoke('write_file', { path: path, content: content })
       .then(function () {
         currentDoc.content = content;
+        if (auto) flashEditorStatus(t('editor.autosaved'));
+        return true;
       })
       .catch(function (err) {
         showError('[write_file] ' + err);
-        alert(t('errors.saveFailed', { error: err }));
+        if (auto) flashEditorStatus(t('editor.autosaveFailed', { error: err }));
+        else alert(t('errors.saveFailed', { error: err }));
         // El guardado no llegó a ocurrir: revertir el estado optimista — sigue
         // habiendo cambios sin guardar y no hay ninguna escritura real que suprimir.
         setDirty(editorTextarea.value !== currentDoc.content);
         suppressSelfWriteUntil = 0;
+        return false;
       });
+  }
+
+  // ─── Guardado automático (RF-54) ─────────────────────────────────────────
+  // A los 2 s de la última pulsación (y al salir de edición, ver confirmDiscardUnsavedChanges). La decisión es pura
+  // (autosave.js); aquí solo el temporizador. Nunca pisa un cambio externo: con `conflictPending` (RF-21) no escribe
+  // ni abre diálogos, y avisa una vez por episodio en la barra de estado.
+  var AutoSave = window.DBVAutoSave;
+  var AUTOSAVE_KEY = 'dbv-md-autosave';
+  var autoSaveOn = false;
+  try { autoSaveOn = localStorage.getItem(AUTOSAVE_KEY) === '1'; } catch (_) { /* sin almacenamiento: apagado */ }
+  var autoSaveTimer = null;
+  var autoSaveNotice = AutoSave.createConflictNotice();
+
+  function autoSaveDecision() {
+    return AutoSave.decide({
+      enabled: autoSaveOn && !isAndroid,
+      editMode: editMode,
+      remote: !!currentDoc && isRemoteDoc(currentDoc),
+      hasPath: !!(currentDoc && currentDoc.path),
+      dirty: isDirty,
+      conflict: conflictPending
+    });
+  }
+
+  /** @spec RF-54 */
+  function runAutoSave() {
+    var decision = autoSaveDecision();
+    if (autoSaveNotice.shouldWarn(decision === 'conflict')) flashEditorStatus(t('editor.autosaveConflict'), 6000);
+    if (decision === 'proceed') saveCurrentDocument({ auto: true });
+  }
+
+  function scheduleAutoSave() {
+    clearTimeout(autoSaveTimer);
+    if (autoSaveOn) autoSaveTimer = setTimeout(runAutoSave, AutoSave.DELAY_MS);
+  }
+
+  // Aviso breve en la barra de estado del editor (RF-53/RF-54.5), no una ventana emergente por cada guardado.
+  var editorStatusMsg = document.getElementById('editor-status-msg');
+  var editorStatusMsgTimer = null;
+  function flashEditorStatus(text, ms) {
+    editorStatusMsg.textContent = text;
+    clearTimeout(editorStatusMsgTimer);
+    editorStatusMsgTimer = setTimeout(function () { editorStatusMsg.textContent = ''; }, ms || 2500);
   }
 
   /**
@@ -4242,6 +4437,27 @@
     set: function (value) {
       return invoke('set_window_state_pref', { enabled: !!value }).then(function () { rememberWindow = !!value; })
         .catch(function (err) { console.warn('[set_window_state_pref]', err); });
+    }
+  };
+
+  // RF-53.2: Preferencias ▸ Números de línea relativos (desactivado por defecto).
+  window.DBVPrefs.relativeLines = {
+    get: function () { return relativeLines; },
+    set: function (value) {
+      relativeLines = !!value;
+      try { localStorage.setItem(RELATIVE_LINES_KEY, relativeLines ? '1' : '0'); } catch (_) { /* sin almacenamiento */ }
+      lastGutterKey = '';
+      updateEditorLineNumbers();
+    }
+  };
+
+  // RF-54.1: Preferencias ▸ Guardado automático (desactivado por defecto).
+  window.DBVPrefs.autoSave = {
+    get: function () { return autoSaveOn; },
+    set: function (value) {
+      autoSaveOn = !!value;
+      try { localStorage.setItem(AUTOSAVE_KEY, autoSaveOn ? '1' : '0'); } catch (_) { /* sin almacenamiento */ }
+      if (autoSaveOn) scheduleAutoSave(); else clearTimeout(autoSaveTimer);
     }
   };
 

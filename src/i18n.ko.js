@@ -233,6 +233,17 @@
     'editor.resizeHandle': '끌어서 크기 조절',
     'toc.resizeHandle': '끌어서 크기 조절',
     'editor.save': '저장 (Ctrl+S)',
+    'editor.status.pos': '줄 {line}, 열 {col}',
+    'editor.status.selected': '({count}자 선택됨)',
+    'editor.autosaved': '자동으로 저장됨',
+    'table.title': '표 삽입',
+    'table.rows': '행',
+    'table.cols': '열',
+    'table.header': '머리글 행',
+    'table.insert': '삽입',
+    'table.fromSelection': '선택 영역을 표로 변환 ({rows} × {cols})',
+    'editor.autosaveConflict': '자동 저장 일시 중지: 디스크의 파일이 변경됨',
+    'editor.autosaveFailed': '자동으로 저장할 수 없음: {error}',
     'editor.format.bold': '굵게 (Ctrl+B)',
     'editor.format.italic': '기울임 (Ctrl+I)',
     'editor.format.strike': '취소선',
@@ -257,7 +268,6 @@
     'editor.format.imageAltSkeleton': '대체 텍스트',
     'editor.format.codeLangSkeleton': '언어',
     'editor.format.codeBlockSkeleton': '예제 코드',
-    'editor.format.tableSkeleton': '| 열 1 | 열 2 | 열 3 |\n| --- | --- | --- |\n| 셀 | 셀 | 셀 |\n| 셀 | 셀 | 셀 |',
     'editor.format.hrSkeleton': '---'
   });
 })();

@@ -261,6 +261,10 @@ function checkAllMoves(name, text) {
   return { moves, failures, draggable: draggable.length };
 }
 
+// Recorre TODOS los movimientos posibles (cuadrático en secciones): ~3 s solo con GFM_test.md, y más de los 5 s por
+// defecto de vitest cuando corre en paralelo con el resto de ficheros. El tiempo no es lo que se prueba.
+const PROPERTY_TIMEOUT_MS = 30000;
+
 describe('RF-45 · prueba de propiedad: todos los movimientos posibles sobre los .md del repositorio', () => {
   const files = [
     ['testfiles/GFM_test.md', readFileSync(resolve(process.cwd(), 'testfiles', 'GFM_test.md'), 'utf8')],
@@ -277,7 +281,7 @@ describe('RF-45 · prueba de propiedad: todos los movimientos posibles sobre los
       expect(result.draggable).toBeGreaterThan(5);
       expect(result.moves).toBeGreaterThan(result.draggable);
       expect(result.failures).toEqual([]);
-    });
+    }, PROPERTY_TIMEOUT_MS);
   }
 
   it('lo mismo con los finales de línea CRLF y sin salto final', () => {
@@ -285,5 +289,5 @@ describe('RF-45 · prueba de propiedad: todos los movimientos posibles sobre los
     const crlf = base.replace(/\r?\n/g, '\r\n');
     expect(checkAllMoves('es-CRLF', crlf).failures).toEqual([]);
     expect(checkAllMoves('es-sin-final', crlf.replace(/\r\n$/, '')).failures).toEqual([]);
-  });
+  }, PROPERTY_TIMEOUT_MS);
 });

@@ -604,6 +604,11 @@
 
 ## ⚠️ Lecciones Aprendidas & Gotchas
 
+### [2026-11-16] Lección 41: Un umbral en píxeles no reconoce un paso de rueda en todos los motores; y una prueba de propiedad cuadrática necesita su propio timeout
+
+- **Qué pasó:** (1) D11 proponía acumular `deltaY` de Ctrl+rueda hasta 100 px porque «los ratones clásicos dan ≥ 100 por paso». Es cierto en Chromium/WebView2, pero en WebKit (macOS, WebKitGTK) un paso puede dar un `deltaY` bastante menor, y el umbral habría pedido varios pasos por escalón. (2) Al añadir 5 ficheros de test, la prueba de propiedad de RF-45 sobre `GFM_test.md` (≈3 s sola) superó los 5 s por defecto de vitest al correr en paralelo, de forma sistemática, sin que el código que prueba cambiara.
+- **Regla:** (1) reconocer el paso de rueda por `wheelDeltaY` múltiplo de 120 o `deltaMode` ≠ 0, darle su escalón al momento y acumular solo los desplazamientos finos (pellizco). (2) Las pruebas exhaustivas llevan un timeout explícito y comentado; el tiempo no es lo que prueban, y subirlo no relaja ninguna aserción.
+
 ### [2026-10-19] Lección 36: Medir el «antes» con el mismo cuidado que el «después» — dos de mis primeras medidas del ciclo 0.19.0 estaban mal
 
 - **Qué pasó:** (1) medí el clic en el Índice a los 500 ms y vi desalineaciones de miles de líneas; era el scroll **suave** a medias — esperando a que asiente, el desfase es 0 y esa parte de #15 ya funcionaba. (2) Mi primera métrica de sincronización dejaba huecos cuando el borde superior caía en el margen entre bloques. Medir mal habría llevado a «arreglar» algo que no estaba roto.

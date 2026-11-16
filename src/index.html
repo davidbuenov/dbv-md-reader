@@ -222,6 +222,22 @@
     </div>
   </div>
 
+  <!-- ─── Insertar tabla (RF-55): filas, columnas, cabecera; o convertir una selección TSV/CSV ─── -->
+  <div id="table-modal" class="modal-overlay hidden">
+    <div id="table-backdrop" class="modal-backdrop"></div>
+    <div id="table-card" class="modal-card" role="dialog" aria-modal="true" aria-labelledby="table-title">
+      <button id="table-close" class="btn-icon-sm" data-i18n-title="action.close">✕</button>
+      <h2 id="table-title" data-i18n="table.title">Insertar tabla</h2>
+      <label id="table-from-selection-row" class="table-check hidden"><input id="table-from-selection" type="checkbox" checked> <span id="table-from-selection-label"></span></label>
+      <div class="table-dims">
+        <label><span data-i18n="table.rows">Filas</span><input id="table-rows" type="number" min="1" max="20" value="3"></label>
+        <label><span data-i18n="table.cols">Columnas</span><input id="table-cols" type="number" min="1" max="20" value="3"></label>
+      </div>
+      <label class="table-check"><input id="table-header" type="checkbox" checked> <span data-i18n="table.header">Fila de encabezado</span></label>
+      <div class="table-actions"><button id="table-insert" class="btn-primary" type="button" data-i18n="table.insert">Insertar</button></div>
+    </div>
+  </div>
+
   <!-- ─── Temas y colores (RF-50): lo rellena themedialog.js ─── -->
   <div id="theme-modal" class="modal-overlay hidden">
     <div id="theme-backdrop" class="modal-backdrop"></div>
@@ -338,6 +354,12 @@
         <div id="editor-body">
           <div id="editor-line-numbers">1</div>
           <textarea id="editor-textarea" data-i18n-placeholder="editor.placeholder" placeholder="Markdown…" autocomplete="off" autocapitalize="off" spellcheck="false" wrap="off"></textarea>
+        </div>
+        <!-- Barra de estado del editor (RF-53): insignia de Vim (RF-51), aviso breve (RF-54) y Ln/Col -->
+        <div id="editor-status" aria-live="off">
+          <span id="editor-status-vim" class="hidden"></span>
+          <span id="editor-status-msg"></span>
+          <span id="editor-status-pos"></span>
         </div>
       </div>
 
@@ -474,6 +496,9 @@
   <script src="releasecheck.js"></script>
   <script src="outline.js"></script>
   <script src="themedialog.js"></script>
+  <script src="cursorstatus.js"></script>
+  <script src="autosave.js"></script>
+  <script src="mdtable.js"></script>
   <script src="app.js"></script>
   <script src="filetree.js"></script>
   <script src="headermenu.js"></script>
