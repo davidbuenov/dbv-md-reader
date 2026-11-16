@@ -27,7 +27,7 @@ import { proposeNudge, runAgent } from './agentLoop.js';
 import { createProposalApplier } from './applyProposal.js';
 import { createChatPanel, mentionedPaths } from './chatPanel.js';
 import { createConnectWizard, DEFAULT_AGENT_MODELS, resolveAgentModel } from './connectWizard.js';
-import { createAcpSession, insideProject } from './acpSession.js';
+import { createAcpSession, insideProject, pickPermissionMode } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
 import { buildContext, estimateTokens, systemPrompt } from './context.js';
 import { adviceMessages, createModelInfoLookup, effectiveContext } from './modelAdvice.js';
@@ -818,6 +818,11 @@ export function createAiApp(deps) {
       if (!agentTurn) return;
       if (update.type === 'text') agentTurn.bubble.append(update.text);
       else if (update.type === 'tool' && update.title) panel.addStep(update.title);
+      // RF-58: si el agente sale por su cuenta del modo de solo lectura, se le devuelve a él.
+      else if (update.type === 'mode' && autonomy === 'readOnly') {
+        const readOnlyMode = pickPermissionMode(acp.modes, 'readOnly');
+        if (readOnlyMode && update.modeId !== readOnlyMode) acp.setMode(readOnlyMode);
+      }
       else if (update.type === 'plan' && update.entries.length) panel.addNote(`${t('ai.agentPlan')}\n${update.entries.map((e) => `${e.status === 'completed' ? '✓' : '·'} ${e.content}`).join('\n')}`);
     },
   });
@@ -870,6 +875,18 @@ export function createAiApp(deps) {
       const spec = { id, model: resolveAgentModel(id, connection.model) || undefined, reasoningEffort: connection.reasoningEffort || 'medium' };
       panel.addStep(t('ai.agentStarting').replace('{agent}', providerName(connection)));
       const session = await acp.ensureSession(spec, conversation()?.id ?? null);
+      // RF-58 (template-v0.5.2): el modo del agente sigue al nivel. Claude Code arranca en `auto` y editaba en disco
+      // sin pedir permiso (medido por el usuario); ahora pregunta (`default`) o, en «Solo lectura», no edita (`plan`).
+      // Un agente sin modo de solo lectura no recibe el mensaje en ese nivel: nada se escribe sin revisión.
+      const need = autonomy === 'readOnly' ? 'readOnly' : 'ask';
+      const mode = pickPermissionMode(session.modes, need);
+      if (!mode && need === 'readOnly') {
+        throw Object.assign(new Error(t('ai.autonomy.agentNoReadOnly').replace('{agent}', providerName(connection))), { kind: 'autonomy' });
+      }
+      if (mode && !(await acp.setMode(mode)) && need === 'readOnly') {
+        throw Object.assign(new Error(t('ai.autonomy.agentNoReadOnly').replace('{agent}', providerName(connection))), { kind: 'autonomy' });
+      }
+      if (!mode) panel.addNote(t('ai.autonomy.agentNoAskMode').replace('{agent}', providerName(connection)));
       const active = activeSource();
       const context = [
         agentPreamble(session.fresh),

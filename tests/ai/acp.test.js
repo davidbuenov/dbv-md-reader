@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it, vi } from 'vitest';
-import { createAcpSession, describeUpdate, insideProject, pickAuthMethod, sliceLines } from '../../src/ai/acpSession.js';
+import { createAcpSession, describeUpdate, insideProject, pickAuthMethod, pickPermissionMode, sliceLines } from '../../src/ai/acpSession.js';
 import { createChangesCard, createPermissionCard, permissionDiffs } from '../../src/ai/acpView.js';
 
 /** Transporte simulado: guarda lo que se envía y deja inyectar mensajes del agente. */
@@ -223,6 +223,66 @@ describe('tarjetas de permiso y de cambios', () => {
     );
     [...card.querySelectorAll('button')].at(-1).click();
     await vi.waitFor(() => expect(undo).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('modos de permisos del agente (ACP `session/set_mode`)', () => {
+  const MODES = { currentModeId: 'auto', availableModes: [{ id: 'default', name: 'Default' }, { id: 'plan', name: 'Plan' }, { id: 'auto', name: 'Auto' }] };
+  const withModes = () => {
+    const ctx = setup();
+    const base = ctx.backend.acpRequest.getMockImplementation();
+    ctx.backend.acpRequest.mockImplementation(async (method, params) => {
+      if (method === 'session/new') return { ok: true, value: { sessionId: 's1', modes: MODES } };
+      if (method === 'session/set_mode') { ctx.backend.sent.push({ method, params }); return { ok: true, value: {} }; }
+      return base(method, params);
+    });
+    return ctx;
+  };
+
+  it('ensureSession devuelve los modos que anuncia el agente', async () => {
+    const { session } = withModes();
+    const opened = await session.ensureSession({ id: 'claude' });
+    expect(opened.modes).toEqual(MODES);
+    expect(session.modes.currentModeId).toBe('auto');
+  });
+
+  it('setMode pide session/set_mode y recuerda el modo; uno no anunciado no se pide', async () => {
+    const { backend, session } = withModes();
+    await session.ensureSession({ id: 'claude' });
+    expect(await session.setMode('default')).toBe(true);
+    expect(backend.sent.filter((m) => m.method === 'session/set_mode')).toEqual([{ method: 'session/set_mode', params: { sessionId: 's1', modeId: 'default' } }]);
+    expect(session.modes.currentModeId).toBe('default');
+    expect(await session.setMode('bypassPermissions')).toBe(false);
+    expect(backend.sent.filter((m) => m.method === 'session/set_mode')).toHaveLength(1);
+  });
+
+  it('un current_mode_update del agente actualiza el modo y llega a la interfaz', async () => {
+    const { backend, session, updates } = withModes();
+    await session.ensureSession({ id: 'claude' });
+    await backend.emit({ kind: 'notification', method: 'session/update', params: { sessionId: 's1', update: { sessionUpdate: 'current_mode_update', currentModeId: 'plan' } } });
+    expect(session.modes.currentModeId).toBe('plan');
+    expect(updates.at(-1)).toEqual({ type: 'mode', modeId: 'plan' });
+  });
+
+  it('elige el modo que pregunta y el de solo lectura, nunca uno que concede permisos solo', () => {
+    const claude = { availableModes: ['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'].map((id) => ({ id })) };
+    const codex = { availableModes: ['read-only', 'auto', 'full-access'].map((id) => ({ id })) };
+    const permissive = { availableModes: ['auto', 'acceptEdits', 'bypassPermissions', 'full-access'].map((id) => ({ id })) };
+    expect(pickPermissionMode(claude, 'ask')).toBe('default');
+    expect(pickPermissionMode(claude, 'readOnly')).toBe('plan');
+    expect(pickPermissionMode(codex, 'ask')).toBe('read-only');
+    expect(pickPermissionMode(codex, 'readOnly')).toBe('read-only');
+    expect(pickPermissionMode(permissive, 'ask')).toBeNull();
+    expect(pickPermissionMode(permissive, 'readOnly')).toBeNull();
+    expect(pickPermissionMode(null, 'ask')).toBeNull();
+    expect(pickPermissionMode({ availableModes: [{ id: 'Plan' }] }, 'readOnly')).toBe('Plan');
+  });
+
+  it('un agente que no anuncia modos da null y setMode no hace nada', async () => {
+    const { backend, session } = setup();
+    expect((await session.ensureSession({ id: 'claude' })).modes).toBeNull();
+    expect(await session.setMode('plan')).toBe(false);
+    expect(backend.sent.some((m) => m.method === 'session/set_mode')).toBe(false);
   });
 });
 

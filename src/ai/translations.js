@@ -270,6 +270,9 @@ export const AI_TRANSLATIONS = {
     'ai.agentSigningIn': "El agente pide iniciar sesión («{method}»): si se abre el navegador, completa allí el inicio de sesión.",
     'ai.copy': "Copiar",
     // RF-58 / RF-59: niveles de autonomía
+    'ai.error.autonomy': 'Solo lectura:',
+    'ai.autonomy.agentNoReadOnly': "{agent} no tiene un modo de solo lectura, así que en «Solo lectura» no se le envía el mensaje: podría editar los documentos por su cuenta. Elige otro nivel o un modelo directo.",
+    'ai.autonomy.agentNoAskMode': "{agent} no anuncia un modo que pida permiso antes de editar: si cambia algo en disco lo verás después en «El agente cambió…», con la opción de deshacerlo.",
     'ai.autonomy.label': "Autonomía",
     'ai.autonomy.hint': "Qué puede hacer la IA sin preguntarte. Con los agentes (Claude Code, Codex…) controla lo que el agente pide a la aplicación; sus propias herramientas las gobierna el agente.",
     'ai.autonomy.askAll': "Preguntar todo",
@@ -542,6 +545,9 @@ export const AI_TRANSLATIONS = {
     'ai.agentSigningIn': "The agent asks you to sign in (\"{method}\"): if a browser opens, finish signing in there.",
     'ai.copy': "Copy",
     // RF-58 / RF-59: niveles de autonomía
+    'ai.error.autonomy': 'Read only:',
+    'ai.autonomy.agentNoReadOnly': "{agent} has no read-only mode, so in “Read only” the message is not sent: it could edit your documents on its own. Pick another level or a direct model.",
+    'ai.autonomy.agentNoAskMode': "{agent} does not offer a mode that asks before editing: if it changes something on disk you will see it afterwards in “The agent changed…”, with the option to undo it.",
     'ai.autonomy.label': "Autonomy",
     'ai.autonomy.hint': "What the AI can do without asking you. With agents (Claude Code, Codex…) it controls what the agent asks the app for; the agent governs its own tools.",
     'ai.autonomy.askAll': "Ask for everything",

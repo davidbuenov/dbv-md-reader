@@ -30,7 +30,7 @@ const ASIDE_REFUSAL = 'consulta suelta: sin acceso a ficheros ni herramientas';
 
 /**
  * Traduce una actualización de sesión (`session/update`) a algo que pintar.
- * @returns {{type: 'text'|'thought'|'tool'|'plan'|'ignore', text?: string, title?: string, status?: string, id?: string, entries?: Array}}
+ * @returns {{type: 'text'|'thought'|'tool'|'plan'|'mode'|'ignore', text?: string, title?: string, status?: string, id?: string, entries?: Array, modeId?: string}}
  */
 export function describeUpdate(update) {
   const kind = update?.sessionUpdate;
@@ -40,7 +40,34 @@ export function describeUpdate(update) {
   else if (kind === 'tool_call') result = { type: 'tool', id: update.toolCallId, title: update.title ?? update.kind ?? '', status: update.status ?? 'pending' };
   else if (kind === 'tool_call_update') result = { type: 'toolUpdate', id: update.toolCallId, title: update.title ?? '', status: update.status ?? '' };
   else if (kind === 'plan') result = { type: 'plan', entries: (update.entries ?? []).map((entry) => ({ content: entry.content ?? '', status: entry.status ?? 'pending' })) };
+  else if (kind === 'current_mode_update' && typeof update.currentModeId === 'string') result = { type: 'mode', modeId: update.currentModeId };
   return result;
+}
+
+/**
+ * Modos de permisos (ACP `session/new` → `modes`) en orden de preferencia para cada necesidad:
+ * - `ask`: el agente PIDE PERMISO antes de editar o ejecutar (la app ve la petición y decide). Claude Code arranca
+ *   por defecto en `auto`, que edita sin preguntar: sin fijar `default`, la tarjeta de permiso nunca aparece.
+ * - `readOnly`: el agente NO edita (Claude `plan`; Codex `read-only`, que además pide permiso para todo).
+ * Ningún modo que conceda permisos sin preguntar (`auto`, `acceptEdits`, `bypassPermissions`, `full-access`) se elige nunca.
+ */
+const PERMISSION_MODE_PREFERENCES = Object.freeze({
+  ask: ['default', 'manual', 'ask', 'read-only', 'readonly', 'read_only'],
+  readOnly: ['plan', 'read-only', 'readonly', 'read_only'],
+});
+
+/**
+ * Elige, entre los modos que anuncia el agente, el que cumple `need` (`'ask'` o `'readOnly'`), o `null` si no tiene
+ * ninguno (la app decide entonces: p. ej. no enviarle el mensaje en solo lectura).
+ * @param {{ availableModes?: Array<{id: string}> }|null} modes
+ * @param {'ask'|'readOnly'} need
+ * @returns {string|null}
+ */
+export function pickPermissionMode(modes, need) {
+  const available = new Set((modes?.availableModes ?? []).map((m) => String(m?.id ?? '').toLowerCase()));
+  const original = new Map((modes?.availableModes ?? []).map((m) => [String(m?.id ?? '').toLowerCase(), m.id]));
+  const wanted = (PERMISSION_MODE_PREFERENCES[need] ?? []).find((id) => available.has(id));
+  return wanted ? original.get(wanted) : null;
 }
 
 /** Ruta relativa de `absolute` dentro de `root`, o `null` si está fuera. */
@@ -93,6 +120,8 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
   let conversationId = null;
   let agentInfo = null;
   let images = false;
+  /** Modos de permisos que anuncia el agente en `session/new` (`{ currentModeId, availableModes }`) o `null`. */
+  let modes = null;
   let listening = null;
   /** Sesiones de consulta suelta abiertas: id → recoge su texto. */
   const asides = new Map();
@@ -113,7 +142,12 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
 
   async function handle(message) {
     if (message.kind === 'notification') {
-      if (message.method === 'session/update' && message.params?.sessionId === sessionId) onUpdate(describeUpdate(message.params.update));
+      if (message.method === 'session/update' && message.params?.sessionId === sessionId) {
+        const update = describeUpdate(message.params.update);
+        // El agente puede cambiar de modo por su cuenta (p. ej. Claude al salir de «plan»): se sigue.
+        if (update.type === 'mode' && modes) modes = { ...modes, currentModeId: update.modeId };
+        onUpdate(update);
+      }
       else if (message.method === 'session/update') asides.get(message.params?.sessionId)?.(describeUpdate(message.params.update));
       return;
     }
@@ -166,7 +200,7 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
       root === currentRoot &&
       conversationId === targetConversationId
     ) {
-      return { fresh: false, agentInfo, images };
+      return { fresh: false, agentInfo, images, modes };
     }
     await backend.acpStop();
     const started = await backend.acpStart(nextSpec, currentRoot);
@@ -197,6 +231,10 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
     sessionId = session.value.sessionId;
     agentInfo = init.value?.agentInfo ?? null;
     images = Boolean(init.value?.agentCapabilities?.promptCapabilities?.image);
+    const announced = session.value?.modes;
+    modes = announced && Array.isArray(announced.availableModes)
+      ? { currentModeId: announced.currentModeId ?? null, availableModes: announced.availableModes.filter((m) => m && typeof m.id === 'string') }
+      : null;
     const cleanModel = effectiveModelOf(nextSpec);
     if (cleanModel) {
       await backend.acpRequest('session/set_config_option', {
@@ -214,7 +252,7 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
         value: nextSpec.reasoningEffort,
       });
     }
-    return { fresh: true, agentInfo, images };
+    return { fresh: true, agentInfo, images, modes };
   }
 
   /**
@@ -272,7 +310,28 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
       conversationId = null;
       agentInfo = null;
       images = false;
+      modes = null;
       await backend.acpStop();
+    },
+    /**
+     * Cambia el modo de permisos del agente (`session/set_mode`), p. ej. `default` (pregunta antes de editar) o
+     * `plan` (no edita). Solo admite un modo que el agente haya anunciado. Devuelve `true` si el agente lo aceptó.
+     */
+    async setMode(modeId) {
+      const known = modes?.availableModes.some((m) => m.id === modeId);
+      let changed = false;
+      if (sessionId && known) {
+        if (modes.currentModeId === modeId) changed = true;
+        else {
+          const result = await backend.acpRequest('session/set_mode', { sessionId, modeId });
+          changed = result.ok;
+          if (changed) modes = { ...modes, currentModeId: modeId };
+        }
+      }
+      return changed;
+    },
+    get modes() {
+      return modes;
     },
     get sessionId() {
       return sessionId;
