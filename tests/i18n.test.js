@@ -282,7 +282,7 @@ describe('RF-47 · guía de la aplicación', () => {
 
   it('el apartado de atajos recoge los atajos principales de la aplicación, también F1', () => {
     for (const lang of ['es', 'en']) {
-      for (const shortcut of ['F1', 'Ctrl/Cmd + N', 'Ctrl/Cmd + O', 'Ctrl/Cmd + S', 'Ctrl/Cmd + P', 'Ctrl/Cmd + F', 'Ctrl/Cmd + K', 'Ctrl/Cmd + E', 'Alt + ↑']) {
+      for (const shortcut of ['F1', 'Ctrl/Cmd + N', 'Ctrl/Cmd + O', 'Ctrl/Cmd + S', 'Ctrl/Cmd + P', 'Ctrl/Cmd + F', 'Ctrl/Cmd + K', 'Ctrl/Cmd + E', 'Alt + ↑', 'Ctrl/Cmd + Mayús + S'.replace('Mayús', lang === 'es' ? 'Mayús' : 'Shift'), 'Ctrl + Q', 'Ctrl/Cmd + wheel'.replace('wheel', lang === 'es' ? 'rueda' : 'wheel')]) {
         expect(GUIDES[lang], `${lang}: ${shortcut}`).toContain(shortcut);
       }
     }
@@ -295,12 +295,27 @@ describe('RF-47 · guía de la aplicación', () => {
     'menu.showAi', 'menu.editorFont', 'menu.editorFont.dec', 'menu.editorFont.inc', 'menu.editorFont.reset',
     'sidebar.tabIndex', 'sidebar.tabFiles', 'ai.tab', 'search.targetLabel', 'search.target.editor', 'search.target.preview',
     'code.wrapOn', 'about.checkUpdate', 'ai.menu.inline', 'doc.readOnly', 'doc.modified', 'menu.quickOpen',
+    // v0.20.0
+    'menu.saveAs', 'menu.exit', 'menu.themes', 'menu.vimMode', 'menu.relativeLines', 'menu.autoSave', 'menu.insertTable',
   ];
   it.each(['es', 'en'])('apphelp_%s.md nombra las entradas de la interfaz tal como se ven', (lang) => {
     const I = loadI18n({ navLang: lang }).I;
     I.setLang(lang, { persist: false });
     const guide = GUIDES[lang].toLowerCase();
     const missing = LABEL_KEYS.filter((key) => !guide.includes(I.t(key).replace(/…$/, '').toLowerCase()));
+    expect(missing).toEqual([]);
+  });
+
+  // Etiquetas cortas («Salir», «Exit») aparecen en otras frases y la comprobación de arriba no las protege: la guía
+  // tiene que nombrar la RUTA completa del menú, con las etiquetas reales.
+  const MENU_PATHS = [
+    ['menu.file', 'menu.exit'], ['menu.file', 'menu.saveAs'], ['menu.tools', 'menu.insertTable'],
+    ['menu.prefs', 'menu.themes'], ['menu.prefs', 'menu.vimMode'],
+  ];
+  it.each(['es', 'en'])('apphelp_%s.md nombra las entradas nuevas con su ruta de menú', (lang) => {
+    const I = loadI18n({ navLang: lang }).I;
+    I.setLang(lang, { persist: false });
+    const missing = MENU_PATHS.map(([menu, item]) => `${I.t(menu)} → ${I.t(item).replace(/…$/, '')}`).filter((p) => !GUIDES[lang].includes(p));
     expect(missing).toEqual([]);
   });
 
