@@ -605,6 +605,11 @@
 
 ## ⚠️ Lecciones Aprendidas & Gotchas
 
+### [2026-11-16] Lección 44: Una prueba de ataque real antes de clasificar un hallazgo de seguridad; y AltGr es Ctrl+Alt en Windows
+
+- **Qué pasó:** (1) la revisión vio `securityLevel: 'loose'` en Mermaid con el SVG insertado con `innerHTML`, sin ADR ni CSP. Era de antes de esta versión y se podía haber dejado como «preexistente»; un `.md` con cargas conocidas demostró que `click C "javascript:…"` se ejecutaba al pulsar el nodo, con `__TAURI__` a mano. (2) El filtro de teclas de Vim descartaba todo Ctrl+Alt como atajo, y en el teclado español eso es AltGr: `{ } [ ] ~` no llegaban.
+- **Regla:** (1) un hallazgo de seguridad en el renderizado se prueba con un documento hostil en el arnés antes de clasificarlo; si se confirma, es Crítico aunque sea viejo, y la prueba se queda como banco que falla con la versión anterior. (2) En los filtros de teclado, Ctrl+Alt con un carácter imprimible que no es letra ni dígito es AltGr; probarlo con `modifiers: 3` en CDP.
+
 ### [2026-11-16] Lección 43: Un `requestAnimationFrame` pedido en `keyup` retrasa un fotograma la letra recién escrita, y el perfil de JS no lo enseña
 
 - **Qué pasó:** en `/test` la latencia por tecla con 5.000 líneas pasó de 13 ms (0.19.0) a 25 ms con todas las preferencias nuevas apagadas. El perfil de CPU daba menos de 0,5 ms de JS por tecla, y aislar la barra con `contain: strict` no cambiaba nada. Bisecar por commits (`git archive` de cada rebanada y el mismo arnés) señaló la rebanada E, y las variantes del código con una sola pieza quitada señalaron el `keyup` que programaba la barra de estado.

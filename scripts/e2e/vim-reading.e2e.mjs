@@ -91,6 +91,23 @@ async function main() {
   ok('«]]» otra vez: «Sección 3»', Math.abs((await headingOffset(h, 3)) - ref) <= 4, (await headingOffset(h, 3)).toFixed(1));
   await type(h, '[['); await h.sleep(800);
   ok('«[[»: vuelve a «Sección 2»', Math.abs((await headingOffset(h, 2)) - ref) <= 4, (await headingOffset(h, 2)).toFixed(1));
+  // Teclado español: `[` y `]` salen con AltGr, que en Windows llega como Ctrl+Alt (modificadores 3).
+  await tocOffset(h, 1); await focusDoc(h);
+  for (let i = 0; i < 2; i++) {
+    await h.send('Input.dispatchKeyEvent', { type: 'keyDown', key: ']', code: 'BracketRight', modifiers: 3 });
+    await h.send('Input.dispatchKeyEvent', { type: 'keyUp', key: ']', code: 'BracketRight', modifiers: 3 });
+  }
+  await h.sleep(800);
+  ok('«]]» con AltGr (teclado español) también salta al encabezado siguiente', Math.abs((await headingOffset(h, 2)) - ref) <= 4, (await headingOffset(h, 2)).toFixed(1));
+  const beforeGj = await top(h);
+  await type(h, 'gj');
+  ok('«g» seguido de otra tecla no se la come: «gj» baja una línea', (await top(h)) > beforeGj, `${beforeGj} → ${await top(h)}`);
+  await h.eval(`document.getElementById('btn-markdown-help').click()`); await h.sleep(300);
+  await h.eval(`document.activeElement && document.activeElement.blur()`);
+  const beforeModal = await top(h);
+  await type(h, 'jj');
+  ok('con un diálogo abierto (la ayuda) las teclas no mueven el documento de detrás', (await top(h)) === beforeModal);
+  await h.key('Escape', 'Escape', 27); await h.sleep(200);
   await setTop(h, 0); await type(h, ']]'); await h.sleep(800);
   ok('desde el principio «]]» va al primer encabezado por debajo (el título)', (await top(h)) >= 0 && (await headingOffset(h, 1)) > 0);
 

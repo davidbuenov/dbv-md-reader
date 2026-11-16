@@ -301,7 +301,7 @@
     // la promesa igualmente con un SVG de error propio de Mermaid (icono de bomba
     // enorme, sin detalle de línea) en vez de rechazarla — así se puede mostrar un
     // aviso compacto y con el mensaje real del parser (que si incluye la línea).
-    window.mermaid.initialize({ startOnLoad: false, theme: mermaidTheme(), securityLevel: 'loose', suppressErrorRendering: true });
+    window.mermaid.initialize({ startOnLoad: false, theme: mermaidTheme(), securityLevel: 'strict', suppressErrorRendering: true });
   }
 
   /** @spec RF-49.4 — Mermaid sigue a la paleta: `dark` en los temas oscuros, `default` en los claros. */
@@ -951,7 +951,7 @@
         .then(function (result) {
           var div = document.createElement('div');
           div.className = 'mermaid-container';
-          div.innerHTML = result.svg;
+          div.innerHTML = result.svg; neutralizeSvgLinks(div);
           div.dataset.mermaidSource = code; // para el menú contextual "Abrir en mermaid.live"
           copySourceMap(codeEl, div);
           pre.replaceWith(div);
@@ -1594,12 +1594,12 @@
   /** @spec RF-49.4 — al pasar de oscuro a claro (o al revés) Mermaid se reinicia y se redibujan los diagramas. */
   function rerenderMermaid() {
     if (!window.mermaid) return;
-    window.mermaid.initialize({ startOnLoad: false, theme: mermaidTheme(), securityLevel: 'loose', suppressErrorRendering: true });
+    window.mermaid.initialize({ startOnLoad: false, theme: mermaidTheme(), securityLevel: 'strict', suppressErrorRendering: true });
     document.querySelectorAll('.mermaid-container').forEach(function (div, i) {
       var code = div.dataset.mermaidSource;
       if (!code) return;
       window.mermaid.render('mermaid-t' + i + '-' + Date.now(), code)
-        .then(function (result) { div.innerHTML = result.svg; })
+        .then(function (result) { div.innerHTML = result.svg; neutralizeSvgLinks(div); })
         .catch(function (e) { console.warn('Mermaid:', e); });
     });
   }
@@ -2678,6 +2678,23 @@
       }).catch(function (err) { console.warn('[exit:getAllWindows]', err); })
         .then(function () { return me.destroy(); })
         .catch(function () { try { me.close(); } catch (_) { window.close(); } });
+    });
+  }
+  /**
+   * Seguridad: un `.md` ajeno no puede ejecutar script desde un diagrama Mermaid. Mermaid va en `securityLevel:
+   * 'strict'` (codifica el HTML de las etiquetas y desactiva `click`); y, por si una versión futura dejara pasar un
+   * enlace, se quitan del SVG los `href` con `javascript:`/`data:`/`vbscript:` y los atributos `on*`. Medido en /test de
+   * la 0.20.0: con 'loose', `click A "javascript:…"` se ejecutaba al pulsar el nodo, y desde ahí `__TAURI__` llegaba a
+   * `write_file`.
+   */
+  function neutralizeSvgLinks(root) {
+    var BAD = /^\s*(javascript|data|vbscript):/i;
+    Array.prototype.forEach.call(root.querySelectorAll('*'), function (el) {
+      Array.prototype.slice.call(el.attributes).forEach(function (attr) {
+        var name = attr.name.toLowerCase();
+        if (name.indexOf('on') === 0) el.removeAttribute(attr.name);
+        else if ((name === 'href' || name === 'xlink:href') && BAD.test(attr.value)) el.removeAttribute(attr.name);
+      });
     });
   }
   // ─── Confirmación al cerrar con cambios sin guardar ─────────────────────
@@ -4727,8 +4744,8 @@
     var el = e.target;
     if (el === editorTextarea) return false;
     if (el && el.closest && el.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""], [role="menu"], [role="dialog"], dialog, .modal, #ai-panel')) return false;
-    // Algún panel o menú abierto con el foco fuera de él: no se toman teclas sueltas.
-    if (document.querySelector('[role="menu"]:not(.hidden)')) return false;
+    // Algún menú o diálogo abierto con el foco fuera de él (en su fondo, p. ej.): no se toman teclas sueltas.
+    if (document.querySelector('[role="menu"]:not(.hidden), .modal-overlay:not(.hidden)')) return false;
     return true;
   }
   /** @spec RF-52 */
@@ -4743,36 +4760,37 @@
     }
     if (target) scrollElementIntoView(target);
   }
-  window.addEventListener('keydown', function (e) {
-    if (!vimReadTarget(e) || e.altKey || e.metaKey || e.isComposing) return;
-    var key = e.key;
+  /** Tecla `key` (ya traducida por `keyFromEvent`) en lectura; devuelve si se usó. `]]`, `[[` y `gg` son de dos. */
+  function vimReadKey(key) {
     var host = findScrollHost(contentEl); // en Lectura desplaza el contenedor; en la vista previa del Modo Edición, el panel
     var line = Math.max(16, (parseFloat(getComputedStyle(contentEl).lineHeight) || 0) || 28);
-    var half = Math.max(line, Math.floor(host.clientHeight / 2));
     var handled = true;
-    if (e.ctrlKey) {
-      if (key === 'd' || key === 'D') host.scrollTop += half;
-      else if (key === 'u' || key === 'U') host.scrollTop -= half;
-      else handled = false; // Ctrl+F sigue siendo Buscar (RF-52.2)
-    } else if (vimReadPending) {
-      var seq = vimReadPending + key;
-      vimReadPending = '';
-      clearTimeout(vimReadTimer);
-      if (seq === 'gg') host.scrollTop = 0;
-      else if (seq === ']]') vimReadHeading(1);
-      else if (seq === '[[') vimReadHeading(-1);
-      else handled = false;
-    } else if (key === 'g' || key === ']' || key === '[') {
+    var pending = vimReadPending;
+    vimReadPending = '';
+    clearTimeout(vimReadTimer);
+    if (pending && pending + key === 'gg') host.scrollTop = 0;
+    else if (pending && pending + key === ']]') vimReadHeading(1);
+    else if (pending && pending + key === '[[') vimReadHeading(-1);
+    else if (key === 'g' || key === ']' || key === '[') {
       vimReadPending = key;
-      clearTimeout(vimReadTimer);
       vimReadTimer = setTimeout(function () { vimReadPending = ''; }, 1000);
-    } else if (key === 'j') host.scrollTop += line;
+    }
+    else if (key === '<C-d>') host.scrollTop += Math.max(line, Math.floor(host.clientHeight / 2));
+    else if (key === '<C-u>') host.scrollTop -= Math.max(line, Math.floor(host.clientHeight / 2));
+    else if (key === 'j') host.scrollTop += line;
     else if (key === 'k') host.scrollTop -= line;
     else if (key === 'G') host.scrollTop = host.scrollHeight;
     else if (key === '/') searchPanel.open();
     else if ((key === 'n' || key === 'N') && searchInput.value) stepSearch(key === 'n' ? 1 : -1);
     else handled = false;
-    if (handled) { e.preventDefault(); e.stopPropagation(); }
+    return handled;
+  }
+  // La misma traducción de teclas que el editor (`keyFromEvent`): AltGr da `[` `]` en el teclado español, Ctrl+F y el
+  // resto de atajos con Ctrl/Cmd siguen siendo de la app (RF-52.2), y nada se interpreta durante una composición.
+  window.addEventListener('keydown', function (e) {
+    if (!vimReadTarget(e)) return;
+    var key = VimCore.keyFromEvent(e);
+    if (key && vimReadKey(key)) { e.preventDefault(); e.stopPropagation(); }
   });
 
   // =========================================================================

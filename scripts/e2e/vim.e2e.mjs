@@ -74,6 +74,11 @@ async function main() {
   ok('«dw» borra la palabra', (await value(h)).includes('uno tres'));
   await type(h, 'u');
   ok('«u» lo deshace', (await value(h)) === doc);
+  await focusAt(h, 0);
+  await h.send('Input.dispatchKeyEvent', { type: 'keyDown', key: '}', code: 'Quote', modifiers: 3 });
+  await h.send('Input.dispatchKeyEvent', { type: 'keyUp', key: '}', code: 'Quote', modifiers: 3 }); await h.sleep(60);
+  ok('«}» con AltGr (teclado español) salta al párrafo siguiente sin escribir', (await caret(h)) === doc.indexOf('\n\n') + 1 && (await value(h)) === doc, String(await caret(h)));
+  await focusAt(h, doc.indexOf('dos'));
 
   await type(h, 'i');
   ok('«i»: INSERT', (await badge(h)) === 'INSERT');

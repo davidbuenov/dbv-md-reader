@@ -272,6 +272,14 @@ describe('RF-51.6/51.7 · teclado', () => {
     expect(K({ key: '[', ctrlKey: true })).toBe('<C-[>');
     expect(K({ key: 'z', ctrlKey: true })).toBe('<C-z>');
   });
+  it('AltGr (Ctrl+Alt en Windows) da los símbolos del teclado español: { } [ ] ~', () => {
+    for (const key of ['{', '}', '[', ']', '~', '|', '\\']) expect(K({ key, ctrlKey: true, altKey: true }), key).toBe(key);
+  });
+  it('pero Ctrl+Alt+letra sigue siendo un atajo de la app (Ctrl+Alt+P, Ctrl+Alt+I)', () => {
+    expect(K({ key: 'p', ctrlKey: true, altKey: true })).toBe(null);
+    expect(K({ key: 'i', ctrlKey: true, altKey: true })).toBe(null);
+    expect(K({ key: '5', ctrlKey: true, altKey: true })).toBe(null);
+  });
   it('durante una composición IME no se interpreta nada', () => {
     expect(K({ key: 'ㅎ', isComposing: true })).toBe(null);
     expect(K({ key: 'Process', keyCode: 229 })).toBe(null);

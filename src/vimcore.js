@@ -336,14 +336,12 @@
 
   /** Aplica un operador al rango y deja el resultado en `res`. Rango de líneas si `linewise`. */
   function applyOp(op, t, a, b, linewise, c, st, res) {
-    var eol = eolOf(t);
     var nt = t;
     var cur = c;
     if (linewise) {
       var ls = lineStart(t, Math.min(a, b));
       var lb = lineBreak(t, Math.max(a, b));
       var le = lineEnd(t, Math.max(a, b));
-      var body = t.slice(ls, le > ls || lb === le ? le : lb);
       if (op === 'y') {
         st.register = { text: t.slice(ls, le) + '\n', linewise: true };
         cur = lineStart(t, c) === ls ? c : ls;
@@ -371,7 +369,6 @@
         nt = t.slice(0, ls) + lines.join('\n') + t.slice(le);
         cur = firstNonBlank(nt, ls);
       }
-      void body;
     } else {
       var s = Math.min(a, b);
       var e = Math.max(a, b);
@@ -390,7 +387,6 @@
         return applyOp(op, t, s, Math.max(s, e - 1), true, c, st, res);
       }
     }
-    void eol;
     setText(res, t, nt, st.mode === 'insert' ? cur : clampNormal(nt, cur));
     if (st.mode === 'insert') res.snapshot = true;
     return res;
@@ -543,7 +539,7 @@
     }
 
     var visual = st.mode === 'visual' || st.mode === 'vline';
-    var c = visual ? st.vcursor : (st.mode === 'normal' ? clampNormal(t, buffer.selStart) : clampNormal(t, buffer.selStart));
+    var c = visual ? st.vcursor : clampNormal(t, buffer.selStart);
 
     if (st.mode === 'command' || st.mode === 'search') {
       if (isEsc) { st.mode = 'normal'; st.cmd = ''; st.cmdKind = ''; res.cursor = c; }
@@ -628,7 +624,7 @@
       return applyMotion(st, t, c, m, res);
     }
 
-    if (visual) return visualCommand(st, t, c, key, count, res, opts);
+    if (visual) return visualCommand(st, t, key, res);
     return normalCommand(st, t, c, key, count, res, opts);
   }
 
@@ -656,7 +652,7 @@
     return finish(res, st, t);
   }
 
-  function visualCommand(st, t, c, key, count, res, opts) {
+  function visualCommand(st, t, key, res) {
     var line = st.mode === 'vline';
     var a = Math.min(st.anchor, st.vcursor);
     var b = Math.max(st.anchor, st.vcursor);
@@ -694,7 +690,6 @@
     }
     res.cursor = st.mode === 'normal' ? clampNormal(t, st.vcursor) : st.vcursor;
     if (st.mode === 'normal') st.vcursor = 0;
-    void count; void opts;
     return finish(res, st, t);
   }
 
@@ -866,6 +861,9 @@
     if (!e || e.isComposing || e.keyCode === 229 || e.key === 'Process' || e.key === 'Dead') return null;
     var k = e.key;
     if (e.metaKey) return null;
+    // AltGr llega como Ctrl+Alt en Windows: en el teclado español da { } [ ] ~ \ | @ #. Si produce un símbolo, es
+    // esa tecla; con una letra o un dígito es un atajo de la app (Ctrl+Alt+P, Ctrl+Alt+I) y no se toma.
+    if (e.ctrlKey && e.altKey && typeof k === 'string' && k.length === 1 && !/[A-Za-z0-9]/.test(k)) return k;
     if (e.ctrlKey) {
       if (e.altKey || e.shiftKey) return null;
       return CTRL_KEYS[String(k).toLowerCase()] || null;
