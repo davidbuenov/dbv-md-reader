@@ -28,10 +28,11 @@ Características principales:
 • Resaltado de sintaxis de código en más de 24 lenguajes, con colores adaptados a cada tema — también al imprimir o exportar a PDF, y con numeración de línea siempre alineada
 • Alertas al estilo GitHub (Nota, Consejo, Importante...), listas de tareas y notas al pie (GFM)
 • Tabla de contenidos automática con la sección activa resaltada, y búsqueda de texto instantánea (Ctrl+F)
-• Tres temas de lectura: Claro, Oscuro y Sepia
+• 10 temas de lectura (Claro, Oscuro, Sepia, Alto contraste, Nord, Dracula, Catppuccin, Solarized, Gruvbox) y uno personalizado
 • Navegación entre documentos enlazados con historial (Atrás/Adelante)
 • Abre también documentos Markdown remotos por URL
-• Interfaz disponible en español e inglés
+• Modo Vim opcional en el editor y para moverte al leer, barra de estado con línea y columna, guardado automático e insertar tabla
+• Interfaz disponible en español, inglés y coreano
 • 100% seguro: el HTML embebido se sanitiza automáticamente antes de mostrarse
 
 Sin conexión a internet requerida para funcionar y sin recopilación de datos personales. La IA es opcional y está desactivada por defecto: solo si tú la conectas, el texto del documento se envía al proveedor que hayas elegido (o se queda en tu equipo si usas un modelo local).
@@ -40,7 +41,9 @@ Sin conexión a internet requerida para funcionar y sin recopilación de datos p
 
 ## Novedades de esta versión
 
-v0.19.0: la cabecera agrupa las acciones en tres menús (Archivo, Herramientas y Preferencias) y la ayuda (F1) ahora incluye una guía de la aplicación además de la sintaxis Markdown. Nuevo idioma: coreano (한국어), con un selector de idioma preparado para añadir más. Preferencias de ancho de lectura y de tamaño de letra del editor, y la aplicación recuerda la posición y el tamaño de la ventana y el panel lateral. En Modo Edición puedes buscar dentro del texto del editor y reordenar secciones arrastrándolas desde el Índice (Alt+↑/↓), con deshacer. Arreglos: la pantalla de bienvenida ya no parpadea al abrir un archivo, los botones de copiar y ajustar línea del código ya no se mueven con el scroll, la impresión y el PDF ya no recortan el código largo, los cuadros de archivo abren en la carpeta del documento y la sincronización de scroll entre editor y vista previa es más precisa.
+v0.20.0: diez temas curados y uno personalizado (Preferencias → Temas y colores…), con tres botones rápidos en la cabecera. Modo Vim opcional en el editor y para moverte al leer. Barra de estado con línea y columna, números de línea relativos, guardado automático que nunca pisa un cambio hecho desde otro programa, e Insertar tabla (también desde lo pegado de una hoja de cálculo). Archivo → Guardar como… (Ctrl+Mayús+S) y Archivo → Salir (Ctrl+Q). La IA tiene niveles de autonomía (Preguntar todo, Preguntar al modificar, Solo lectura) y avisa en la barra de tareas cuando espera tu aprobación. Ctrl+rueda hace zoom en el panel que hay bajo el puntero. Seguridad: un diagrama Mermaid de un documento ajeno ya no puede ejecutar código.
+
+Y de v0.19.0: la cabecera agrupa las acciones en tres menús (Archivo, Herramientas y Preferencias) y la ayuda (F1) ahora incluye una guía de la aplicación además de la sintaxis Markdown. Nuevo idioma: coreano (한국어), con un selector de idioma preparado para añadir más. Preferencias de ancho de lectura y de tamaño de letra del editor, y la aplicación recuerda la posición y el tamaño de la ventana y el panel lateral. En Modo Edición puedes buscar dentro del texto del editor y reordenar secciones arrastrándolas desde el Índice (Alt+↑/↓), con deshacer. Arreglos: la pantalla de bienvenida ya no parpadea al abrir un archivo, los botones de copiar y ajustar línea del código ya no se mueven con el scroll, la impresión y el PDF ya no recortan el código largo, los cuadros de archivo abren en la carpeta del documento y la sincronización de scroll entre editor y vista previa es más precisa.
 
 Y de v0.18.0 «AI Native»: asistente de IA opcional (desactivado por defecto) con modelos locales, en la nube con tu clave de API o con agentes como Claude Code o Gemini CLI — ve el documento abierto y su carpeta, y nada se escribe sin que revises cada cambio, que se aplica en el editor y se deshace con Ctrl+Z; IA en línea sobre el texto seleccionado (mejorar, corregir, traducir, acortar...). Nueva sincronización entre edición y vista previa: doble clic en la previsualización para saltar al código y menú contextual en el editor. Pega un recorte de pantalla o suelta una imagen y se guarda en una carpeta images junto al documento, insertando su código en el cursor. El árbol de archivos se actualiza solo y el menú contextual ya no puede recargar la ventana por accidente.
 
@@ -65,14 +68,14 @@ Y de v0.16.0: exportación directa a Typst (.typ) para seguir editando el docume
 10. Exportar a Typst (.typ) para seguir editando con un editor de Typst
 11. Gestión de conflictos y auto-recarga si el archivo cambia desde otro programa
 12. Ayuda de sintaxis Markdown integrada (chuleta interactiva)
-13. Diagramas Mermaid renderizados como SVG interactivo
-14. Ecuaciones matemáticas en LaTeX, renderizadas con KaTeX
+13. Diagramas Mermaid y ecuaciones LaTeX (KaTeX) renderizados
+14. Modo Vim opcional, barra de estado, guardado automático e insertar tabla
 15. Resaltado de sintaxis en más de 24 lenguajes, también al imprimir/exportar a PDF
 16. Alertas al estilo GitHub, listas de tareas y notas al pie (GFM)
 17. Tabla de contenidos automática y búsqueda de texto instantánea (Ctrl+F)
-18. Tres temas de lectura: Claro, Oscuro y Sepia
+18. 10 temas de lectura y uno personalizado, con tres botones rápidos
 19. Navegación con historial, documentos remotos por URL, archivos recientes y zoom
-20. Interfaz disponible en español e inglés
+20. Interfaz disponible en español, inglés y coreano
 
 ---
 
@@ -86,7 +89,7 @@ DBV Markdown Reader
 ### Descripción corta
 *(máx. recomendado 270 caracteres)*
 
-Lector y editor nativo de Markdown para Windows: rápido, ligero y local. Modo Edición en vivo, asistente de IA opcional (local, en la nube o con tu agente), Mermaid, KaTeX, exportación a Typst y PDF, y tres temas. Sin telemetría, sin cuentas.
+Lector y editor nativo de Markdown para Windows: rápido, ligero y local. Modo Edición en vivo, asistente de IA opcional (local, en la nube o con tu agente), Mermaid, KaTeX, exportación a Typst y PDF, 10 temas y Modo Vim opcional. Sin telemetría, sin cuentas.
 
 ---
 

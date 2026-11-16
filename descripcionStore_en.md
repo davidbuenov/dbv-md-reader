@@ -28,10 +28,11 @@ Key features:
 • Code syntax highlighting for 24+ languages, with colors matched to each theme — including when printing or exporting to PDF, with always-aligned line numbers
 • GitHub-style alerts (Note, Tip, Important...), task lists, and footnotes (GFM)
 • Automatic table of contents that highlights the section you're reading, and instant text search (Ctrl+F)
-• Three reading themes: Light, Dark, and Sepia
+• 10 reading themes (Light, Dark, Sepia, High contrast, Nord, Dracula, Catppuccin, Solarized, Gruvbox) plus a custom one
 • Navigation between linked documents with history (Back/Forward)
 • Also opens remote Markdown documents by URL
-• Interface available in English and Spanish
+• Optional Vim mode in the editor and for moving while reading, status bar with line and column, auto save and insert table
+• Interface available in English, Spanish and Korean
 • 100% safe: embedded HTML is automatically sanitized before being displayed
 
 No internet connection required to function, and no personal data collected. The AI is optional and off by default: only if you connect it is the document text sent to the provider you chose (or it stays on your computer if you use a local model).
@@ -40,7 +41,9 @@ No internet connection required to function, and no personal data collected. The
 
 ## What's new in this version
 
-v0.19.0: the header groups the actions into three menus (File, Tools and Preferences) and the help (F1) now includes an app guide besides the Markdown syntax. New language: Korean (한국어), with a language selector ready for more. Preferences for reading width and editor font size, and the app remembers the window's position and size and the side panel. In Edit Mode you can search inside the editor's text and reorder sections by dragging them from the Index (Alt+↑/↓), with undo. Fixes: the welcome screen no longer flashes when opening a file, the code block copy and wrap buttons no longer move with horizontal scroll, printing and PDF no longer clip long code, file dialogs open in the document's folder, and scroll sync between editor and preview is more precise.
+v0.20.0: ten curated themes plus a custom one (Preferences → Themes and colors…), with three quick buttons in the header. Optional Vim mode in the editor and for moving while reading. A status bar with line and column, relative line numbers, auto save that never overwrites a change made in another program, and Insert table (also from what you paste from a spreadsheet). File → Save as… (Ctrl+Shift+S) and File → Exit (Ctrl+Q). The AI has autonomy levels (Ask for everything, Ask before changes, Read only) and flashes the taskbar when it is waiting for your approval. Ctrl+wheel zooms the panel under the pointer. Security: a Mermaid diagram in someone else's document can no longer run code.
+
+And from v0.19.0: the header groups the actions into three menus (File, Tools and Preferences) and the help (F1) now includes an app guide besides the Markdown syntax. New language: Korean (한국어), with a language selector ready for more. Preferences for reading width and editor font size, and the app remembers the window's position and size and the side panel. In Edit Mode you can search inside the editor's text and reorder sections by dragging them from the Index (Alt+↑/↓), with undo. Fixes: the welcome screen no longer flashes when opening a file, the code block copy and wrap buttons no longer move with horizontal scroll, printing and PDF no longer clip long code, file dialogs open in the document's folder, and scroll sync between editor and preview is more precise.
 
 And from v0.18.0 "AI Native": optional AI assistant (off by default) with local models, cloud models with your own API key, or agents such as Claude Code or Gemini CLI — it sees the open document and its folder, and nothing is written until you review each change, which is applied in the editor and undone with Ctrl+Z; inline AI on the selected text (improve, fix, translate, shorten...). New editor ↔ preview sync: double-click the preview to jump to the code, plus a context menu in the editor. Paste a screenshot or drop an image and it is saved to an images folder next to the document, inserting its code at the cursor. The file tree now refreshes by itself and the context menu can no longer reload the window by accident.
 
@@ -65,14 +68,14 @@ And from v0.16.0: direct export to Typst (.typ) to keep editing the document wit
 10. Export to Typst (.typ) to keep editing with a Typst editor
 11. Conflict handling and auto-reload if the file changes from another program
 12. Built-in Markdown syntax help (interactive cheat sheet)
-13. Mermaid diagrams rendered as interactive SVG
-14. Math equations in LaTeX, rendered with KaTeX
+13. Mermaid diagrams and LaTeX equations (KaTeX) rendered
+14. Optional Vim mode, status bar, auto save and insert table
 15. Syntax highlighting for 24+ languages, also when printing/exporting to PDF
 16. GitHub-style alerts, task lists, and footnotes (GFM)
 17. Automatic table of contents and instant text search (Ctrl+F)
-18. Three reading themes: Light, Dark, and Sepia
+18. 10 reading themes plus a custom one, with three quick buttons
 19. Navigation with history, remote documents by URL, recent files, and zoom
-20. Interface available in English and Spanish
+20. Interface available in English, Spanish and Korean
 
 ---
 
@@ -86,7 +89,7 @@ DBV Markdown Reader
 ### Short description
 *(recommended max. 270 characters)*
 
-Native Markdown reader and editor for Windows: fast, lightweight, and local. Live Edit Mode, optional AI assistant (local, cloud, or your own agent), Mermaid, KaTeX, export to Typst and PDF, and three themes. No telemetry, no accounts.
+Native Markdown reader and editor for Windows: fast, lightweight, and local. Live Edit Mode, optional AI assistant (local, cloud, or your own agent), Mermaid, KaTeX, export to Typst and PDF, 10 themes and optional Vim mode. No telemetry, no accounts.
 
 ---
 

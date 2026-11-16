@@ -172,6 +172,11 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 ## ✨ Características Principales
 
 - **Modo Edición:** panel dividido con el Markdown en crudo a la izquierda (con números de línea) y la vista renderizada a la derecha, sincronizados por línea al hacer scroll en cualquiera de los dos — sin librería de editor de código, así que no penaliza el tamaño ni la RAM. Bordes arrastrables para redimensionar. Gestión de conflictos si el archivo cambia desde fuera mientras editas (igual que el Bloc de notas de Windows: silencioso si no tienes cambios propios, un aviso solo la primera vez si sí los tienes). Incluye una barra de formato de 16 iconos (negrita, cursiva, encabezados, listas, enlaces, imágenes, tablas...) que envuelve la selección o inserta un esqueleto listo para rellenar, y `Tab`/`Shift+Tab` para indentar/desindentar listas sin salir del editor.
+- **10 temas y uno Personalizado (desde la 0.20.0):** Oscuro, Claro, Sepia, Alto contraste, Nord, Dracula, Catppuccin Mocha, Catppuccin Latte, Solarized Dark y Gruvbox Dark, con las mismas paletas que `dbv-typst-editor`. Preferencias → «Temas y colores…» elige tema, asigna los tres botones rápidos de la cabecera y edita el Personalizado con aviso de contraste. Los diagramas Mermaid también siguen al tema.
+- **Modo Vim opcional (desde la 0.20.0):** Preferencias → «Modo Vim» (apagado por defecto). En el editor, NORMAL / INSERT / VISUAL / V-LINE con cursor de bloque, movimientos, contadores, operadores `d c y > <`, `iw`/`aw`, `u`/`Ctrl+R`, `/ ? n N` y `:w :wq :q`; al leer, `j k Ctrl+D Ctrl+U gg G ]] [[`. Un núcleo propio (`vimcore.js`), sin dependencias nuevas; el subconjunto completo está en la ayuda (`F1` → «11. Modo Vim»).
+- **Barra de estado, guardado automático y tablas (desde la 0.20.0):** `Ln X, Col Y` y la selección al pie del editor; números de línea relativos y guardado automático (los dos opcionales; el guardado nunca pisa un cambio hecho desde otro programa); Herramientas → «Insertar tabla…», que también convierte en tabla lo pegado de una hoja de cálculo.
+- **Guardar como… y Salir (desde la 0.20.0):** `Ctrl+Mayús+S` guarda con otro nombre y la ventana pasa al fichero nuevo; Archivo → Salir (`Ctrl+Q`) cierra todas las ventanas, preguntando en cada una si tiene cambios sin guardar.
+- **IA con niveles de autonomía (desde la 0.20.0):** «Preguntar todo», «Preguntar al modificar» o «Solo lectura», aplicados en el código y no en las instrucciones; sin nivel automático, porque nada se escribe sin tu revisión. Si la IA espera tu aprobación con la ventana detrás, el icono parpadea en la barra de tareas. `Ctrl+rueda` hace zoom en el panel que hay bajo el puntero, y el pellizco del panel táctil va escalón a escalón.
 - **Menús Archivo, Herramientas y Preferencias (desde la 0.19.0):** la cabecera agrupa las acciones en tres menús —como `dbv-typst-editor`— en vez de una fila de botones, con los atajos a la vista y navegación por teclado. Buscar, Modo Edición, panel lateral, tema, idioma y ayuda siguen a un clic.
 - **Ayuda integrada con dos pestañas (desde la 0.19.0):** `F1`, el botón «?» o Herramientas → Ayuda abren la **Guía de la aplicación** (abrir, leer, buscar, editar, IA, exportar, preferencias y atajos) y la chuleta de **Sintaxis Markdown**.
 - **Idiomas ampliables (desde la 0.19.0):** español, inglés y **coreano (한국어)**, elegibles en un desplegable que sale de un registro de idiomas (añadir otro es un diccionario más). Se detecta el idioma del sistema y, si no hay traducción, se usa el inglés. La IA contesta en el idioma elegido.
@@ -195,7 +200,7 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Seguridad Estricta:** Sanitización de etiquetas y atributos peligrosos (DOMPurify) antes de insertarse en el WebView2.
 - **Navegación e Índice:** Tabla de Contenidos (TOC) flotante/lateral generada automáticamente a partir de los encabezados, con la sección visible resaltada mientras haces scroll. Junto al nombre del documento se muestra el tiempo de lectura estimado, y una barra fina bajo la cabecera indica el progreso de scroll.
 - **Búsqueda en Página:** Atajo `Ctrl + F` para buscar texto de forma rápida e intuitiva; en Modo Edición, también **dentro del texto fuente** del editor (selector «Editor | Vista previa»).
-- **Temas Visuales:** Soporte para modo Claro (GitHub Light), Oscuro (VS Code / GitHub Dark) y Sepia (lectura prolongada).
+- **Temas Visuales:** 10 temas curados (Claro, Oscuro, Sepia, Alto contraste, Nord, Dracula, Catppuccin Mocha y Latte, Solarized Dark y Gruvbox Dark) y uno Personalizado; imprimir usa siempre la paleta Clara.
 - **Imprimir / Exportar a PDF:** `Ctrl + P` abre el diálogo nativo de impresión, con paginación real (A4, sin títulos/tablas/código partidos entre páginas) y con los colores de sintaxis y del tema conservados en papel, sea cual sea el tema activo en pantalla. *Truco (Windows):* si no quieres que el PDF lleve el pie con la URL/hora que añade el propio diálogo (motor Chromium de WebView2), despliega "Más opciones" y desmarca "Encabezados y pies de página" — el navegador recuerda esa preferencia para las siguientes veces. En macOS/Linux el diálogo nativo es distinto (panel de impresión de macOS / GTK en Linux) y no se ha confirmado si añade el mismo pie.
 - **Exportar a Typst:** botón junto a Imprimir que convierte el documento a sintaxis Typst (`.typ`) y lo guarda donde elijas — encabezados, negrita/cursiva/tachado, código, listas, citas, tablas, imágenes y enlaces. No hace falta tener Typst instalado. Ideal para seguir editándolo con [dbv-typst-editor](https://davidbuenov.github.io/dbv-typst-editor/).
 - **Buscar actualizaciones:** Botón en el panel "Acerca de" — nunca se comprueba al arrancar (arranque instantáneo intacto). Si hay una versión nueva, se puede instalar en un clic sin salir de la app.
@@ -226,16 +231,21 @@ El repositorio incluye una carpeta [`templates/`](templates/) con **20 plantilla
 | `Ctrl/Cmd + Alt + I` | IA en línea sobre la selección (en el editor) |
 | `Ctrl/Cmd + Alt + P` | Ir a la vista previa desde el cursor (en el editor) |
 | `Ctrl/Cmd + S` | Guardar (en Modo Edición) |
+| `Ctrl/Cmd + Mayús + S` | Guardar como… |
+| `Ctrl + Q` (`Cmd + Q` en macOS) | Salir (cierra todas las ventanas) |
 | `Ctrl/Cmd + B` / `Ctrl/Cmd + I` | Negrita / cursiva (con el cursor en el editor) |
 | `Tab` / `Shift + Tab` | Indentar / desindentar la línea o selección (en el editor) |
 | `Ctrl/Cmd + P` | Imprimir / exportar a PDF |
 | `Ctrl/Cmd + +` / `-` / `0` | Acercar / alejar / restablecer zoom |
+| `Ctrl/Cmd + rueda` | Zoom del panel bajo el puntero (letra del editor o lectura) |
 | `Alt + ↑` / `Alt + ↓` | Mover la sección del Índice seleccionada (Modo Edición) |
 | `Alt + ←` / `Alt + →` | Atrás / adelante en el historial de navegación |
 | `Inicio` / `Fin` | Ir al principio / final del documento (fuera de un campo de texto) |
 | `Esc` | Cerrar el panel o modal abierto |
 
 **Ratón:** doble clic sobre una palabra en el editor la selecciona (lista para `Ctrl/Cmd + B` / `I`); clic derecho sobre un diagrama Mermaid abre "mermaid.live"; clic derecho sobre un archivo/carpeta del árbol ofrece "Abrir en ventana nueva" / "Revelar en el Explorador".
+
+Con **Preferencias → Modo Vim** activo, el editor y la lectura entienden además las teclas de Vim (ver la ayuda, apartado 11).
 
 > La lista completa, con la navegación por teclado de Quick Open y la búsqueda, está también en la ayuda integrada de la app (`F1`).
 

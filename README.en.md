@@ -171,6 +171,11 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 ## ✨ Key Features
 
 - **Edit Mode:** split pane with raw Markdown on the left (with line numbers) and the rendered view on the right, scroll-synced by line in either direction — no code-editor library, so it costs nothing in size or RAM. Draggable resize handles. Conflict handling if the file changes externally while you're editing (same model as Windows Notepad: silent if you have no unsaved changes, a one-time prompt if you do). Includes a 16-icon formatting toolbar (bold, italic, headings, lists, links, images, tables...) that wraps the selection or inserts a ready-to-fill skeleton, and `Tab`/`Shift+Tab` to indent/outdent lists without leaving the editor.
+- **10 themes plus a Custom one (since 0.20.0):** Dark, Light, Sepia, High contrast, Nord, Dracula, Catppuccin Mocha, Catppuccin Latte, Solarized Dark and Gruvbox Dark, with the same palettes as `dbv-typst-editor`. Preferences → "Themes and colors…" picks a theme, sets the three quick buttons in the header and edits the Custom theme with a contrast warning. Mermaid diagrams follow the theme too.
+- **Optional Vim mode (since 0.20.0):** Preferences → "Vim mode" (off by default). In the editor, NORMAL / INSERT / VISUAL / V-LINE with a block cursor, motions, counts, `d c y > <` operators, `iw`/`aw`, `u`/`Ctrl+R`, `/ ? n N` and `:w :wq :q`; while reading, `j k Ctrl+D Ctrl+U gg G ]] [[`. Its own core (`vimcore.js`), no new dependencies; the full subset is in the help (`F1` → "11. Vim mode").
+- **Status bar, auto save and tables (since 0.20.0):** `Ln X, Col Y` and the selection at the foot of the editor; relative line numbers and auto save (both optional; auto save never overwrites a change made in another program); Tools → "Insert table…", which also turns what you paste from a spreadsheet into a table.
+- **Save as… and Exit (since 0.20.0):** `Ctrl+Shift+S` saves under another name and the window switches to the new file; File → Exit (`Ctrl+Q`) closes every window, asking in each one that has unsaved changes.
+- **AI with autonomy levels (since 0.20.0):** "Ask for everything", "Ask before changes" or "Read only", enforced in the code rather than in the instructions; there is no automatic level, because nothing is written without your review. If the AI is waiting for your approval with the window behind, its icon flashes in the taskbar. `Ctrl+wheel` zooms the panel under the pointer, and a touchpad pinch goes one step at a time.
 - **File, Tools and Preferences menus (since 0.19.0):** the header groups the actions into three menus —as in `dbv-typst-editor`— instead of a row of buttons, with shortcuts shown and keyboard navigation. Search, Edit Mode, side panel, theme, language and help stay one click away.
 - **Built-in help with two tabs (since 0.19.0):** `F1`, the "?" button or Tools → Help open the **App guide** (open, read, search, edit, AI, export, preferences and shortcuts) and the **Markdown syntax** cheat sheet.
 - **Extensible languages (since 0.19.0):** Spanish, English and **Korean (한국어)**, chosen from a dropdown built from a language registry (adding another one is one more dictionary). The system language is detected and, without a translation, English is used. The AI answers in the chosen language.
@@ -194,7 +199,7 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 - **Strict security:** sanitization of dangerous tags and attributes (DOMPurify) before insertion into WebView2.
 - **Navigation & Table of Contents:** floating/sidebar Table of Contents (TOC) auto-generated from headings, with the visible section highlighted as you scroll. Estimated reading time is shown next to the document name, and a thin progress bar under the header tracks scroll progress.
 - **In-page search:** `Ctrl + F` shortcut for fast, intuitive text search; in Edit Mode, also **inside the editor's source text** ("Editor | Preview" selector).
-- **Visual themes:** Light mode (GitHub Light), Dark mode (VS Code / GitHub Dark), and Sepia (for extended reading).
+- **Visual themes:** 10 curated themes (Light, Dark, Sepia, High contrast, Nord, Dracula, Catppuccin Mocha and Latte, Solarized Dark and Gruvbox Dark) plus a Custom one; printing always uses the Light palette.
 - **Print / Export to PDF:** `Ctrl + P` opens the native print dialog with real pagination (A4, no titles/tables/code blocks split across pages) and syntax/theme colors preserved on paper regardless of the active on-screen theme. *Tip (Windows):* if you don't want the PDF to include the URL/timestamp footer that the print dialog itself adds (WebView2's Chromium engine), expand "More settings" and uncheck "Headers and footers" — the browser remembers this preference for next time. On macOS/Linux the native dialog is different (macOS print panel / GTK on Linux) and it hasn't been confirmed whether it adds the same footer.
 - **Export to Typst:** button next to Print that converts the document to Typst syntax (`.typ`) and saves it wherever you choose — headings, bold/italic/strikethrough, code, lists, quotes, tables, images and links. No need to have Typst installed. Great for continuing to edit it with [dbv-typst-editor](https://davidbuenov.github.io/dbv-typst-editor/).
 - **Check for updates:** button in the "About" panel — never checked automatically at startup (instant launch stays intact). If a new version is available, it can be installed in one click without leaving the app.
@@ -225,16 +230,21 @@ The repository includes a [`templates/`](templates/) folder with **20 ready-to-u
 | `Ctrl/Cmd + Alt + I` | Inline AI on the selection (in the editor) |
 | `Ctrl/Cmd + Alt + P` | Go to the preview from the cursor (in the editor) |
 | `Ctrl/Cmd + S` | Save (in Edit Mode) |
+| `Ctrl/Cmd + Shift + S` | Save as… |
+| `Ctrl + Q` (`Cmd + Q` on macOS) | Exit (closes every window) |
 | `Ctrl/Cmd + B` / `Ctrl/Cmd + I` | Bold / italic (with the cursor in the editor) |
 | `Tab` / `Shift + Tab` | Indent / outdent the line or selection (in the editor) |
 | `Ctrl/Cmd + P` | Print / export to PDF |
 | `Ctrl/Cmd + +` / `-` / `0` | Zoom in / out / reset |
+| `Ctrl/Cmd + wheel` | Zoom the panel under the pointer (editor font or reading) |
 | `Alt + ↑` / `Alt + ↓` | Move the selected Index section (Edit Mode) |
 | `Alt + ←` / `Alt + →` | Back / forward in navigation history |
 | `Home` / `End` | Jump to the beginning / end of the document (outside a text field) |
 | `Esc` | Close the open panel or modal |
 
 **Mouse:** double-clicking a word in the editor selects it (ready for `Ctrl/Cmd + B` / `I`); right-clicking a Mermaid diagram opens "mermaid.live"; right-clicking a file/folder in the tree offers "Open in new window" / "Reveal in File Explorer".
+
+With **Preferences → Vim mode** on, the editor and the reading view also understand Vim keys (see the help, section 11).
 
 > The full list, including keyboard navigation for Quick Open and search, also lives in the app's built-in help (`F1`).
 

@@ -7,8 +7,14 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
-### Corregido
+---
+
+## [0.20.0] - 2026-11-16
+
+### Seguridad
 - **Seguridad: un `.md` ajeno ya no puede ejecutar código desde un diagrama Mermaid.** Con la configuración anterior, un diagrama con `click … "javascript:…"` dejaba un enlace que se ejecutaba al pulsar el nodo, con acceso a las funciones de la aplicación (por ejemplo, escribir ficheros). Venía de versiones anteriores; lo encontró la revisión de `/code-simplify`. Mermaid pasa a `securityLevel: 'strict'` y, además, se quitan del SVG los atributos `on*` y los enlaces `javascript:`/`data:`/`vbscript:`. Los diagramas se ven igual (los `<br/>` de las etiquetas siguen partiendo línea); solo deja de funcionar `click` dentro de un diagrama. Banco nuevo `mermaid-security`, que falla con la 0.19.0.
+
+### Corregido
 - **Modo Vim con teclado español (RF-51, RF-52).** `{ } [ ] ~ \ |` salen con AltGr, que en Windows llega como Ctrl+Alt, y Vim las descartaba como atajo: `{`/`}` y `~` no hacían nada en el editor ni `]]`/`[[` al leer. Ctrl+Alt con una letra o un dígito sigue siendo un atajo de la app (Ctrl+Alt+P, Ctrl+Alt+I).
 - **Navegación Vim al leer (RF-52):** tras `g`, otra tecla ya no se pierde (`gj` baja una línea), y con un diálogo abierto las teclas no mueven el documento de detrás.
 - **Escribir en documentos grandes volvía a ir un fotograma por detrás (RF-53, RNF-04).** La barra de estado pedía su actualización también al soltar la tecla, y ese fotograma retrasaba la letra recién escrita: con 5.000 líneas, la mediana por tecla pasaba de 13 a 25 ms. Ahora se actualiza con `input` y `selectionchange` y la letra vuelve a pintarse en el primer fotograma (14 ms). Detectado en `/test` comparando con la 0.19.0; banco nuevo `editor-latency`.
