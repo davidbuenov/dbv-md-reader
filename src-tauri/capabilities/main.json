@@ -9,6 +9,7 @@
     "core:window:allow-set-title",
     "core:window:allow-request-user-attention",
     "core:window:allow-destroy",
+    "core:window:allow-close",
     "dialog:allow-open",
     "dialog:allow-message",
     "shell:allow-open",

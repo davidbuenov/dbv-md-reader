@@ -50,7 +50,8 @@
     editorFontInc: function () { App.editorZoomStep(1); },
     editorFontReset: function () { App.editorZoomReset(); },
     insertTable: function () { App.openInsertTable(); },
-    saveAs: function () { App.saveAs(); }
+    saveAs: function () { App.saveAs(); },
+    exit: function () { App.exitApp(); }
   };
 
   /** Método de `DBVApp` del que depende cada acción: mientras su rebanada no lo exponga, la entrada sale deshabilitada (RF-48.4). */

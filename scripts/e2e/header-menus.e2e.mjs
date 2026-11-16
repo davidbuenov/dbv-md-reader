@@ -113,7 +113,7 @@ async function main() {
   await h.key('ArrowDown', 'ArrowDown', 40); await h.sleep(100);
   ok('ArrowDown pasa a la siguiente entrada', await h.eval(`return document.activeElement.dataset.target === 'btn-open-file'`));
   await h.key('End', 'End', 35); await h.sleep(100);
-  ok('End va a la última entrada habilitada', await h.eval(`return document.activeElement.dataset.target === 'btn-export-typst'`));
+  ok('End va a la última entrada habilitada (Salir)', await h.eval(`return document.activeElement.dataset.action === 'exit'`));
   await h.key('Escape', 'Escape', 27); await h.sleep(150);
   ok('Escape cierra el menú y devuelve el foco al botón', await h.eval(`return document.getElementById('file-menu').classList.contains('hidden') && document.activeElement.id === 'btn-file-menu'`));
   ok('los atajos se muestran con el nombre de la plataforma', await h.eval(`return document.querySelector('.menu-item[data-target="btn-new-file"] .menu-item__keys').textContent === 'Ctrl+N' && document.querySelector('.menu-item[data-target="btn-ai"] .menu-item__keys').textContent === 'Ctrl+Mayús+I'`));

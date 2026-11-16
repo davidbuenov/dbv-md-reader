@@ -110,6 +110,7 @@
     'theme.var.code-operator': '코드: 연산자',
     'menu.themes': '테마 및 색상…',
     'menu.vimMode': 'Vim 모드',
+    'menu.exit': '종료',
     'menu.relativeLines': '상대 줄 번호',
     'menu.autoSave': '자동 저장',
     'menu.insertTable': '표 삽입…',

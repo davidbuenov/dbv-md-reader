@@ -633,6 +633,8 @@
     openInsertTable: function () { openInsertTable(); },
     // RF-64: Archivo ▸ Guardar como…
     saveAs: function () { saveDocumentAs(); },
+    // Archivo ▸ Salir (Ctrl+Q en Windows/Linux; en macOS lo da el menú nativo con ⌘Q).
+    exitApp: function () { exitApplication(); },
     // RF-33.2: el menú contextual del árbol ofrece «Añadir a la conversación» si las funciones de IA están a la vista.
     aiAvailable: function () { return !isAndroid && aiState.showAi && !!aiRoot(); },
     attachToAi: function (path) { attachToAi(path); },
@@ -2657,6 +2659,27 @@
     });
   })();
 
+  /**
+   * Archivo ▸ Salir: cierra TODAS las ventanas del proceso (RF-14/RF-60). Primero pregunta por los cambios de esta;
+   * las demás reciben un `close()` normal, así que cada una pregunta por los suyos con su `onCloseRequested` (y la
+   * que el usuario decida conservar sigue abierta). Esta se cierra la última con `destroy()`, sin volver a preguntar.
+   * En Android es el mismo «Salir» de Ajustes.
+   */
+  function exitApplication() {
+    if (isAndroid) { var mExit = document.getElementById('m-btn-exit'); if (mExit) mExit.click(); return; }
+    confirmDiscardUnsavedChanges().then(function (proceed) {
+      if (!proceed) return;
+      var W = window.__TAURI__ && window.__TAURI__.window;
+      if (!W) { window.close(); return; }
+      var me = W.getCurrentWindow();
+      var others = W.getAllWindows ? Promise.resolve(W.getAllWindows()) : Promise.resolve([]);
+      others.then(function (list) {
+        (list || []).forEach(function (w) { if (w.label !== me.label) w.close().catch(function (err) { console.warn('[exit:close]', w.label, err); }); });
+      }).catch(function (err) { console.warn('[exit:getAllWindows]', err); })
+        .then(function () { return me.destroy(); })
+        .catch(function () { try { me.close(); } catch (_) { window.close(); } });
+    });
+  }
   // ─── Confirmación al cerrar con cambios sin guardar ─────────────────────
   // El cierre nativo (la X de la ventana) no pasaba por isDirty: se perdían
   // ediciones sin avisar. onCloseRequested intercepta ese cierre para poder
@@ -4769,6 +4792,7 @@
     else if (mod && e.key === 'e') { e.preventDefault(); toggleEditMode(); }
     else if (mod && e.shiftKey && !e.altKey && e.code === 'KeyS') { e.preventDefault(); saveDocumentAs(); }
     else if (mod && e.key === 's') { e.preventDefault(); saveCurrentDocument(); }
+    else if (e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && (e.key === 'q' || e.key === 'Q') && !isAndroid && !/Mac/.test(navigator.platform || '')) { e.preventDefault(); exitApplication(); }
     else if (mod && e.key === 'k') { e.preventDefault(); if (window.DBVFileTree) window.DBVFileTree.toggleQuickOpen(); }
     else if (e.key === 'F1' && !mod && !e.altKey && !e.shiftKey) { e.preventDefault(); openHelp(); }
     else if (mod && e.key === 'b' && editMode && document.activeElement === editorTextarea) { e.preventDefault(); applyMarkdownFormat(MD_FORMATS.bold); }
