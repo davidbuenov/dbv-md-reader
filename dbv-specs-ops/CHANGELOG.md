@@ -27,6 +27,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 - **Pestañas nativas de macOS (RF-61).** Las ventanas de documento siguen la preferencia del sistema «Preferir pestañas al abrir documentos». Solo afecta a lo que ya abría una ventana nueva (Finder o «Abrir con» con la app en marcha, `Cmd+clic` y «Abrir en ventana nueva»); los enlaces, el diálogo Abrir, Recientes y el arrastre siguen abriendo en la ventana actual para conservar Atrás/Adelante. Sin código nativo propio. **Sin probar en un Mac.** *Issue #27 y PR #28 de MiguelRegueira; la PR no se fusiona, se reimplementa (ADR-050).*
 - **Una ventana nueva se puede abrir en Modo Edición o en un ancla (RF-60).** Si el documento ya estaba abierto en otra ventana, se enfoca y se le aplican esas opciones.
 
+### Cambiado
+- **La cabecera sigue el orden de `dbv-typst-editor` (RF-48).** De izquierda a derecha, en la zona derecha: Buscar, Modo Edición (con Guardar al editar), panel lateral e IA; después Archivo, Herramientas y Preferencias; luego el idioma, los tres botones de tema, la chincheta, la ayuda y «Acerca de». Abrir un menú cierra cualquier otro, también el del idioma, y Tab sale del menú y lo cierra. Preferencias suma «Modo Vim», «Números de línea relativos» y «Guardado automático», y Herramientas suma «Insertar tabla…». Estas entradas salen deshabilitadas hasta que llegue su función en esta misma versión. Android no cambia.
+
 ## [0.19.0] - 2026-10-19
 
 > Ciclo **0.19.0**: cabecera con menús Archivo / Herramientas / Preferencias, idiomas ampliables con coreano, ayuda con guía de la aplicación, ancho de lectura, ventana recordada, buscar y reordenar secciones en el editor, y los arreglos de las propuestas de la comunidad (Park-Young-Seok, Víctor Estival y johnblommers; sus ideas se reimplementaron aquí, ninguna PR externa se fusionó). Tests: vitest 286, sincronía 28, Rust 131 y 18 bancos de interfaz.

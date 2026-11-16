@@ -9,8 +9,10 @@
 // inventario de controles (ninguna acción se pierde), cada entrada dispara su acción, los menús se
 // operan con teclado, lo que depende del contexto se deshabilita (no se oculta), las casillas no cierran
 // Preferencias, la cabecera cabe en 640 px y Android conserva su barra sin menús.
+// RF-48: orden de typst por `getBoundingClientRect().left`, menús exclusivos (también el de idioma), Tab cierra,
+// entradas nuevas deshabilitadas hasta su rebanada y 640 px sin desbordar en es/en/ko.
 //
-// @spec RF-38, RF-19
+// @spec RF-38, RF-19, RF-48
 
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -127,6 +129,58 @@ async function main() {
   await h.close();
 }
 
+/** Orden de izquierda a derecha de los controles visibles de la cabecera. */
+const lefts = (h, ids) => h.eval(`return ${JSON.stringify(ids)}.map((id) => { const e = document.getElementById(id); return e ? Math.round(e.getBoundingClientRect().left) : null; })`);
+const ascending = (xs) => xs.every((x, i) => x !== null && (i === 0 || xs[i - 1] < x));
+
+async function layout() {
+  console.log('RF-48 · distribución de typst, exclusividad, teclado y entradas nuevas');
+  const h = await launch({ appDir, docPath: 'C:/x/test.md', docContent: doc, customInvoke, width: 1400 });
+  const target = ['btn-search', 'btn-edit-toggle', 'btn-toggle-toc', 'btn-ai', 'btn-file-menu', 'btn-tools-menu', 'btn-prefs-menu', 'btn-lang', 'theme-slot-0', 'theme-slot-1', 'theme-slot-2', 'btn-always-on-top', 'btn-markdown-help', 'btn-about'];
+  const xs = await lefts(h, target);
+  ok('orden: Buscar · Edición · panel · IA · Archivo · Herramientas · Preferencias · idioma · 3 temas · 📌 · ? · ⓘ', ascending(xs), xs.join(' < '));
+  await h.eval(`document.getElementById('btn-edit-toggle').click()`); await h.sleep(600);
+  const ed = await lefts(h, ['btn-edit-toggle', 'btn-save', 'btn-toggle-toc']);
+  ok('en Modo Edición, Guardar aparece entre Modo Edición y el panel', ascending(ed), ed.join(' < '));
+  await h.eval(`document.getElementById('btn-edit-toggle').click()`); await h.sleep(400);
+
+  // Exclusividad: abrir un menú cierra los demás, también el de idioma (en los dos sentidos).
+  await openMenu(h, 'btn-prefs-menu'); await openMenu(h, 'btn-lang');
+  ok('abrir el idioma cierra Preferencias', await h.eval(`return document.getElementById('prefs-menu').classList.contains('hidden') && !document.getElementById('lang-menu').classList.contains('hidden')`));
+  await openMenu(h, 'btn-file-menu');
+  ok('abrir Archivo cierra el idioma', await h.eval(`return document.getElementById('lang-menu').classList.contains('hidden') && !document.getElementById('file-menu').classList.contains('hidden')`));
+  const open = await h.eval(`return ['file-menu', 'tools-menu', 'prefs-menu', 'lang-menu'].filter((id) => !document.getElementById(id).classList.contains('hidden')).length`);
+  ok('nunca hay más de un menú abierto', open === 1, String(open));
+
+  // Teclado: Home y Tab.
+  await h.eval(`window.DBVHeaderMenu.closeAll(); document.getElementById('btn-file-menu').focus()`);
+  await h.key('ArrowDown', 'ArrowDown', 40); await h.key('End', 'End', 35); await h.key('Home', 'Home', 36); await h.sleep(120);
+  ok('Home vuelve a la primera entrada', await h.eval(`return document.activeElement.dataset.target === 'btn-new-file'`));
+  await h.key('Tab', 'Tab', 9); await h.sleep(150);
+  ok('Tab cierra el menú', await h.eval(`return document.getElementById('file-menu').classList.contains('hidden')`));
+
+  // Entradas nuevas (RF-48.3, 48.4): existen; las de rebanadas aún no hechas, deshabilitadas.
+  await openMenu(h, 'btn-prefs-menu');
+  const pr = await h.eval(`const q = (s) => document.querySelector('#prefs-menu ' + s); return ['[data-action="themeDialog"]', '[data-pref="vimMode"]', '[data-pref="relativeLines"]', '[data-pref="autoSave"]'].map((s) => { const e = q(s); return e ? { s, disabled: e.disabled, vis: !e.classList.contains('hidden') } : { s, missing: true }; })`);
+  ok('Preferencias tiene Temas y colores…, Modo Vim, Números de línea relativos y Guardado automático', pr.every((e) => !e.missing && e.vis), JSON.stringify(pr));
+  const pending = await h.eval(`return ['vimMode', 'relativeLines', 'autoSave'].filter((n) => !(window.DBVPrefs && window.DBVPrefs[n]))`);
+  ok('las casillas sin preferencia todavía salen deshabilitadas; Temas y colores… habilitada', pr[0].disabled === false && pr.slice(1).every((e) => e.disabled === pending.includes(e.s.match(/"(\w+)"/)[1])), JSON.stringify(pending));
+  await openMenu(h, 'btn-tools-menu');
+  const tb = await h.eval(`const e = document.querySelector('#tools-menu [data-action="insertTable"]'); return e ? { disabled: e.disabled, vis: !e.classList.contains('hidden') } : null`);
+  ok('Herramientas tiene «Insertar tabla…», deshabilitada fuera del Modo Edición', !!tb && tb.vis && tb.disabled === true, JSON.stringify(tb));
+  await h.eval(`window.DBVHeaderMenu.closeAll()`);
+
+  // 640 px sin desbordar en los tres idiomas.
+  await h.send('Emulation.setDeviceMetricsOverride', { width: 640, height: 800, deviceScaleFactor: 1, mobile: false });
+  for (const lang of ['es', 'en', 'ko']) {
+    await h.eval(`window.DBVApp.setLanguage('${lang}')`); await h.sleep(300);
+    const m = await h.eval(`const hd = document.getElementById('app-header'); return { scroll: hd.scrollWidth - hd.clientWidth, lang: document.documentElement.lang }`);
+    ok(`a 640 px en ${lang} la cabecera no desborda`, m.scroll <= 0 && m.lang === lang, JSON.stringify(m));
+  }
+  ok('sin excepciones ni console.error', (await h.errors()).length === 0, JSON.stringify(await h.errors()));
+  await h.close();
+}
+
 async function noDocument() {
   console.log('RF-38 · sin documento abierto');
   const h = await launch({ appDir, docPath: 'C:/x/test.md', docContent: doc, customInvoke: `((cmd) => cmd === 'get_cli_argument' ? null : undefined)` });
@@ -148,6 +202,7 @@ async function android() {
 }
 
 await main();
+await layout();
 await noDocument();
 await android();
 console.log(failed ? `\n${failed} comprobaciones fallan.` : '\nTodo correcto');

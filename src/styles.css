@@ -342,19 +342,20 @@ body.is-android .header-menu { display: none !important; }
 body:not(.is-android) .toolbar-right > .recent-wrap { order: 9; width: 0; }
 body:not(.is-android) #recent-panel { left: 0; right: auto; }
 
-/* Escritorio: orden visual — menús · idioma y tema · Buscar, Modo Edición, Guardar, panel, IA · chincheta, ayuda, acerca de. */
+/* Escritorio: orden visual de typst (RF-48.1) — grupo de trabajo (Buscar, Modo Edición, Guardar, panel, IA) ·
+   Archivo, Herramientas, Preferencias · idioma · temas rápidos · chincheta, ayuda, acerca de. */
 body:not(.is-android) .in-menu,
 body:not(.is-android) .legacy-divider { display: none !important; }
+body:not(.is-android) .toolbar-right > #btn-search { order: 1; }
+body:not(.is-android) .toolbar-right > #btn-edit-toggle { order: 2; }
+body:not(.is-android) .toolbar-right > #btn-save { order: 3; }
+body:not(.is-android) .toolbar-right > #btn-toggle-toc { order: 4; }
+body:not(.is-android) .toolbar-right > #btn-ai { order: 5; }
+body:not(.is-android) .toolbar-right > .menus-divider { order: 6; }
 body:not(.is-android) .toolbar-right > .header-menu { order: 10; }
-body:not(.is-android) .toolbar-right > .menus-divider { order: 13; }
+body:not(.is-android) .toolbar-right > .toolbar-divider:not(.legacy-divider):not(.menus-divider) { order: 12; }
 body:not(.is-android) .toolbar-right > #lang-switcher { order: 14; }
 body:not(.is-android) .toolbar-right > #theme-switcher { order: 15; }
-body:not(.is-android) .toolbar-right > #btn-search { order: 20; }
-body:not(.is-android) .toolbar-right > #btn-edit-toggle { order: 21; }
-body:not(.is-android) .toolbar-right > #btn-save { order: 22; }
-body:not(.is-android) .toolbar-right > #btn-toggle-toc { order: 23; }
-body:not(.is-android) .toolbar-right > #btn-ai { order: 24; }
-body:not(.is-android) .toolbar-right > .toolbar-divider:not(.legacy-divider):not(.menus-divider) { order: 25; }
 body:not(.is-android) .toolbar-right > #btn-always-on-top { order: 26; }
 body:not(.is-android) .toolbar-right > #btn-markdown-help { order: 27; }
 body:not(.is-android) .toolbar-right > #btn-about { order: 28; }

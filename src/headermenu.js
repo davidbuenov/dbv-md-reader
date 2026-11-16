@@ -17,6 +17,7 @@
 // Se carga DESPUÉS de app.js y filetree.js (usa `window.DBVApp`, `window.DBVFileTree` y `window.DBVPrefs`).
 //
 // @spec RF-38
+// @spec RF-48
 // =============================================================================
 (function () {
   'use strict';
@@ -46,8 +47,12 @@
     themeDialog: function () { App.openThemeDialog(); },
     editorFontDec: function () { App.editorZoomStep(-1); },
     editorFontInc: function () { App.editorZoomStep(1); },
-    editorFontReset: function () { App.editorZoomReset(); }
+    editorFontReset: function () { App.editorZoomReset(); },
+    insertTable: function () { App.openInsertTable(); }
   };
+
+  /** Método de `DBVApp` del que depende cada acción: mientras su rebanada no lo exponga, la entrada sale deshabilitada (RF-48.4). */
+  var ACTION_NEEDS = { themeDialog: 'openThemeDialog', insertTable: 'openInsertTable' };
 
   function menuItems(panel) {
     return Array.prototype.slice.call(panel.querySelectorAll('.menu-item'));
@@ -69,8 +74,12 @@
     }
     if (needs === 'doc' && !App.hasDocument()) state.disabled = true;
     if (needs === 'edit' && !App.isEditing()) state.disabled = true;
+    var action = item.dataset.action;
+    if (action && ACTION_NEEDS[action] && typeof App[ACTION_NEEDS[action]] !== 'function') state.disabled = true;
     if (item.dataset.pref) {
       var pref = window.DBVPrefs && window.DBVPrefs[item.dataset.pref];
+      // Casilla cuya preferencia aún no existe (Vim, líneas relativas, guardado automático: RF-48.3).
+      if (!pref) state.disabled = true;
       // Con `data-value` es una opción de un grupo excluyente (radio); sin él, una casilla.
       if (item.dataset.value !== undefined) state.checked = !!pref && pref.get() === item.dataset.value;
       else state.checked = pref ? !!pref.get() : false;
@@ -185,6 +194,8 @@
       else if (e.key === 'Home') { e.preventDefault(); if (list.length) list[0].focus(); }
       else if (e.key === 'End') { e.preventDefault(); if (list.length) list[list.length - 1].focus(); }
       else if (e.key === 'Escape') { controller.close(); button.focus(); e.stopPropagation(); }
+      // Tab sale del menú: se cierra y el foco sigue su orden natural (RF-48.5).
+      else if (e.key === 'Tab') controller.close();
     });
   }
 
