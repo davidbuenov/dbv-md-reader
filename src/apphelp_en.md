@@ -32,6 +32,7 @@ There are several ways to open a `.md` document:
 - **File → Open from URL…** for a `.md` published on the internet (`http://` or `https://`).
 - **File → Recent files…** to go back to what you opened last.
 - **File → New document** (`Ctrl/Cmd + N`) asks where to save it, creates the empty file and goes straight into Edit mode.
+- **File → Save as…** (`Ctrl/Cmd + Shift + S`) saves the document under another name or folder, and the window switches to the new file. The original is left as it was. It also works on a document opened from a URL, to keep a local copy.
 
 From the command line: `dbv-md-reader path/to/document.md`.
 

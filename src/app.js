@@ -621,6 +621,8 @@
     openHelp: function (tab) { openHelp(tab); },
     // RF-50.1: Preferencias ▸ Temas y colores…
     openThemeDialog: function () { themeModalCtrl.open(); },
+    // RF-64: Archivo ▸ Guardar como…
+    saveAs: function () { saveDocumentAs(); },
     // RF-33.2: el menú contextual del árbol ofrece «Añadir a la conversación» si las funciones de IA están a la vista.
     aiAvailable: function () { return !isAndroid && aiState.showAi && !!aiRoot(); },
     attachToAi: function (path) { attachToAi(path); },
@@ -3821,6 +3823,34 @@
       });
   }
 
+  /**
+   * Archivo ▸ Guardar como… : escribe el documento en la ruta que elija el usuario y la ventana pasa a
+   * mostrar ese fichero, en el mismo modo. El original no se toca; sus cambios sin guardar van al nuevo.
+   * Reutiliza el diálogo de «Nuevo documento» (filtro Markdown, carpeta del documento primero, RF-46).
+   * @spec RF-64
+   */
+  function saveDocumentAs() {
+    if (isAndroid || !currentDoc) return;
+    var content = editMode ? editorTextarea.value : currentDoc.content;
+    var wasEditing = editMode;
+    invoke('save_new_file_dialog', { defaultName: currentDoc.file_name || t('editor.newFileDefaultName'), defaultDirs: dialogDirsFor('newfile') })
+      .then(function (path) {
+        if (!path) return null;
+        // Misma ruta que el documento abierto: es un «Guardar» normal (con su supresión del eco del watcher).
+        if (path === currentDoc.path && wasEditing && !isRemoteDoc(currentDoc)) { saveCurrentDocument(); return null; }
+        return invoke('write_file', { path: path, content: content }).then(function () {
+          rememberDir('newfile', DialogDirs.parentDir(path));
+          // Ya está todo en disco: sin esto, loadDocument preguntaría por descartar unos cambios que no se pierden.
+          setDirty(false);
+          loadDocument(path, { isPrimaryOpen: true, startInEditMode: wasEditing });
+        });
+      })
+      .catch(function (err) {
+        showError('[save_as] ' + err);
+        alert(t('errors.saveFailed', { error: err }));
+      });
+  }
+
   btnEditToggle.addEventListener('click', toggleEditMode);
   btnSave.addEventListener('click', saveCurrentDocument);
 
@@ -4248,6 +4278,7 @@
     else if (mod && e.key === 'o') { e.preventDefault(); openFileDialog(); }
     else if (mod && !e.altKey && e.key === 'p') { e.preventDefault(); window.print(); }
     else if (mod && e.key === 'e') { e.preventDefault(); toggleEditMode(); }
+    else if (mod && e.shiftKey && !e.altKey && e.code === 'KeyS') { e.preventDefault(); saveDocumentAs(); }
     else if (mod && e.key === 's') { e.preventDefault(); saveCurrentDocument(); }
     else if (mod && e.key === 'k') { e.preventDefault(); if (window.DBVFileTree) window.DBVFileTree.toggleQuickOpen(); }
     else if (e.key === 'F1' && !mod && !e.altKey && !e.shiftKey) { e.preventDefault(); openHelp(); }

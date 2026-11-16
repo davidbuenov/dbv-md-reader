@@ -44,6 +44,7 @@
     'menu.openUrl': 'URL에서 열기…',
     'menu.recent': '최근 파일…',
     'menu.save': '저장',
+    'menu.saveAs': '다른 이름으로 저장…',
     'menu.print': '인쇄 / PDF…',
     'menu.exportTypst': 'Typst로 내보내기…',
     'menu.quickOpen': '파일 찾기…',

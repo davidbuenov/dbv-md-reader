@@ -18,6 +18,7 @@
 //
 // @spec RF-38
 // @spec RF-48
+// @spec RF-64
 // =============================================================================
 (function () {
   'use strict';
@@ -48,7 +49,8 @@
     editorFontDec: function () { App.editorZoomStep(-1); },
     editorFontInc: function () { App.editorZoomStep(1); },
     editorFontReset: function () { App.editorZoomReset(); },
-    insertTable: function () { App.openInsertTable(); }
+    insertTable: function () { App.openInsertTable(); },
+    saveAs: function () { App.saveAs(); }
   };
 
   /** Método de `DBVApp` del que depende cada acción: mientras su rebanada no lo exponga, la entrada sale deshabilitada (RF-48.4). */

@@ -2,7 +2,7 @@
 
 > **Fase:** `/spec` (Especificación)  
 > **Estado:** Validado  
-> **Última Revisión:** 2026-11-15 (v0.20.0 especificada: RF-48 a RF-63 y RNF-04)  
+> **Última Revisión:** 2026-11-16 (v0.20.0 especificada: RF-48 a RF-64 y RNF-04)  
 
 ---
 
@@ -559,6 +559,15 @@
   2. **Hipótesis a medir antes de tocar código:** el destino se calcula antes de que terminen de cargar las imágenes que hay por encima, y al cargar empujan el contenido. Eso explica que dependa del ancho (las imágenes escalan con él). El banco de la 0.19.0 dio Δ 0 **sin imágenes lentas**, así que no lo contradice. Si no se reproduce, se pide a johnblommers que lo pruebe con la 0.19.0 antes de cambiar nada.
   3. **Comportamiento esperado:** tras un clic en el Índice (o un enlace interno, o `]]` de RF-52), el encabezado queda arriba (±4 px) cuando terminan de cargar las imágenes de encima, aunque tarden. La corrección se detiene en cuanto el usuario hace scroll, pulsa una tecla o pasan 3 s. En Modo Edición, el editor se coloca en la línea del encabezado (RF-30).
   4. **Criterios de aceptación:** banco e2e con imágenes de servidor lento sin `width`/`height` encima del destino, a tres anchos de panel: error ≤ 4 px en lectura y en la vista previa, editor en la línea del encabezado, y no se mueve si el usuario hace scroll durante la carga. Regresión: el banco de clic en el Índice de la 0.19.0 sigue dando Δ 0.
+
+- [ ] **RF-64: Archivo ▸ Guardar como… (petición de un usuario; amplía RF-20 y RF-38), especificado 2026-11-16:**
+  1. **Dónde:** en el menú Archivo, justo debajo de «Guardar», con el atajo `Ctrl/Cmd + Mayús + S`. Solo en escritorio: Android no edita (RF-20).
+  2. **Cuándo está disponible:** con cualquier documento abierto, en Modo Lectura o en Modo Edición, también si es remoto. Así se guarda una copia local de un `.md` abierto desde una URL. Sin documento sale deshabilitado (RF-38.4).
+  3. **Qué guarda:** en Modo Edición, el texto del editor tal como está, con los cambios sin guardar. En Modo Lectura, el documento tal como se leyó.
+  4. **Diálogo:** el selector nativo de guardado con el filtro Markdown. Propone el nombre del documento actual y su carpeta, o la última carpeta usada si el documento es remoto (RF-46, igual que «Nuevo documento»). Cancelar no cambia nada.
+  5. **Después de guardar:** la ventana pasa a mostrar el fichero nuevo, en el mismo modo en que estaba, y entra en Recientes. El original **no se modifica**: los cambios sin guardar van solo al fichero nuevo. Si se elige la misma ruta del documento, equivale a «Guardar».
+  6. **Fuera de alcance:** las rutas relativas de imágenes y enlaces no se reescriben. Si se guarda en otra carpeta, pueden dejar de resolver.
+  7. **Criterios de aceptación:** banco e2e (Edge headless): la entrada existe debajo de Guardar, se deshabilita sin documento; en Modo Edición escribe el texto del editor en la ruta elegida, la ventana pasa a esa ruta y el original no recibe ninguna escritura; en Modo Lectura escribe el contenido leído; cancelar no escribe nada; `Ctrl+Mayús+S` abre el diálogo y `Ctrl+S` sigue guardando sin diálogo.
 
 - **RNF-04: Presupuestos de la 0.20.0:** se mantienen RAM < 64 MB en reposo, render < 200 ms y arranque sin retraso (RF-09). Sin dependencias JS nuevas (Vim, temas, tabla y barra de estado son módulos propios). El binario de la 0.19.0 mide 19.005.952 bytes y el tope es 20 MB, así que `/test` lo mide. Con todas las preferencias nuevas **apagadas**, la latencia por tecla del editor no empeora respecto a la 0.19.0 (medida antes y después en Edge headless con 5.000 líneas). Todos los tests y bancos de la 0.19.0 siguen en verde.
 

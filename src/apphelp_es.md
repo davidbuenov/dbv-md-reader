@@ -32,6 +32,7 @@ Hay varias formas de abrir un documento `.md`:
 - **Archivo → Abrir desde URL…** para un `.md` publicado en internet (`http://` o `https://`).
 - **Archivo → Archivos recientes…** para volver a lo último que abriste.
 - **Archivo → Nuevo documento** (`Ctrl/Cmd + N`) pide dónde guardarlo, crea el archivo vacío y entra directamente en el Modo Edición.
+- **Archivo → Guardar como…** (`Ctrl/Cmd + Mayús + S`) guarda el documento con otro nombre o en otra carpeta, y la ventana pasa al fichero nuevo. El original queda como estaba. También sirve con un documento abierto desde una URL, para guardar una copia local.
 
 Desde la línea de comandos: `dbv-md-reader ruta/al/documento.md`.
 
