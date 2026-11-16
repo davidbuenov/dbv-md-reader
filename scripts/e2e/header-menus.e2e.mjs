@@ -49,7 +49,7 @@ async function main() {
   ok('cada acción movida tiene su entrada de menú', inMenus.every((id) => items.includes(id)), items.join(','));
   const stillThere = await h.eval(`return ${JSON.stringify(inMenus)}.every((id) => !!document.getElementById(id))`);
   ok('los botones originales siguen en el DOM con su id (ids y bancos intactos)', stillThere);
-  const barIds = ['btn-search', 'btn-edit-toggle', 'btn-toggle-toc', 'btn-always-on-top', 'btn-markdown-help', 'btn-about', 'theme-light', 'theme-dark', 'theme-sepia', 'lang-switcher'];
+  const barIds = ['btn-search', 'btn-edit-toggle', 'btn-toggle-toc', 'btn-always-on-top', 'btn-markdown-help', 'btn-about', 'theme-slot-0', 'theme-slot-1', 'theme-slot-2', 'lang-switcher'];
   const bar = {};
   for (const id of barIds) bar[id] = await h.eval(`return ${visibleExpr(id)}`);
   ok('siguen visibles en la barra: Buscar, Modo Edición, panel, chincheta, ?, i, tema e idioma', Object.values(bar).every(Boolean), JSON.stringify(bar));

@@ -5,6 +5,7 @@
   'use strict';
 
   var t = window.DBV_I18N.t;
+  var panelClosers = []; // registerPanel() — ver «Paneles flotantes»
 
   // ─── Error display (muestra errores directamente en la ventana) ──────────
   var errorPanel = document.getElementById('error-panel');
@@ -292,7 +293,12 @@
     // la promesa igualmente con un SVG de error propio de Mermaid (icono de bomba
     // enorme, sin detalle de línea) en vez de rechazarla — así se puede mostrar un
     // aviso compacto y con el mensaje real del parser (que si incluye la línea).
-    window.mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose', suppressErrorRendering: true });
+    window.mermaid.initialize({ startOnLoad: false, theme: mermaidTheme(), securityLevel: 'loose', suppressErrorRendering: true });
+  }
+
+  /** @spec RF-49.4 — Mermaid sigue a la paleta: `dark` en los temas oscuros, `default` en los claros. */
+  function mermaidTheme() {
+    return window.DBVThemes && !window.DBVThemes.isDark() ? 'default' : 'dark';
   }
 
   // ─── Matemáticas (KaTeX, RF-17) ────────────────────────────────────────────
@@ -613,6 +619,8 @@
     openAssistant: function () { openAssistant(); },
     // RF-47: las entradas del menú Herramientas abren la ayuda en una pestaña concreta.
     openHelp: function (tab) { openHelp(tab); },
+    // RF-50.1: Preferencias ▸ Temas y colores…
+    openThemeDialog: function () { themeModalCtrl.open(); },
     // RF-33.2: el menú contextual del árbol ofrece «Añadir a la conversación» si las funciones de IA están a la vista.
     aiAvailable: function () { return !isAndroid && aiState.showAi && !!aiRoot(); },
     attachToAi: function (path) { attachToAi(path); },
@@ -1512,33 +1520,93 @@
   // Temas
   // =========================================================================
 
-  var btnThemes = {
-    light: document.getElementById('theme-light'),
-    dark:  document.getElementById('theme-dark'),
-    sepia: document.getElementById('theme-sepia')
-  };
+  // =========================================================================
+  // Temas (RF-49, RF-50): la paleta la aplica themes.js en el <head>; aquí van los botones rápidos, la lista
+  // de Android, el diálogo «Temas y colores…» y lo que debe repintarse al cambiar (Mermaid).
+  // =========================================================================
+  var Themes = window.DBVThemes;
+  var themeSwitcher = document.getElementById('theme-switcher');
+  var mThemeSelect = document.getElementById('m-theme-select');
+  var themeModalEl = document.getElementById('theme-modal');
+  var themeDialog = window.DBVThemeDialog
+    ? window.DBVThemeDialog.create({ bodyEl: document.getElementById('theme-dialog-body'), t: t })
+    : null;
+  var themeModalCtrl = registerPanel(themeModalEl, {
+    onOpen: function () { if (themeDialog) { themeDialog.render(); themeDialog.focusActive(); } }
+  });
+  document.getElementById('theme-backdrop').addEventListener('click', themeModalCtrl.close);
+  document.getElementById('theme-close').addEventListener('click', themeModalCtrl.close);
 
-  var mBtnThemes = {
-    light: document.getElementById('m-theme-light'),
-    dark:  document.getElementById('m-theme-dark'),
-    sepia: document.getElementById('m-theme-sepia')
-  };
-
-  function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    Object.keys(btnThemes).forEach(function (k) {
-      if (btnThemes[k]) btnThemes[k].classList.remove('active');
-      if (mBtnThemes[k]) mBtnThemes[k].classList.remove('active');
-    });
-    if (btnThemes[theme]) btnThemes[theme].classList.add('active');
-    if (mBtnThemes[theme]) mBtnThemes[theme].classList.add('active');
-    localStorage.setItem('dbv-md-theme', theme);
+  function themeLabel(id) {
+    var d = Themes.describe(id, Themes.getCustom());
+    return d ? t(d.labelKey) : id;
   }
 
-  Object.keys(btnThemes).forEach(function (name) {
-    if (btnThemes[name]) btnThemes[name].addEventListener('click', function () { setTheme(name); });
-    if (mBtnThemes[name]) mBtnThemes[name].addEventListener('click', function () { setTheme(name); });
-  });
+  /** @spec RF-50.2 — los 3 botones de la cabecera: icono del tema asignado, nombre en `title`, el activo marcado. */
+  function renderThemeButtons() {
+    if (!themeSwitcher || !Themes) return;
+    var active = Themes.getTheme();
+    themeSwitcher.replaceChildren();
+    Themes.getSlots().forEach(function (id, i) {
+      var d = Themes.describe(id, Themes.getCustom());
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'theme-slot-' + i;
+      btn.className = 'theme-btn' + (id === active ? ' active' : '');
+      btn.dataset.themeId = id;
+      btn.textContent = d.icon;
+      btn.title = themeLabel(id);
+      btn.setAttribute('aria-label', themeLabel(id));
+      btn.setAttribute('aria-pressed', id === active ? 'true' : 'false');
+      btn.addEventListener('click', function () { Themes.setTheme(id); });
+      themeSwitcher.appendChild(btn);
+    });
+  }
+
+  /** @spec RF-49.7 — Ajustes de Android: lista de los 10 curados (el Personalizado es solo de escritorio). */
+  function renderThemeSelect() {
+    if (!mThemeSelect || !Themes) return;
+    mThemeSelect.replaceChildren();
+    Themes.CURATED_THEMES.forEach(function (c) {
+      var o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = c.icon + ' ' + t(c.labelKey);
+      mThemeSelect.appendChild(o);
+    });
+    mThemeSelect.value = Themes.getTheme();
+  }
+
+  /** @spec RF-49.4 — al pasar de oscuro a claro (o al revés) Mermaid se reinicia y se redibujan los diagramas. */
+  function rerenderMermaid() {
+    if (!window.mermaid) return;
+    window.mermaid.initialize({ startOnLoad: false, theme: mermaidTheme(), securityLevel: 'loose', suppressErrorRendering: true });
+    document.querySelectorAll('.mermaid-container').forEach(function (div, i) {
+      var code = div.dataset.mermaidSource;
+      if (!code) return;
+      window.mermaid.render('mermaid-t' + i + '-' + Date.now(), code)
+        .then(function (result) { div.innerHTML = result.svg; })
+        .catch(function (e) { console.warn('Mermaid:', e); });
+    });
+  }
+
+  var lastThemeDark = Themes ? Themes.isDark() : true;
+  if (Themes) {
+    renderThemeButtons();
+    renderThemeSelect();
+    if (mThemeSelect) mThemeSelect.addEventListener('change', function () { Themes.setTheme(mThemeSelect.value); });
+    Themes.onChange(function () {
+      renderThemeButtons();
+      if (mThemeSelect) mThemeSelect.value = Themes.getTheme();
+      if (themeDialog && !themeModalEl.classList.contains('hidden')) themeDialog.render();
+      var dark = Themes.isDark();
+      if (dark !== lastThemeDark) { lastThemeDark = dark; rerenderMermaid(); }
+    });
+    document.addEventListener('dbv-lang-changed', function () {
+      renderThemeButtons();
+      renderThemeSelect();
+      if (themeDialog && !themeModalEl.classList.contains('hidden')) themeDialog.render();
+    });
+  }
 
   document.getElementById('btn-toggle-toc').addEventListener('click', function () {
     var open = tocSidebar.classList.contains('hidden');
@@ -1583,7 +1651,7 @@
   // Paneles flotantes (helper compartido: abrir/cerrar/clic-fuera/Escape)
   // =========================================================================
 
-  var panelClosers = [];
+  // `panelClosers` se declara al principio del fichero: el diálogo de temas (RF-50) se registra antes que aquí.
 
   function closeAllPanels() {
     panelClosers.forEach(function (close) { close(); });
@@ -1643,7 +1711,7 @@
   function buildMermaidLiveUrl(code) {
     var state = {
       code: code,
-      mermaid: JSON.stringify({ theme: 'dark' }, null, 2), // mismo tema que usamos al renderizar (ver processMermaid)
+      mermaid: JSON.stringify({ theme: mermaidTheme() }, null, 2), // mismo tema que usamos al renderizar (ver processMermaid)
       updateDiagram: true,
       rough: false,
       grid: true
@@ -4210,8 +4278,7 @@
       if (savedTab === 'files' && window.DBVFileTree) window.DBVFileTree.setActiveTab('files');
     }
 
-    var theme = localStorage.getItem('dbv-md-theme') || 'dark';
-    setTheme(theme);
+    // El tema ya lo aplicó themes.js en el <head> (RF-49.4), antes de pintar.
 
     // Restaurar zoom guardado
     var savedZoom = parseInt(localStorage.getItem('dbv-md-zoom') || '100', 10);

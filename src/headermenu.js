@@ -43,6 +43,7 @@
     quickOpen: function () { if (window.DBVFileTree) window.DBVFileTree.toggleQuickOpen(); },
     goPreview: function () { App.goToPreview(); },
     helpSyntax: function () { App.openHelp('syntax'); },
+    themeDialog: function () { App.openThemeDialog(); },
     editorFontDec: function () { App.editorZoomStep(-1); },
     editorFontInc: function () { App.editorZoomStep(1); },
     editorFontReset: function () { App.editorZoomReset(); }

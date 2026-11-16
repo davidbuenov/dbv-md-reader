@@ -6,6 +6,8 @@
   <title>DBV Markdown Reader</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="vendor/katex.min.css" />
+  <!-- RF-49: antes de pintar, escribe las paletas y fija data-theme (sin parpadeo). -->
+  <script src="themes.js"></script>
 </head>
 <body class="booting">
 
@@ -66,6 +68,8 @@
           <span class="header-menu__icon" aria-hidden="true"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6m-4 4v6"/></svg></span><span class="header-menu__label" data-i18n="menu.prefs">Preferencias</span><span class="header-menu__caret" aria-hidden="true">▾</span>
         </button>
         <div id="prefs-menu" class="floating-panel--menu hidden" role="menu">
+          <button class="menu-item" type="button" role="menuitem" data-action="themeDialog"><span class="menu-item__icon" aria-hidden="true">🎨</span><span class="menu-item__label" data-i18n="menu.themes">Temas y colores…</span></button>
+          <div class="menu-separator" role="separator"></div>
           <div class="menu-heading" role="presentation" data-i18n="menu.width">Ancho de lectura</div>
           <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-pref="contentWidth" data-value="narrow"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.width.narrow">Estrecho</span></button>
           <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-pref="contentWidth" data-value="normal"><span class="menu-item__check" aria-hidden="true">✓</span><span class="menu-item__icon" aria-hidden="true"></span><span class="menu-item__label" data-i18n="menu.width.normal">Normal</span></button>
@@ -117,11 +121,8 @@
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 17v5M8.5 12.5L5 14l7-7 7 7-3.5-1.5M8.5 12.5L7 6l5-2 5 2-1.5 6.5M8.5 12.5h7"/></svg>
       </button>
       <div class="toolbar-divider legacy-divider"></div>
-      <div id="theme-switcher">
-        <button id="theme-light" class="theme-btn" data-i18n-title="theme.light">☀️</button>
-        <button id="theme-dark"  class="theme-btn active" data-i18n-title="theme.dark">🌙</button>
-        <button id="theme-sepia" class="theme-btn" data-i18n-title="theme.sepia">📜</button>
-      </div>
+      <!-- RF-50.2: tres botones rápidos (theme-slot-0..2), los construye app.js desde DBVThemes. -->
+      <div id="theme-switcher" role="group" data-i18n-title="theme.quickGroup"></div>
       <div class="toolbar-divider legacy-divider"></div>
       <div id="lang-switcher" class="header-menu">
         <button id="btn-lang" class="header-menu__btn" type="button" aria-haspopup="menu" aria-expanded="false" data-i18n-title="lang.label">
@@ -212,6 +213,16 @@
         <button id="help-tab-syntax" class="help-tab" type="button" role="tab" aria-selected="false" aria-controls="help-content" data-help-tab="syntax" data-i18n="help.tabSyntax">Sintaxis Markdown</button>
       </div>
       <div id="help-content" class="markdown-body" role="tabpanel" tabindex="0"></div>
+    </div>
+  </div>
+
+  <!-- ─── Temas y colores (RF-50): lo rellena themedialog.js ─── -->
+  <div id="theme-modal" class="modal-overlay hidden">
+    <div id="theme-backdrop" class="modal-backdrop"></div>
+    <div id="theme-card" class="modal-card" role="dialog" aria-modal="true" aria-labelledby="theme-dialog-title">
+      <button id="theme-close" class="btn-icon-sm" data-i18n-title="help.close">✕</button>
+      <h2 id="theme-dialog-title" data-i18n="theme.dialogTitle">Temas y colores</h2>
+      <div id="theme-dialog-body"></div>
     </div>
   </div>
 
@@ -367,11 +378,8 @@
     </div>
     <div class="settings-group">
       <span class="settings-group-label" data-i18n="settings.theme">Tema</span>
-      <div id="m-theme-switcher" class="segmented-control">
-        <button id="m-theme-light" class="theme-btn" data-i18n-title="theme.light">☀️ Light</button>
-        <button id="m-theme-dark"  class="theme-btn active" data-i18n-title="theme.dark">🌙 Dark</button>
-        <button id="m-theme-sepia" class="theme-btn" data-i18n-title="theme.sepia">📜 Sepia</button>
-      </div>
+      <!-- RF-49.7: en Android, la lista de los 10 temas curados (sin Personalizado). -->
+      <select id="m-theme-select" class="settings-select" data-i18n-title="settings.theme"></select>
     </div>
     <div class="settings-group">
       <span class="settings-group-label" data-i18n="settings.language">Idioma</span>
@@ -459,6 +467,7 @@
   <script src="textsearch.js"></script>
   <script src="releasecheck.js"></script>
   <script src="outline.js"></script>
+  <script src="themedialog.js"></script>
   <script src="app.js"></script>
   <script src="filetree.js"></script>
   <script src="headermenu.js"></script>
