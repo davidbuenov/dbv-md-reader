@@ -506,6 +506,28 @@ body:not(.is-android) #theme-switcher .theme-btn { padding: 3px 7px; font-size: 
 }
 #editor-status-msg { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 #editor-status-vim.hidden { display: none; }
+/* Insignia del Modo Vim (RF-51.5, DESIGN «Modo Vim»): píldora en mayúsculas con el color del modo. */
+#editor-status-vim {
+  flex: 0 0 auto;
+  padding: 0 7px;
+  border-radius: 9px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--bg-primary);
+  background-color: var(--accent);
+}
+#editor-status-vim[data-mode="insert"] { background-color: var(--alert-tip); }
+#editor-status-vim[data-mode="visual"],
+#editor-status-vim[data-mode="vline"] { background-color: var(--alert-important); }
+#editor-status-cmd { flex: 0 0 auto; color: var(--text-primary); font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace; }
+#editor-status-cmd:empty { display: none; }
+/* Cursor de bloque de Normal/Visual: en una capa como la del resaltado de RF-44, sin tapar el carácter. */
+#editor-vim-layer { position: absolute; overflow: hidden; pointer-events: none; z-index: 2; }
+#editor-vim-layer[hidden] { display: none; }
+#editor-vim-cursor { position: absolute; border-radius: 1px; background-color: var(--accent); opacity: 0.4; }
+#editor-textarea.vim-block-caret { caret-color: transparent; }
 
 #editor-textarea {
   flex: 1;

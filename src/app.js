@@ -1278,6 +1278,7 @@
   // deshacer) y no estás escribiendo en otro campo; si no, se descartan y manda el deshacer nativo.
   window.addEventListener('keydown', function (e) {
     if (!editMode || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (vimActive()) return; // con Vim, Ctrl+Z va a su pila (D6) y el movimiento ya es un paso en ella
     var key = String(e.key).toLowerCase();
     var other = e.target !== editorTextarea && e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]');
     if (other || (key !== 'z' && key !== 'y')) return;
@@ -3044,6 +3045,7 @@
     var label = t('editor.status.pos', { line: pos.line, col: pos.col }) + (selected ? ' ' + t('editor.status.selected', { count: selected }) : '');
     if (editorStatusPos.textContent !== label) editorStatusPos.textContent = label;
     if (relativeLines) updateEditorLineNumbers();
+    if (vimOn) updateVimCursor();
   }
 
   function scheduleEditorStatus() {
@@ -3264,6 +3266,7 @@
     // en absoluto, así que el badge necesita este empujón propio para
     // ocultarse al salir de Modo Edición (depende de `editMode`, no solo de `isDirty`).
     updateModifiedBadge();
+    document.dispatchEvent(new CustomEvent('dbv-edit-mode-changed', { detail: { on: on } })); // Vim arranca en Normal (RF-51.1)
   }
 
   function toggleEditMode() {
@@ -4475,6 +4478,276 @@
 
   // La carpeta de la IA sigue al documento activo (la misma regla que el árbol de RF-25).
   function aiNotifyDocument() { if (aiApp) aiApp.onRootChanged(aiRoot()); }
+
+  // =========================================================================
+  // Modo Vim (RF-51, RF-52) — adaptador del núcleo puro `vimcore.js` (D5)
+  // =========================================================================
+  // El adaptador: (1) toma `keydown` del <textarea> SOLO con la preferencia activa, (2) deja pasar los atajos de la
+  // app con Ctrl/Cmd (salvo Ctrl+R/D/U/[/Z, `keyFromEvent`), (3) aplica la edición con `setRangeText` y (4) no
+  // interpreta nada durante una composición IME. Es la interfaz que la opción B cambiará por CodeMirror (RF-51.8).
+  // Deshacer (D6): pila propia de instantáneas. Cualquier edición que Vim no hizo (mover secciones RF-45, IA en
+  // línea RF-36, barra de formato RF-23, tabla RF-55, pegar RF-37) se detecta en `input` y se apila como UN paso.
+  var VimCore = window.DBVVimCore;
+  var VIM_KEY = 'dbv-md-vim';
+  var vimOn = false;
+  try { vimOn = localStorage.getItem(VIM_KEY) === '1'; } catch (_) { /* sin almacenamiento: apagado */ }
+  var vimState = VimCore.initialState();
+  var vimHistory = VimCore.createHistory();
+  var vimLastText = '';
+  var applyingVim = false;
+  var vimBadge = document.getElementById('editor-status-vim');
+  var vimCmdEl = document.getElementById('editor-status-cmd');
+  var VIM_BADGES = { normal: 'NORMAL', insert: 'INSERT', visual: 'VISUAL', vline: 'V-LINE', command: 'NORMAL', search: 'NORMAL' };
+
+  var vimLayer = document.createElement('div');
+  vimLayer.id = 'editor-vim-layer';
+  var vimCursorEl = document.createElement('div');
+  vimCursorEl.id = 'editor-vim-cursor';
+  vimLayer.appendChild(vimCursorEl);
+  vimLayer.hidden = true;
+  editorBody.appendChild(vimLayer);
+
+  function vimActive() { return vimOn && editMode && !isAndroid; }
+  function vimBlockMode() { return vimState.mode !== 'insert'; }
+
+  /** Cursor de bloque en la capa medida de RF-44 (D7). */
+  function updateVimCursor() {
+    var show = vimActive() && vimBlockMode();
+    editorTextarea.classList.toggle('vim-block-caret', show);
+    if (!show) { vimLayer.hidden = true; return; }
+    var value = editorTextarea.value;
+    var pos = (vimState.mode === 'visual' || vimState.mode === 'vline') ? vimState.vcursor : editorTextarea.selectionStart;
+    pos = Math.max(0, Math.min(pos, value.length));
+    var cs = getComputedStyle(editorTextarea);
+    var lh = editorLineHeightPx();
+    var ls = pos - TextSearch.columnOf(value, pos);
+    var ch = value.charAt(pos);
+    if (pos < value.length) { var cp = value.codePointAt(pos); if (cp > 0xFFFF) ch = String.fromCodePoint(cp); }
+    var w = (!ch || ch === '\n' || ch === '\r') ? measureEditorText(' ') : measureEditorText(ch);
+    vimLayer.style.left = editorTextarea.offsetLeft + 'px';
+    vimLayer.style.top = editorTextarea.offsetTop + 'px';
+    vimLayer.style.width = editorTextarea.clientWidth + 'px';
+    vimLayer.style.height = editorTextarea.clientHeight + 'px';
+    vimCursorEl.style.left = ((parseFloat(cs.paddingLeft) || 0) + measureEditorText(value.slice(ls, pos)) - editorTextarea.scrollLeft) + 'px';
+    vimCursorEl.style.top = ((parseFloat(cs.paddingTop) || 0) + TextSearch.lineOf(value, pos) * lh - editorTextarea.scrollTop) + 'px';
+    vimCursorEl.style.width = Math.max(2, w) + 'px';
+    vimCursorEl.style.height = lh + 'px';
+    vimLayer.hidden = false;
+  }
+
+  function renderVimStatus(cmdline) {
+    var active = vimActive();
+    vimBadge.classList.toggle('hidden', !active);
+    if (active) {
+      vimBadge.textContent = VIM_BADGES[vimState.mode] || 'NORMAL';
+      vimBadge.dataset.mode = vimState.mode;
+    }
+    vimCmdEl.textContent = active && cmdline ? cmdline : '';
+    updateVimCursor();
+  }
+
+  /** Mantiene a la vista la posición `pos` (el <textarea> no se desplaza solo con `setSelectionRange`). */
+  function vimRevealOffset(pos) {
+    var value = editorTextarea.value;
+    var lh = editorLineHeightPx();
+    var cs = getComputedStyle(editorTextarea);
+    var padTop = parseFloat(cs.paddingTop) || 0;
+    var padLeft = parseFloat(cs.paddingLeft) || 0;
+    var top = padTop + TextSearch.lineOf(value, pos) * lh;
+    if (top < editorTextarea.scrollTop + padTop) editorTextarea.scrollTop = Math.max(0, top - padTop);
+    else if (top + lh > editorTextarea.scrollTop + editorTextarea.clientHeight - padTop) {
+      editorTextarea.scrollTop = top + lh - editorTextarea.clientHeight + padTop;
+    }
+    var x = padLeft + measureEditorText(value.slice(pos - TextSearch.columnOf(value, pos), pos));
+    if (x < editorTextarea.scrollLeft + padLeft) editorTextarea.scrollLeft = Math.max(0, x - padLeft);
+    else if (x + 2 * lh > editorTextarea.scrollLeft + editorTextarea.clientWidth) {
+      editorTextarea.scrollLeft = x + 2 * lh - editorTextarea.clientWidth;
+    }
+  }
+
+  function vimSetText(text, cursor) {
+    applyingVim = true;
+    editorTextarea.setRangeText(text, 0, editorTextarea.value.length, 'end');
+    editorTextarea.setSelectionRange(cursor, cursor);
+    editorTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    applyingVim = false;
+    vimLastText = editorTextarea.value;
+  }
+
+  function vimReset() {
+    vimState = VimCore.initialState();
+    vimHistory.clear();
+    vimLastText = editorTextarea.value;
+    if (vimActive()) {
+      var c = VimCore.clampNormal(editorTextarea.value, editorTextarea.selectionStart);
+      editorTextarea.setSelectionRange(c, c);
+    }
+    renderVimStatus('');
+  }
+
+  function vimRunCommand(command) {
+    if (command === 'save') saveCurrentDocument();
+    else if (command === 'savequit') {
+      saveCurrentDocument().then(function (ok) { if (ok) setEditMode(false); });
+    } else if (command === 'quit') toggleEditMode(); // con cambios sin guardar, pregunta como siempre
+  }
+
+  /** @spec RF-51 */
+  editorTextarea.addEventListener('keydown', function (e) {
+    if (!vimActive()) return;
+    var key = VimCore.keyFromEvent(e);
+    if (!key) return; // atajo de la app (RF-51.6), IME (RF-51.7) o flechas: comportamiento normal
+    // Esc en Normal sin nada pendiente sigue cerrando paneles; en Insertar, Visual u órdenes a medias solo cambia de
+    // modo (paridad con `shouldClosePanelsOnEscape()` de typst, RF-51.6).
+    var escCloses = key === 'Escape' && vimState.mode === 'normal' && !vimState.pending && !vimState.op && !vimState.count;
+    var res = VimCore.step(vimState, key, {
+      text: editorTextarea.value, selStart: editorTextarea.selectionStart, selEnd: editorTextarea.selectionEnd,
+    }, { findAll: TextSearch.findAll, pageLines: Math.max(2, Math.floor(editorTextarea.clientHeight / editorLineHeightPx())) });
+    vimState = res.state;
+    if (res.passThrough) {
+      // Insertar: el <textarea> escribe solo. Ctrl+R recargaría la ventana: se anula.
+      if (key === '<C-r>' || key === '<C-d>' || key === '<C-u>') e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    if (!escCloses) e.stopImmediatePropagation(); // ni Tab (sangrar) ni Escape (cerrar paneles, RF-51.6) del resto de la app
+    if (res.endInsert) vimHistory.dropIfUnchanged(editorTextarea.value);
+    if (res.snapshot) vimHistory.push({ text: editorTextarea.value, cursor: editorTextarea.selectionStart });
+    if (res.edit) {
+      applyingVim = true;
+      editorTextarea.setRangeText(res.edit.text, res.edit.start, res.edit.end, 'preserve');
+      editorTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+      applyingVim = false;
+    }
+    vimLastText = editorTextarea.value;
+    if (res.command === 'undo' || res.command === 'redo') {
+      var snap = vimHistory[res.command]({ text: editorTextarea.value, cursor: res.cursor });
+      if (snap) {
+        var cur = res.mode === 'insert' ? snap.cursor : VimCore.clampNormal(snap.text, snap.cursor);
+        vimSetText(snap.text, cur);
+        res.selStart = res.selEnd = res.cursor = cur;
+      }
+    } else if (res.command) vimRunCommand(res.command);
+    editorTextarea.setSelectionRange(res.selStart, res.selEnd);
+    if (res.message) flashEditorStatus(t('vim.msg.' + res.message.code, { arg: res.message.arg || '' }), 4000);
+    // Medir (scroll a la vista, cursor de bloque) obliga a maquetar el <textarea>: tras una edición en un documento
+    // grande son decenas de ms. Se hace una vez por fotograma, como el navegador al escribir, no dentro de la tecla.
+    vimPendingReveal = res.cursor;
+    vimPendingCmdline = res.cmdline || '';
+    if (!vimRevealFrame) vimRevealFrame = requestAnimationFrame(flushVimView);
+    scheduleEditorStatus();
+  }, true);
+
+  var vimRevealFrame = 0;
+  var vimPendingReveal = null;
+  var vimPendingCmdline = '';
+  function flushVimView() {
+    vimRevealFrame = 0;
+    if (vimPendingReveal != null && vimActive()) vimRevealOffset(vimPendingReveal);
+    vimPendingReveal = null;
+    renderVimStatus(vimPendingCmdline);
+  }
+
+  // Ediciones que no hizo Vim: un paso en su pila. En Insertar ya hay uno abierto (la sesión entera es un paso).
+  editorTextarea.addEventListener('input', function () {
+    if (!vimActive() || applyingVim) return;
+    if (vimState.mode !== 'insert' && vimLastText !== editorTextarea.value) {
+      vimHistory.push({ text: vimLastText, cursor: editorTextarea.selectionStart });
+    }
+    vimLastText = editorTextarea.value;
+  });
+  // En Normal no se escribe: el texto tecleado por un IME, borrar o un salto de línea no llegan al documento.
+  // Pegar y soltar sí (RF-51.4: Ctrl+V sigue funcionando; RF-37: imágenes).
+  editorTextarea.addEventListener('beforeinput', function (e) {
+    if (!vimActive() || applyingVim || vimState.mode === 'insert') return;
+    if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') return;
+    if (e.cancelable) e.preventDefault();
+  });
+  editorTextarea.addEventListener('compositionstart', function () {
+    if (vimActive() && vimState.mode !== 'insert') flashEditorStatus(t('vim.msg.imeNormal'), 3000);
+  });
+  editorTextarea.addEventListener('scroll', function () { if (vimActive()) updateVimCursor(); });
+  ['mouseup', 'focus', 'blur'].forEach(function (name) {
+    editorTextarea.addEventListener(name, function () {
+      if (!vimActive()) return;
+      // Un clic en Visual vuelve a Normal en la posición del clic (como Vim sin ratón en Visual).
+      if (name === 'mouseup' && (vimState.mode === 'visual' || vimState.mode === 'vline')) {
+        vimState = VimCore.step(vimState, 'Escape', { text: editorTextarea.value, selStart: 0, selEnd: 0 }).state;
+      }
+      if (name === 'mouseup' && vimState.mode === 'normal' && editorTextarea.selectionStart === editorTextarea.selectionEnd) {
+        var c = VimCore.clampNormal(editorTextarea.value, editorTextarea.selectionStart);
+        editorTextarea.setSelectionRange(c, c);
+      }
+      renderVimStatus('');
+    });
+  });
+  document.addEventListener('dbv-edit-mode-changed', vimReset);
+
+  window.DBVPrefs.vimMode = {
+    get: function () { return vimOn; },
+    set: function (value) {
+      vimOn = !!value;
+      try { localStorage.setItem(VIM_KEY, vimOn ? '1' : '0'); } catch (_) { /* sin almacenamiento */ }
+      vimReset();
+      scheduleEditorStatus();
+    }
+  };
+
+  // ─── RF-52: navegación estilo Vim en Modo Lectura (y en la vista previa del Modo Edición) ───────────────
+  var vimReadPending = '';
+  var vimReadTimer = null;
+  function vimReadTarget(e) {
+    if (!vimOn || isAndroid || !currentDoc) return false;
+    var el = e.target;
+    if (el === editorTextarea) return false;
+    if (el && el.closest && el.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""], [role="menu"], [role="dialog"], dialog, .modal, #ai-panel')) return false;
+    // Algún panel o menú abierto con el foco fuera de él: no se toman teclas sueltas.
+    if (document.querySelector('[role="menu"]:not(.hidden)')) return false;
+    return true;
+  }
+  /** @spec RF-52 */
+  function vimReadHeading(direction) {
+    if (!tocHeaders || !tocHeaders.length) return;
+    var top = findScrollHost(contentEl).getBoundingClientRect().top; // el borde visible, no el del contenido desplazado
+    var target = null;
+    for (var i = 0; i < tocHeaders.length; i++) {
+      var y = tocHeaders[i].getBoundingClientRect().top - top;
+      if (direction > 0 && y > 6) { target = tocHeaders[i]; break; }
+      if (direction < 0 && y < -6) target = tocHeaders[i];
+    }
+    if (target) scrollElementIntoView(target);
+  }
+  window.addEventListener('keydown', function (e) {
+    if (!vimReadTarget(e) || e.altKey || e.metaKey || e.isComposing) return;
+    var key = e.key;
+    var host = findScrollHost(contentEl); // en Lectura desplaza el contenedor; en la vista previa del Modo Edición, el panel
+    var line = Math.max(16, (parseFloat(getComputedStyle(contentEl).lineHeight) || 0) || 28);
+    var half = Math.max(line, Math.floor(host.clientHeight / 2));
+    var handled = true;
+    if (e.ctrlKey) {
+      if (key === 'd' || key === 'D') host.scrollTop += half;
+      else if (key === 'u' || key === 'U') host.scrollTop -= half;
+      else handled = false; // Ctrl+F sigue siendo Buscar (RF-52.2)
+    } else if (vimReadPending) {
+      var seq = vimReadPending + key;
+      vimReadPending = '';
+      clearTimeout(vimReadTimer);
+      if (seq === 'gg') host.scrollTop = 0;
+      else if (seq === ']]') vimReadHeading(1);
+      else if (seq === '[[') vimReadHeading(-1);
+      else handled = false;
+    } else if (key === 'g' || key === ']' || key === '[') {
+      vimReadPending = key;
+      clearTimeout(vimReadTimer);
+      vimReadTimer = setTimeout(function () { vimReadPending = ''; }, 1000);
+    } else if (key === 'j') host.scrollTop += line;
+    else if (key === 'k') host.scrollTop -= line;
+    else if (key === 'G') host.scrollTop = host.scrollHeight;
+    else if (key === '/') searchPanel.open();
+    else if ((key === 'n' || key === 'N') && searchInput.value) stepSearch(key === 'n' ? 1 : -1);
+    else handled = false;
+    if (handled) { e.preventDefault(); e.stopPropagation(); }
+  });
 
   // =========================================================================
   // Atajos de teclado

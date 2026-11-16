@@ -604,6 +604,11 @@
 
 ## ⚠️ Lecciones Aprendidas & Gotchas
 
+### [2026-11-16] Lección 42: Medir una tecla dentro del manejador mide también el `input` de la app, y una línea base que no cambia el texto no es línea base
+
+- **Qué pasó:** el banco de Vim dio 55 ms por `x`/`u` con 5.000 líneas y RF-51.9 pide < 16 ms. Primero lo achaqué a forzar la maquetación (no: 0,1 ms) y luego al paso sucio↔limpio (no). Mi línea base «sin Vim» marcaba 0,2 ms porque, tras la primera vuelta, sustituía `z` por `z` y el texto no cambiaba. Con un cambio real, la edición nativa más el `input` de la app cuesta 41–57 ms. Ese coste ya existía antes de esta rebanada, y Vim añade unos 9 ms (`diffEdit`, lecturas de `value`, instantánea). Los movimientos van en 0,5 ms.
+- **Regla:** una línea base de edición tiene que cambiar el texto en cada iteración. Separar «movimiento» (presupuesto de la tecla) de «edición» (comparada con la misma edición nativa). **Hallazgo abierto:** el manejador `input` del editor cuesta unos 45 ms por pulsación con 5.000 líneas (sin Vim también); candidato a `/maintain`.
+
 ### [2026-11-16] Lección 41: Un umbral en píxeles no reconoce un paso de rueda en todos los motores; y una prueba de propiedad cuadrática necesita su propio timeout
 
 - **Qué pasó:** (1) D11 proponía acumular `deltaY` de Ctrl+rueda hasta 100 px porque «los ratones clásicos dan ≥ 100 por paso». Es cierto en Chromium/WebView2, pero en WebKit (macOS, WebKitGTK) un paso puede dar un `deltaY` bastante menor, y el umbral habría pedido varios pasos por escalón. (2) Al añadir 5 ficheros de test, la prueba de propiedad de RF-45 sobre `GFM_test.md` (≈3 s sola) superó los 5 s por defecto de vitest al correr en paralelo, de forma sistemática, sin que el código que prueba cambiara.
