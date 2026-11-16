@@ -87,7 +87,7 @@ describe('RF-58 · aplicado al ejecutar, aunque el modelo pida lo que no se le o
 
 describe('RF-58 · agentes ACP', () => {
   it('en «Solo lectura» se rechaza sin preguntar lo que modifica o ejecuta, y lo de tipo desconocido', () => {
-    for (const kind of ['edit', 'delete', 'move', 'execute', 'other', undefined, null]) expect(acpPermissionPolicy('readOnly', kind)).toBe('deny');
+    for (const kind of ['edit', 'delete', 'move', 'execute', 'switch_mode', 'other', undefined, null]) expect(acpPermissionPolicy('readOnly', kind)).toBe('deny');
     for (const kind of ['read', 'search', 'think', 'fetch']) expect(acpPermissionPolicy('readOnly', kind)).toBe('ask');
   });
 

@@ -79,8 +79,10 @@ export function guardTools(level, tools, deps) {
   }));
 }
 
-/** Tipos de llamada ACP (`toolCall.kind`) que modifican algo o ejecutan programas. */
-const ACP_WRITE_KINDS = new Set(['edit', 'delete', 'move', 'execute']);
+/** Tipos de llamada ACP (`toolCall.kind`) que modifican algo, ejecutan programas o cambian de modo. `switch_mode` es
+ *  como Claude Code pide salir de `plan` («Ready to code?», ExitPlanMode): en «Solo lectura» mostrar esa tarjeta y
+ *  bloquear después la edición confundía (prueba manual del usuario, 2026-11-16), así que se rechaza sin preguntar. */
+const ACP_WRITE_KINDS = new Set(['edit', 'delete', 'move', 'execute', 'switch_mode']);
 
 /**
  * Qué hacer con una petición `session/request_permission` de un agente ACP (RF-32, RF-58).
