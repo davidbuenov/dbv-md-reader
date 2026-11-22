@@ -170,7 +170,7 @@ try {
   ok('NADA se escribió en disco por detrás del editor (RNF-IA.7)', applied.writes === 0, `escrituras: ${applied.writes}`);
   ok('el informe avisa de que hay que guardar', /Ctrl\+S/.test(applied.report || ''), applied.report);
   await h.eval(`document.getElementById('editor-textarea').focus();`);
-  await h.key('z', 'KeyZ', 90, 2); // Ctrl+Z
+  await h.nativeUndo(); // Ctrl+Z (Cmd+Z si el banco corre en un Mac)
   await h.sleep(400);
   const undone = await h.eval(`const t=document.getElementById('editor-textarea'); return t.value.includes('un erorr de ortografia')`);
   ok('Ctrl+Z deshace el cambio de la IA (edición nativa del textarea)', undone);

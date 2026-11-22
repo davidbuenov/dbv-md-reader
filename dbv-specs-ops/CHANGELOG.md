@@ -7,6 +7,23 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+### Añadido
+- **macOS: Archivo, Herramientas y Preferencias salen en la barra de menús del sistema (RF-65).** Antes solo estaban dentro de la ventana y la barra superior mostraba un menú sin ellos. Salen del mismo HTML de los menús de la ventana (misma lista, mismas etiquetas en el idioma de la app, mismos atajos y casillas), y en macOS esos botones se ocultan de la cabecera. Comando nuevo `set_native_menu` (`native_menu.rs`, `nativemenu.js`); el estado marcado/deshabilitado sigue al documento, al Modo Edición y al idioma. «Salir» no se duplica (⌘Q ya es del menú de la app). **Windows, Linux y Android no cambian.** Sin verificar aquí el menú real: lo prueba el usuario en su Mac.
+- **README (ES/EN): instalación con Homebrew completa en macOS (RF-66):** `brew tap`, `brew trust`, `brew install --cask dbv-md-reader` y `xattr -cr "/Applications/DBV Markdown Reader.app"`, con su explicación, igual que en `dbv-typst-editor`.
+
+### Revisión `/code-simplify` (RF-65)
+- **Corregido antes de publicar:** las cabeceras de grupo de Preferencias («Ancho de lectura», «Tamaño de letra del editor») usaban su texto como id; con espacios, Rust las habría descartado en silencio y el menú nativo habría salido sin ellas. Ahora se identifican por posición; el banco `native-menu` comprueba que todos los ids son legibles para Rust y que las cabeceras siguen ahí.
+- **Los bancos e2e ya pasan en un Mac (6 fallaban también con la 0.20.0).** Ninguno era un fallo de la app; los seis venían de suponer que el banco corre en Windows. Comprobado sobre `HEAD` sin cambios antes de tocarlos:
+  - `ai-assistant`, `ai-inline` e `image-paste`: Ctrl+Z no deshace en Chromium de macOS (allí es Cmd+Z, y con CDP hay que pedir la orden `undo` explícita). Nuevo `h.nativeUndo()` en el harness, que pulsa lo que pulsaría el usuario en cada sistema. Arrastraba también «sin selección toma el párrafo entero», que dependía de ese deshacer.
+  - `toc-images` (RF-63): simulaba el scroll del usuario con `scrollTop = 200` mientras seguía el desplazamiento suave del clic en el Índice, y en macOS la animación lo pisaba (200 y, un fotograma después, 253). Ahora usa una rueda real por CDP, que corta la animación como en la app. Vista fallar con una mutación (sin parar la recolocación con la rueda: 5.665 px frente a 1.976).
+  - `wheel-zoom` (RF-56): comparaba el ancho con 1.376 px, el de Windows para una ventana de 1.400; ahora compara con el ancho medido antes de la rueda.
+  - `window-sidebar`: el simulador devolvía `null` en `ai_providers` y `aiApp.js` fallaba en `providerInfo.find`. El backend real devuelve siempre una lista; el simulador ahora también (`[]`).
+  - Intermitente, sin tocar: `toc-images` a 900 px en Modo Edición dio una vez −5 px con un margen de ±4 (tres pasadas seguidas en verde después).
+- 0 Críticos. Seguridad: `set_native_menu` solo acepta ids `[A-Za-z0-9_:~.-]`, tipos conocidos, texto plano con tope y aceleradores validados; no ejecuta nada, solo emite el id a la ventana enfocada.
+
+### Cambiado
+- El simulador de los bancos e2e (`harness.mjs`) fija `navigator.platform` a `Win32` por defecto (opción `platform`): en un Mac real los bancos pensados para Windows habrían visto los menús ocultos.
+
 ---
 
 ## [0.20.0] - 2026-11-16

@@ -77,10 +77,13 @@ async function main() {
   console.log('RF-56.2 · rueda real (CDP) y la página no hace zoom');
   await reset(h);
   const pt = await h.eval(`const r = document.getElementById('content').getBoundingClientRect(); return { x: Math.round(r.left + 40), y: Math.round(r.top + 40) }`);
+  // Ancho ANTES de la rueda: un zoom de página lo cambiaría (en CSS px). Antes se comparaba con 1376, el valor de
+  // Windows para una ventana de 1400 px; en otro sistema el marco es distinto y el banco fallaba sin motivo.
+  const widthBefore = await h.eval(`return window.innerWidth`);
   await h.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: pt.x, y: pt.y, deltaX: 0, deltaY: -100, modifiers: 2 }); await h.sleep(200);
   const page = await h.eval(`return { scale: window.visualViewport ? window.visualViewport.scale : 1, width: window.innerWidth, reading: parseInt(document.getElementById('content').style.zoom || '100', 10) }`);
   ok('un paso de rueda real con Ctrl da un escalón de lectura', page.reading === 110, JSON.stringify(page));
-  ok('y la página sigue a escala 1 con el mismo ancho', page.scale === 1 && page.width === 1376, JSON.stringify(page));
+  ok('y la página sigue a escala 1 con el mismo ancho', page.scale === 1 && page.width === widthBefore, JSON.stringify({ ...page, widthBefore }));
   await reset(h);
   ok('sin excepciones ni console.error', (await h.errors()).length === 0, JSON.stringify(await h.errors()));
   await h.close();

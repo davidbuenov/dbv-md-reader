@@ -84,7 +84,7 @@ async function localScenarios() {
     ok('inserta ![](images/…) en la posición del cursor', /!\[\]\(images\/captura-\d{8}-\d{6}\.png\)Segundo párrafo\./.test(edited.value), JSON.stringify(edited.value));
     ok('el documento queda «Modificado»', edited.badge);
     await h.eval(`document.getElementById('editor-textarea').focus();`);
-    await h.key('z', 'KeyZ', 90, 2);
+    await h.nativeUndo(); // Ctrl+Z (Cmd+Z si el banco corre en un Mac)
     await h.sleep(400);
     ok('Ctrl+Z deshace la inserción', (await h.eval(`return !document.getElementById('editor-textarea').value.includes('images/captura')`)) === true);
 

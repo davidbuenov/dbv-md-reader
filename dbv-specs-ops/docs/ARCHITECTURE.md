@@ -210,3 +210,7 @@ El entorno de desarrollo de este proyecto es Windows — cualquier cambio de fro
 | `window.confirm()`/`window.alert()` (shims de `tauri-plugin-dialog`, no del motor) | Confirmado roto: `plugin:dialog\|confirm` no existe en el lado Rust de `tauri-plugin-dialog` 2.7.2 — no se usa, sustituido por un modal HTML propio | El bug está en el `js_init_script` del propio plugin, bundleado igual en las 3 plataformas (no depende del motor de WebView) — se espera el mismo fallo en Linux/macOS mientras el proyecto siga en esa versión del plugin, pero sin confirmar en hardware real | ADR-030 en `memory.md` |
 
 **Regla práctica:** ante la duda sobre si algo se comporta igual en los 3 motores, no asumir que sí — registrar la duda (aquí o en `task.md` como riesgo aceptado) y, si el cambio es visible para el usuario, incluirlo en la lista de pruebas para colaboradores del siguiente `/ship`.
+
+### Menú nativo de macOS descrito por el DOM (RF-65, ADR-054)
+
+`src/headermenu.js` lee los paneles Archivo/Herramientas/Preferencias → `src/nativemenu.js` (UMD puro) los describe → comando `set_native_menu` (`#[cfg(desktop)]`, no-op fuera de macOS) → `native_menu.rs` (tipos y saneado, multiplataforma y con tests) → `macos_menu::build_with` (solo macOS) construye los submenús `nm:<id>`. El clic vuelve como evento `menu-item` a la ventana enfocada (`on_menu_event`, prefijo `nm:`). Estado en `NativeMenuState` (huella de la estructura): misma estructura → actualización en sitio. Windows, Linux y Android no ejecutan nada de esto.

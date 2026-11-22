@@ -27,12 +27,18 @@ const EDGE_CANDIDATES = [
   '/usr/bin/microsoft-edge-stable',
   '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
 ].filter(Boolean);
+/**
+ * Modificador de las ediciones NATIVAS del navegador (deshacer del `<textarea>`): Chromium usa los atajos del sistema
+ * donde corre, Cmd en macOS y Ctrl en los demás. No depende de la plataforma simulada (`platform`), que solo cambia
+ * lo que ve la app. Bits de CDP: 2 = Ctrl, 4 = Meta.
+ */
+export const NATIVE_MOD = process.platform === 'darwin' ? 4 : 2;
 /** Ruta de Edge/Chromium (el mismo motor que WebView2), o `null` si no hay. */
 export const findEdge = () => EDGE_CANDIDATES.find((candidate) => existsSync(candidate)) ?? null;
 const EDGE = findEdge();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', customInvoke = '(() => undefined)', width = 1400, height = 900, port = 9333 }) {
+export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', customInvoke = '(() => undefined)', width = 1400, height = 900, port = 9333, platform = 'Win32' }) {
   // Se sirve src/ por HTTP, como lo sirve la app real (tauri://localhost): desde file:// Chromium bloquea import() de módulos.
   const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.md': 'text/markdown', '.svg': 'image/svg+xml', '.png': 'image/png' };
   const server = http.createServer(async (req, res) => {
@@ -83,6 +89,9 @@ export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', 
     (function () {
       const deep = () => new Proxy(function () {}, { get: (t, k) => (k === 'then' ? undefined : (k in t ? t[k] : deep())), apply: () => Promise.resolve(null) });
       const doc = ${JSON.stringify({ path: docPath, content: docContent, dir_path: path.posix.dirname(docPath), file_name: path.posix.basename(docPath) })};
+      // La plataforma es la de la prueba, no la del equipo donde corre (RF-65: en un Mac real los bancos pensados
+      // para Windows verían el menú nativo y sus menús ocultos).
+      Object.defineProperty(navigator, 'platform', { get: () => ${JSON.stringify(platform)}, configurable: true });
       const calls = [];
       window.__calls = calls;
       const extra = ${extraInvoke};
@@ -104,12 +113,14 @@ export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', 
           if (cmd === 'get_recent_files') return Promise.resolve([]);
           if (cmd === 'write_file') return Promise.resolve(null);
           if (cmd === 'ai_connections') return Promise.resolve({ connections: [], active: null, showAi: true });
+          // Como el backend real (ai_providers devuelve siempre una lista): con null, aiApp.js fallaba en providerInfo.find.
+          if (cmd === 'ai_providers') return Promise.resolve([]);
 
           return Promise.resolve(null);
         },
         convertFileSrc: (p) => p,
       };
-      T.os = { platform: () => 'windows' };
+      T.os = { platform: () => (${JSON.stringify(platform)}.startsWith('Mac') ? 'macos' : 'windows') };
       T.event = { listen: (name, cb) => { (listeners[name] = listeners[name] || []).push(cb); return Promise.resolve(() => {}); } };
       T.window = { getCurrentWindow: () => deep() };
       window.__TAURI__ = T;
@@ -137,9 +148,17 @@ export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', 
         await this.mouse('mouseReleased', x, y, { button, clickCount: i });
       }
     },
-    async key(key, code, vk, modifiers = 0) {
-      await send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key, code, windowsVirtualKeyCode: vk, modifiers });
+    async key(key, code, vk, modifiers = 0, commands = undefined) {
+      await send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key, code, windowsVirtualKeyCode: vk, modifiers, ...(commands ? { commands } : {}) });
       await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: vk, modifiers });
+    },
+    /**
+     * Deshacer NATIVO del `<textarea>`, como lo pulsaría el usuario: Ctrl+Z en Windows/Linux y Cmd+Z en macOS. En un
+     * Mac, Chromium dirigido por CDP no traduce Cmd+Z en la orden de edición (eso lo hace AppKit en la app real), así
+     * que se le pasa explícita con `commands`.
+     */
+    async nativeUndo() {
+      await this.key('z', 'KeyZ', 90, NATIVE_MOD, process.platform === 'darwin' ? ['undo'] : undefined);
     },
     sleep,
     async screenshot(file) {

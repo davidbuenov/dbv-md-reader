@@ -4,7 +4,6 @@
 
 [![Release](https://img.shields.io/github/v/release/davidbuenov/dbv-md-reader?display_name=tag&sort=semver)](https://github.com/davidbuenov/dbv-md-reader/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-disponible-0078D4?logo=microsoft&logoColor=white)](https://apps.microsoft.com/detail/9n7bmdzgcp0s)
-[![Uptodown](https://img.shields.io/badge/Uptodown-macOS-1AAFD0)](https://dbv-markdown-reader.uptodown.com/mac)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Rust](https://img.shields.io/badge/Rust-1.76+-000000?logo=rust&logoColor=white)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)
@@ -67,20 +66,18 @@ Desde `v0.16.0`, Microsoft Store es el **único** canal de instalación para Win
 
 ### 🍎 macOS
 
-#### 🍺 Homebrew
+#### 🍺 Homebrew (recomendado)
 
 ```bash
 brew tap davidbuenov/dbv-md-reader
+brew trust davidbuenov/dbv-md-reader
 brew install --cask dbv-md-reader
+xattr -cr "/Applications/DBV Markdown Reader.app"   # solo macOS: último paso de la instalación
 ```
 
-El tap ([davidbuenov/homebrew-dbv-md-reader](https://github.com/davidbuenov/homebrew-dbv-md-reader)) se actualiza solo en cada Release nueva. No sustituye el aviso de Gatekeeper de más abajo (el `.dmg` sigue sin firma ni notarización de Apple) — solo simplifica instalar y actualizar frente a descargar el `.dmg` a mano.
+El tap ([davidbuenov/homebrew-dbv-md-reader](https://github.com/davidbuenov/homebrew-dbv-md-reader)) se actualiza solo en cada Release nueva y se actualiza con `brew upgrade --cask dbv-md-reader`. `brew trust` autoriza el tap, que no es oficial, para que Homebrew pueda cargar el Cask. El `.dmg` sigue sin firma ni notarización de Apple, y el último paso (`xattr -cr`) quita la marca de cuarentena de la `.app` instalada para que Gatekeeper no la bloquee: con él se evitan casi todos los problemas al abrirla por primera vez (el aviso de Gatekeeper de más abajo solo hace falta si descargas el `.dmg` a mano).
 
-#### 🟢 Uptodown (recomendado en macOS)
-
-**[⬇️ Consíguelo en Uptodown](https://dbv-markdown-reader.uptodown.com/mac)**
-
-Vía Uptodown descargas el `.dmg` directamente desde su web, sin pasar por la página de Releases de GitHub. Sigue sin firma ni notarización de Apple (ver aviso más abajo), pero es la forma más sencilla de encontrar la última versión sin tener que navegar por GitHub.
+#### 📦 Descarga manual del `.dmg`
 
 **[⬇️ Descarga el `.dmg` desde Releases](https://github.com/davidbuenov/dbv-md-reader/releases)** — se genera automáticamente en cada versión vía CI (ver más abajo).
 
@@ -327,7 +324,6 @@ A diferencia de Windows, el `.deb` y el `.AppImage` de Linux **no se compilan a 
 Igual que Linux, el `.dmg` y el `.app` de macOS **no se compilan a mano**: `.github/workflows/release-macos.yml` los construye automáticamente en un runner `macos-latest`, sin firma ni notarización de Apple (mismo motivo que la compilación local — ver sección [🍎 macOS](#-macos)).
 
 - Mismo comportamiento que `release-linux.yml`: se dispara solo en `git push --tags`, sube los artefactos como borrador (o se une a una Release ya publicada con `workflow_dispatch` + `draft: false`).
-- El `.dmg` sin firmar generado aquí es también el artefacto publicado en [Uptodown](https://dbv-markdown-reader.uptodown.com/mac) (a diferencia de Microsoft Store o la Mac App Store, no exige firma de Apple) — la actualización de cada nueva versión en Uptodown es manual, vía su [panel de editores](https://support.uptodown.com/hc/es/articles/360053260491).
 
 ---
 

@@ -346,6 +346,10 @@ body:not(.is-android) #recent-panel { left: 0; right: auto; }
    Archivo, Herramientas, Preferencias · idioma · temas rápidos · chincheta, ayuda, acerca de. */
 body:not(.is-android) .in-menu,
 body:not(.is-android) .legacy-divider { display: none !important; }
+/* RF-65: en macOS los tres menús viven en la barra del sistema (los paneles siguen en el DOM, ocultos).
+   El selector de idioma también es un `.header-menu`, pero se queda en la ventana. */
+body.native-menus .toolbar-right > .header-menu:not(#lang-switcher),
+body.native-menus .toolbar-right > .menus-divider { display: none !important; }
 body:not(.is-android) .toolbar-right > #btn-search { order: 1; }
 body:not(.is-android) .toolbar-right > #btn-edit-toggle { order: 2; }
 body:not(.is-android) .toolbar-right > #btn-save { order: 3; }

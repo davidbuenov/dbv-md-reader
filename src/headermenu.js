@@ -16,9 +16,14 @@
 //
 // Se carga DESPUÉS de app.js y filetree.js (usa `window.DBVApp`, `window.DBVFileTree` y `window.DBVPrefs`).
 //
+// En macOS (RF-65) los tres menús salen en la barra del sistema: este mismo DOM se lee, se convierte con
+// `DBVNativeMenu.describe` y se publica a Rust (`set_native_menu`); los paneles siguen en el DOM, ocultos, porque
+// `activate()` y el estado salen de ellos. Se carga DESPUÉS de nativemenu.js.
+//
 // @spec RF-38
 // @spec RF-48
 // @spec RF-64
+// @spec RF-65
 // =============================================================================
 (function () {
   'use strict';
@@ -236,6 +241,100 @@
       el.textContent = formatKeys(el.dataset.keys);
     });
   });
+
+
+  // ===========================================================================
+  // RF-65 — menús en la barra superior de macOS. El DOM es la única fuente: aquí solo se lee y se publica.
+  // ===========================================================================
+  var NATIVE_PANELS = [['file', 'file-menu', 'menu.file'], ['tools', 'tools-menu', 'menu.tools'], ['prefs', 'prefs-menu', 'menu.prefs']];
+  var tauri = window.__TAURI__;
+  var nativeOn = !!(isMac && window.DBVNativeMenu && tauri && tauri.core && typeof tauri.core.invoke === 'function');
+  var nativeItems = {};
+  var lastNativeSignature = '';
+
+  /** Lee los tres paneles (ya sincronizados) y devuelve la descripción para Rust; deja en `nativeItems` el elemento de cada id. */
+  function collectNative() {
+    nativeItems = {};
+    var menus = NATIVE_PANELS.map(function (def) {
+      var panel = document.getElementById(def[1]);
+      var items = [];
+      var used = {};
+      if (panel) {
+        syncPanel(panel);
+        Array.prototype.forEach.call(panel.children, function (el) {
+          var entry = { hidden: el.classList.contains('hidden') };
+          if (el.classList.contains('menu-separator')) {
+            entry.kind = 'sep';
+          } else if (el.classList.contains('menu-heading')) {
+            entry.kind = 'heading';
+            entry.key = 'heading'; // el texto no sirve de id (lleva espacios): Rust descartaría la entrada
+            entry.label = el.textContent;
+          } else {
+            var labelEl = el.querySelector('.menu-item__label');
+            var keysEl = el.querySelector('.menu-item__keys');
+            var role = el.getAttribute('role');
+            entry.kind = role === 'menuitemcheckbox' || role === 'menuitemradio' ? 'check' : 'item';
+            entry.key = el.dataset.target || el.dataset.action || (el.dataset.pref ? el.dataset.pref + (el.dataset.value !== undefined ? ':' + el.dataset.value : '') : 'item');
+            entry.label = labelEl ? labelEl.textContent : '';
+            entry.keys = keysEl && keysEl.dataset.keys;
+            entry.disabled = el.disabled === true;
+            entry.checked = el.getAttribute('aria-checked') === 'true';
+            entry.omit = el.dataset.action === 'exit'; // ⌘Q ya es del menú de la aplicación (RF-65.6)
+          }
+          if (entry.key) {
+            var n = 2;
+            var base = entry.key;
+            while (used[entry.key]) entry.key = base + '~' + n++;
+            used[entry.key] = true;
+            nativeItems[def[0] + ':' + entry.key] = el;
+          }
+          items.push(entry);
+        });
+      }
+      return { id: def[0], title: window.DBV_I18N.t(def[2]), items: items };
+    });
+    return window.DBVNativeMenu.describe(menus);
+  }
+
+  /** Publica el menú si cambió algo (sin IPC en reposo) y, salvo `force`, solo desde la ventana con el foco (RF-65.7). */
+  function pushNative(force) {
+    if (!force && !document.hasFocus()) return;
+    var desc = collectNative();
+    var signature = window.DBVNativeMenu.signature(desc);
+    if (signature !== lastNativeSignature) {
+      lastNativeSignature = signature;
+      Promise.resolve(tauri.core.invoke('set_native_menu', { spec: desc })).catch(function (err) {
+        lastNativeSignature = '';
+        console.warn('[native-menu]', err);
+      });
+    }
+  }
+
+  /** Reenvía el estado del DOM tras una acción: la casilla nativa conmuta sola y el DOM manda (RF-65.5). */
+  function pushNativeSoon() {
+    lastNativeSignature = '';
+    [60, 450].forEach(function (ms) { setTimeout(function () { pushNative(true); }, ms); });
+  }
+
+  if (nativeOn) {
+    document.body.classList.add('native-menus');
+    var windowLabel = null;
+    try { windowLabel = tauri.window.getCurrentWindow().label; } catch (_) {}
+    // RF-60.2: solo el evento dirigido a ESTA ventana.
+    tauri.event.listen('menu-item', function (event) {
+      var item = nativeItems[event && event.payload];
+      if (item) {
+        activate(item, { close: function () {} });
+        pushNativeSoon();
+      }
+    }, windowLabel ? { target: windowLabel } : undefined);
+    window.addEventListener('focus', function () { lastNativeSignature = ''; pushNative(true); });
+    // Un clic dentro de la ventana la hace la activa aunque `document.hasFocus()` aún no lo diga (WKWebView).
+    document.addEventListener('pointerdown', function () { pushNative(true); }, true);
+    document.addEventListener('dbv-lang-changed', function () { pushNativeSoon(); });
+    setInterval(function () { pushNative(false); }, 500);
+    pushNativeSoon();
+  }
 
   window.DBVHeaderMenu = { formatKeys: formatKeys, closeAll: function () { controllers.forEach(function (c) { c.ctl.close(); }); } };
 })();

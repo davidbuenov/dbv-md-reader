@@ -83,10 +83,16 @@ async function run(width) {
     if (NO_ANCHOR) await h.eval(`const st = document.createElement('style'); st.textContent = '*{overflow-anchor:none !important}'; document.head.appendChild(st); return 1`);
     await h.eval(clickDestino);
     await h.sleep(300);
-    await h.eval(`const host = document.getElementById('reader-container'); host.dispatchEvent(new WheelEvent('wheel', { deltaY: -300, bubbles: true })); host.scrollTop = 200; return 1`);
-    await h.sleep(DELAY_MS + 2000);
+    // Rueda REAL (CDP), como la de un usuario. Antes se simulaba con un `WheelEvent` sintético y `scrollTop = 200`,
+    // pero en Chromium de macOS el desplazamiento suave del clic seguía en marcha y pisaba esa asignación (medido:
+    // 200 justo después y 253 en el fotograma siguiente). Una rueda real corta esa animación, como en la app.
+    const pt = await h.eval(`const r = document.getElementById('reader-container').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }`);
+    await h.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: pt.x, y: pt.y, deltaX: 0, deltaY: -300 });
+    await h.sleep(400);
+    const tras = await h.eval(`return { top: Math.round(document.getElementById('reader-container').scrollTop), loaded: [...document.querySelectorAll('#content img')].filter((i) => i.complete && i.naturalWidth > 0).length }`);
+    await h.sleep(DELAY_MS + 1600);
     const user = await h.eval(`return Math.round(document.getElementById('reader-container').scrollTop)`);
-    ok(`${width} px · un scroll del usuario durante la carga gana a la recolocación`, Math.abs(user - 200) <= 4, `scrollTop=${user}`);
+    ok(`${width} px · un scroll del usuario durante la carga gana a la recolocación`, tras.loaded === 0 && Math.abs(user - tras.top) <= 4, `tras la rueda ${tras.top} (imágenes cargadas: ${tras.loaded}), al terminar ${user}`);
     // Modo Edición (RF-63.3): la vista previa queda en «Destino» y el editor en su línea.
     await h.eval(`localStorage.clear()`);
     await h.send('Page.reload');

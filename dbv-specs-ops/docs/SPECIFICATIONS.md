@@ -2,7 +2,7 @@
 
 > **Fase:** `/spec` (Especificación)  
 > **Estado:** Validado  
-> **Última Revisión:** 2026-11-16 (v0.20.0 especificada: RF-48 a RF-64 y RNF-04)  
+> **Última Revisión:** 2026-11-21 (v0.20.1 especificada: RF-65 y RF-66; antes v0.20.0: RF-48 a RF-64 y RNF-04)  
 
 ---
 
@@ -571,6 +571,39 @@
 
 - **RNF-04: Presupuestos de la 0.20.0:** se mantienen RAM < 64 MB en reposo, render < 200 ms y arranque sin retraso (RF-09). Sin dependencias JS nuevas (Vim, temas, tabla y barra de estado son módulos propios). El binario de la 0.19.0 mide 19.005.952 bytes y el tope es 20 MB, así que `/test` lo mide. Con todas las preferencias nuevas **apagadas**, la latencia por tecla del editor no empeora respecto a la 0.19.0 (medida antes y después en Edge headless con 5.000 líneas). Todos los tests y bancos de la 0.19.0 siguen en verde.
 
+### 🍎 v0.20.1 — Menús en la barra superior de macOS y guía de instalación con Homebrew (especificado 2026-11-21)
+
+> **Origen:** primera prueba del usuario en un Mac real (2026-11-21): **Archivo, Herramientas y Preferencias (RF-38) no salen en la barra de menús del sistema**, solo en la ventana; la barra de macOS muestra el menú nativo de ADR-026/028 (App, File, Edit, View, Window, Help). Es la queja que ya habían hecho usuarios de Mac. Versión **pequeña (patch)**: solo macOS y documentación; Windows, Linux y Android no cambian. Los IDs siguen el prefijo `RF-`; el siguiente libre era el 65.
+
+- [x] **RF-65: Menús Archivo, Herramientas y Preferencias en la barra de menús de macOS (amplía RF-38 y RF-29), especificado 2026-11-21, implementado 2026-11-21 (probado por el usuario en su Mac):**
+  1. **Solo macOS.** La barra del sistema muestra, en este orden: menú de la app · **Archivo** · Edición · Visualización · **Herramientas** · **Preferencias** · Ventana · Ayuda. Con ello Archivo/Herramientas/Preferencias **dejan de dibujarse dentro de la ventana** (clase `native-menus` en `<body>`, que los oculta con CSS); el resto de la cabecera (Buscar, Modo Edición, Guardar, Índice, IA, idioma, temas, chincheta, ayuda y «Acerca de») no cambia. En Windows, Linux y Android **nada cambia**: ni el DOM, ni el CSS, ni el comando de Rust hace nada fuera de macOS.
+  2. **El DOM es la única fuente de verdad.** Las entradas, su orden, sus separadores, sus etiquetas, sus atajos y su estado salen de los paneles HTML de RF-38/48 (`.menu-item`, `.menu-separator`, `.menu-heading`), no de una segunda lista en Rust ni en JS. Añadir una entrada a un menú del HTML la lleva sola al menú nativo.
+  3. **Etiquetas en el idioma de la aplicación** (selector ES/EN/KO, RF-39), no en el del sistema: al cambiar de idioma el menú nativo se reconstruye con las claves `menu.*` de `i18n.js`. Los menús predefinidos de macOS (Edición, Ventana, Servicios…) siguen los del sistema.
+  4. **Mismo comportamiento que en la ventana:** cada clic ejecuta la **misma `activate()`** de `headermenu.js` sobre la entrada del DOM (clic en el botón original, `DBVApp` o `DBVPrefs`); no se reimplementa ninguna acción. Lo que hoy es casilla o radio (Ancho de lectura, Bloques anchos, Vim, Números relativos, Guardado automático, Recordar ventana, Mostrar IA, idioma) es una **entrada marcable** nativa con su ✓; lo que depende del contexto sale **deshabilitado, no oculto** (RF-38.4), y lo oculto por ajuste (p. ej. IA apagada, RF-48) se omite.
+  5. **Estado vivo:** el marcado y lo deshabilitado se actualizan al ganar el foco la ventana, tras cada acción de un menú, al cambiar el idioma y cuando cambia el documento o el modo (lectura/edición). Las entradas existentes se **actualizan en su sitio**, sin reconstruir el menú, para no molestar a un menú abierto; solo se reconstruye si cambian las etiquetas.
+  6. **Atajos:** los de las entradas pasan a ser aceleradores nativos (`mod` → `⌘`), con los mismos que muestra la ventana (`⌘N`, `⌘O`, `⌘S`, `⇧⌘S`, `⌘P`, `⌘K`, `⌥⌘P`, `⇧⌘I`, `F1`…). El que ya estaba en el menú nativo (Alternar Modo Edición `⌘E`) se conserva. **Salir** no se duplica: `⌘Q` ya es del menú de la app. Ningún atajo existente cambia de tecla.
+  7. **Varias ventanas y pestañas (RF-60, RF-61):** el menú actúa solo sobre la **ventana enfocada**, y cada ventana al ganar el foco publica su estado, de modo que el marcado y lo deshabilitado corresponden siempre a la ventana activa. Con pestañas nativas, la pestaña activa es la ventana enfocada.
+  8. **Transición:** hasta que la webview publica sus menús, queda el menú nativo actual (App, File con Nuevo/Abrir/Guardar, Edit, View, Window, Help). Cuando llegan los de RF-65 sustituyen a File; la tabla `menu_event_name` de RF-29 se conserva para esa transición.
+  9. **Seguridad:** el comando de Rust solo acepta ids y etiquetas de texto plano (sin HTML) y emite un evento con el id a la ventana enfocada; no ejecuta nada por sí mismo, y su capacidad solo se concede a las ventanas `main` y `doc-*`.
+  10. **Criterios de aceptación:**
+      - Test de vitest (puro) de la conversión DOM → descripción del menú: entradas, separadores huérfanos, casillas/radios con su estado, atajos `mod+Shift+S` → acelerador y omisión de «Salir» y de lo oculto. Visto fallar con una mutación.
+      - Test de Rust de la construcción del menú desde la descripción (ids únicos, tipos, que un id desconocido no entra) y de que el comando no hace nada fuera de macOS (`cfg`); `cargo check` y clippy limpios; `cargo check` de Android sigue compilando.
+      - Banco e2e (Edge headless): con el comando simulado, la descripción publicada coincide con las entradas de los tres paneles; un evento `menu-item` dispara el manejador de la entrada, y un evento dirigido a otra ventana no reacciona; sin `isMac` la clase `native-menus` no se añade y los menús de la ventana siguen donde estaban (bancos `header-menus` y `save-as` sin tocar, en verde).
+      - **Prueba manual en el Mac del usuario** (única forma de verificar el menú real): los tres menús salen en la barra del sistema, marcado y deshabilitado correctos con y sin documento y en Modo Edición, atajos, cambio de idioma en caliente, y dos ventanas / pestañas. Si no se ha hecho, se declara «sin verificar».
+  11. **Fuera de alcance:** mover el idioma, los temas rápidos y los demás controles de la cabecera a la barra del sistema; rellenar el menú Ayuda nativo (la ayuda sigue en Herramientas, igual que en typst); Windows y Linux con menús nativos; mostrar los menús de la ventana en macOS con una opción para elegir.
+
+- [x] **RF-66: Instalación en macOS con Homebrew en los README (amplía RNF-01: canal Homebrew de la 0.16.0), especificado 2026-11-21:**
+  1. **Qué se documenta**, igual que en el README de `dbv-typst-editor` (verificado 2026-11-21: el tap `davidbuenov/homebrew-dbv-md-reader` existe y el Cask `dbv-md-reader` instala `DBV Markdown Reader.app`):
+     ```bash
+     brew tap davidbuenov/dbv-md-reader
+     brew trust davidbuenov/dbv-md-reader
+     brew install --cask dbv-md-reader
+     xattr -cr "/Applications/DBV Markdown Reader.app"   # solo macOS: último paso de la instalación
+     ```
+  2. **Dónde:** `README.md` (ES) y `README.en.md` (EN), apartado «macOS ▸ Homebrew», que hoy tiene solo `tap` e `install`. Se añade `brew trust` y el paso final con `xattr -cr`, con el texto explicativo equivalente al de typst: `brew trust` autoriza el tap (no oficial) para que Homebrew pueda cargar el Cask; el `.dmg` sigue sin firma ni notarización de Apple; el último paso quita la marca de cuarentena para que Gatekeeper no bloquee la primera apertura; se actualiza con `brew upgrade --cask dbv-md-reader`. Se mantiene el resto (Uptodown, `.dmg`, compilar).
+  3. **Coherencia:** el apartado de Gatekeeper de más abajo y las fichas de tienda (`descripcionStore*.md`, `descripcionStoreUptoDown*.md`) no se tocan salvo que repitan los comandos antiguos; la web (`docs/`) se revisa por si copia el bloque.
+  4. **Criterios de aceptación:** los dos README tienen los cuatro comandos en el mismo orden y el mismo texto de ayuda en ES y EN; ningún enlace nuevo roto (el tap responde 200); el `CHANGELOG.md` `[Sin publicar]` recoge el cambio. `brew trust` lo ha probado el usuario (2026-11-21).
+
 ### 🏗️ 4. Propuesta de Solución Técnica
 
 - **Core / Backend:** **Rust** + **Tauri v2**.
@@ -690,6 +723,7 @@
 
 ## ❓ 8. Preguntas Abiertas
 
+- [x] **Menús en macOS (2026-11-21):** los tres menús de RF-38 pasan a la barra del sistema solo en macOS y se ocultan en la ventana; el DOM es la fuente única (RF-65). Versión pequeña (0.20.1), sin tocar Windows, Linux ni Android.
 - [x] **Stack:** ¿Estrategia A (Rust + Tauri v2 + WebView2)? Confirmado.
 - [x] **Nombre del proyecto:** `dbv-md-reader` (Confirmado por el usuario).
 - [x] **Navegación Cursos / Docs:** Soporte total de navegación entre archivos `.md` locales enlazados con historial de Atrás (`Alt + ←`) / Adelante (`Alt + →`). Confirmado.

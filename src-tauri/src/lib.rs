@@ -30,6 +30,10 @@ pub mod images;
 // RF-42 (0.19.0): recordar posición, tamaño y maximizado de la ventana principal. Solo escritorio.
 #[cfg(desktop)]
 pub mod window_state;
+
+// RF-65: descripción y saneado del menú nativo de macOS (la parte pura; pintarlo está en `macos_menu`).
+#[cfg(desktop)]
+pub mod native_menu;
 // RF-14 (0.19.0): entorno de WebView2 heredado de un proceso padre (PowerToys Peek). Función pura; solo actúa en Windows.
 pub mod webview_env;
 
@@ -801,9 +805,10 @@ pub mod commands {
 /// Window ahí, y un File "vacío" no es lo que un usuario de Mac espera.
 #[cfg(target_os = "macos")]
 mod macos_menu {
+    use crate::native_menu::{NativeItem, NativeMenuDef, NativeMenuSpec};
     use tauri::menu::{
-        AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu, HELP_SUBMENU_ID,
-        WINDOW_SUBMENU_ID,
+        AboutMetadata, CheckMenuItem, Menu, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu,
+        HELP_SUBMENU_ID, WINDOW_SUBMENU_ID,
     };
     use tauri::{AppHandle, Runtime};
 
@@ -822,6 +827,65 @@ mod macos_menu {
     }
 
     pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
+        build_with(handle, None)
+    }
+
+    /// Un `MenuItem`/`CheckMenuItem` con su acelerador; si Tauri no entiende el atajo, la entrada sale sin él (RF-65.9).
+    fn push_entry<R: Runtime>(
+        handle: &AppHandle<R>,
+        submenu: &Submenu<R>,
+        item: &NativeItem,
+    ) -> tauri::Result<()> {
+        let id = format!("nm:{}", item.id);
+        let accel = item.accel.as_deref();
+        if item.kind == "check" {
+            let made = CheckMenuItem::with_id(handle, id.clone(), &item.label, item.enabled, item.checked, accel)
+                .or_else(|_| CheckMenuItem::with_id(handle, id, &item.label, item.enabled, item.checked, None::<&str>))?;
+            submenu.append(&made)
+        } else {
+            let made = MenuItem::with_id(handle, id.clone(), &item.label, item.enabled, accel)
+                .or_else(|_| MenuItem::with_id(handle, id, &item.label, item.enabled, None::<&str>))?;
+            submenu.append(&made)
+        }
+    }
+
+    /// Submenú `nm:<id>` con las entradas de la descripción (RF-65.2).
+    fn submenu_from<R: Runtime>(handle: &AppHandle<R>, def: &NativeMenuDef) -> tauri::Result<Submenu<R>> {
+        let submenu = Submenu::with_id(handle, format!("nm:{}", def.id), &def.title, true)?;
+        for item in &def.items {
+            if item.kind == "sep" {
+                submenu.append(&PredefinedMenuItem::separator(handle)?)?;
+            } else {
+                push_entry(handle, &submenu, item)?;
+            }
+        }
+        Ok(submenu)
+    }
+
+    /// Actualiza marcado y habilitado de las entradas YA creadas, sin reconstruir el menú (RF-65.5).
+    pub fn update_in_place<R: Runtime>(handle: &AppHandle<R>, spec: &NativeMenuSpec) {
+        let Some(menu) = handle.menu() else { return };
+        for def in &spec.menus {
+            let Some(MenuItemKind::Submenu(submenu)) = menu.get(&format!("nm:{}", def.id)) else { continue };
+            for item in def.items.iter().filter(|i| i.kind != "sep") {
+                match submenu.get(&format!("nm:{}", item.id)) {
+                    Some(MenuItemKind::Check(check)) => {
+                        let _ = check.set_enabled(item.enabled);
+                        let _ = check.set_checked(item.checked);
+                    }
+                    Some(MenuItemKind::MenuItem(entry)) => {
+                        let _ = entry.set_enabled(item.enabled);
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    pub fn build_with<R: Runtime>(
+        handle: &AppHandle<R>,
+        spec: Option<&NativeMenuSpec>,
+    ) -> tauri::Result<Menu<R>> {
         let es = is_spanish_system();
         let pkg_info = handle.package_info();
         let config = handle.config();
@@ -932,18 +996,74 @@ mod macos_menu {
 
         let help_menu = Submenu::with_id_and_items(handle, HELP_SUBMENU_ID, "Help", true, &[])?;
 
-        Menu::with_items(
-            handle,
-            &[
-                &app_menu,
-                &file_menu,
-                &edit_menu,
-                &view_menu,
-                &window_menu,
-                &help_menu,
-            ],
-        )
+        // RF-65: con la descripción del frontend, Archivo sustituye al File de respaldo y Herramientas y
+        // Preferencias se intercalan entre Visualización y Ventana. Sin ella (arranque), el menú de siempre.
+        let from_spec = |id: &str| -> tauri::Result<Option<Submenu<R>>> {
+            match spec.and_then(|s| s.menus.iter().find(|m| m.id == id)) {
+                Some(def) => Ok(Some(submenu_from(handle, def)?)),
+                None => Ok(None),
+            }
+        };
+        let archivo = from_spec("file")?;
+        let herramientas = from_spec("tools")?;
+        let preferencias = from_spec("prefs")?;
+
+        let mut items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&app_menu];
+        match archivo.as_ref() {
+            Some(menu) => items.push(menu),
+            None => items.push(&file_menu),
+        }
+        items.push(&edit_menu);
+        items.push(&view_menu);
+        if let Some(menu) = herramientas.as_ref() {
+            items.push(menu);
+        }
+        if let Some(menu) = preferencias.as_ref() {
+            items.push(menu);
+        }
+        items.push(&window_menu);
+        items.push(&help_menu);
+        Menu::with_items(handle, &items)
     }
+}
+
+/// Publica el menú de RF-65 que describe el frontend. Misma estructura → solo marcado y habilitado en sitio;
+/// otra → se reconstruye y se instala. Fuera de macOS no hace nada (el comando existe en todo escritorio).
+///
+/// @spec RF-65
+#[cfg(desktop)]
+#[tauri::command]
+fn set_native_menu(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, native_menu::NativeMenuState>,
+    spec: native_menu::NativeMenuSpec,
+) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let result = {
+        let spec = native_menu::sanitize(spec);
+        let signature = native_menu::structure_signature(&spec);
+        match state.0.lock() {
+            Ok(mut current) => {
+                if current.as_deref() == Some(signature.as_str()) {
+                    macos_menu::update_in_place(&app, &spec);
+                    Ok(())
+                } else {
+                    let built = macos_menu::build_with(&app, Some(&spec)).and_then(|menu| app.set_menu(menu).map(|_| ()));
+                    if built.is_ok() {
+                        *current = Some(signature);
+                    }
+                    built.map_err(|e| e.to_string())
+                }
+            }
+            Err(_) => Err("estado del menú no disponible".to_string()),
+        }
+    };
+    #[cfg(not(target_os = "macos"))]
+    let result = {
+        let _ = (&app, &state, &spec);
+        Ok(())
+    };
+    result
 }
 
 /// Evento del frontend que dispara cada entrada del menú nativo (macOS). Función pura para poder probar
@@ -1040,6 +1160,7 @@ pub fn run() {
     {
         builder = builder
             .manage(window_state::Memory::default())
+            .manage(native_menu::NativeMenuState::default())
             .on_window_event(|window, event| {
                 window_state::on_window_event(window, event);
                 if matches!(event, tauri::WindowEvent::Destroyed) {
@@ -1050,7 +1171,13 @@ pub fn run() {
             // "Abrir archivo…" del menú File (macOS) reusa el flujo que ya tiene
             // el frontend para el botón de la toolbar — sólo hace falta avisar
             // a la ventana enfocada, no reimplementar el diálogo en Rust.
-            let event_name = menu_event_name(event.id().as_ref());
+            // RF-65: las entradas del menú descrito por el frontend llevan el prefijo `nm:` y un único evento
+            // `menu-item` con su id; las de RF-29 (menú de respaldo) siguen con su evento propio.
+            let raw_id = event.id().as_ref();
+            let (event_name, payload) = match raw_id.strip_prefix("nm:") {
+                Some(id) => (Some("menu-item"), serde_json::Value::String(id.to_string())),
+                None => (menu_event_name(raw_id), serde_json::Value::Null),
+            };
             if let Some(event_name) = event_name {
                 let windows = app.webview_windows();
                 let target = windows
@@ -1060,7 +1187,7 @@ pub fn run() {
                 if let Some(window) = target {
                     // @spec RF-60 — `emit` difunde a TODAS las ventanas aunque se llame sobre una:
                     // el menú debe actuar solo sobre la ventana enfocada.
-                    let _ = window.emit_to(window.label(), event_name, ());
+                    let _ = window.emit_to(window.label(), event_name, payload);
                 }
             }
         });
@@ -1082,6 +1209,8 @@ pub fn run() {
             commands::resolve_relative_path,
             #[cfg(desktop)]
             window_state::get_window_state_pref,
+            #[cfg(desktop)]
+            set_native_menu,
             #[cfg(desktop)]
             window_state::set_window_state_pref,
             commands::watch_file,

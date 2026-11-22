@@ -91,7 +91,7 @@ try {
   const accepted = await h.eval(`const t=document.getElementById('editor-textarea'); return { has: t.value.includes('un error de ortografía y un [enlace]'), barClosed: !document.querySelector('.ai-inline-bar'), dirty: !document.getElementById('doc-modified-badge').classList.contains('hidden') }`);
   ok('aceptar sustituye solo la selección, cierra la barra y deja el documento «Modificado»', accepted.has && accepted.barClosed && accepted.dirty, JSON.stringify(accepted));
   await h.eval(`document.getElementById('editor-textarea').focus()`);
-  await h.key('z', 'KeyZ', 90, 2);
+  await h.nativeUndo(); // Ctrl+Z (Cmd+Z si el banco corre en un Mac)
   await h.sleep(300);
   ok('Ctrl+Z deshace la edición de la IA en línea', await h.eval(`return document.getElementById('editor-textarea').value.includes('un erorr de ortografia')`));
 
