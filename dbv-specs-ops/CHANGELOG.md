@@ -7,9 +7,18 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+---
+
+## [0.20.1] - 2026-11-23
+
+> Versión de mantenimiento. La novedad es para macOS (menús en la barra del sistema, RF-65). En Windows, Linux y Android la aplicación se comporta igual que la 0.20.0; lo demás son pruebas y documentación.
+
 ### Añadido
 - **macOS: Archivo, Herramientas y Preferencias salen en la barra de menús del sistema (RF-65).** Antes solo estaban dentro de la ventana y la barra superior mostraba un menú sin ellos. Salen del mismo HTML de los menús de la ventana (misma lista, mismas etiquetas en el idioma de la app, mismos atajos y casillas), y en macOS esos botones se ocultan de la cabecera. Comando nuevo `set_native_menu` (`native_menu.rs`, `nativemenu.js`); el estado marcado/deshabilitado sigue al documento, al Modo Edición y al idioma. «Salir» no se duplica (⌘Q ya es del menú de la app). **Windows, Linux y Android no cambian.** Sin verificar aquí el menú real: lo prueba el usuario en su Mac.
 - **README (ES/EN): instalación con Homebrew completa en macOS (RF-66):** `brew tap`, `brew trust`, `brew install --cask dbv-md-reader` y `xattr -cr "/Applications/DBV Markdown Reader.app"`, con su explicación, igual que en `dbv-typst-editor`.
+
+### Corregido (pruebas)
+- **Los bancos e2e dejaban procesos de Edge huérfanos en Windows** (1.129 procesos y 1.430 carpetas temporales tras una tanda): `proc.kill()` apuntaba al lanzador, no al navegador, y una excepción saltaba `close()`. Los huérfanos retenían el puerto 9333 y hacían fallar otros bancos de forma intermitente. El harness mata ahora por carpeta de perfil, también al salir con una excepción, y borra el perfil. `run-all.mjs` comprueba después de cada banco que no queda ningún proceso ni carpeta del harness y, si queda, lo cuenta como fallo (Lección 46).
 
 ### Revisión `/code-simplify` (RF-65)
 - **Corregido antes de publicar:** las cabeceras de grupo de Preferencias («Ancho de lectura», «Tamaño de letra del editor») usaban su texto como id; con espacios, Rust las habría descartado en silencio y el menú nativo habría salido sin ellas. Ahora se identifican por posición; el banco `native-menu` comprueba que todos los ids son legibles para Rust y que las cabeceras siguen ahí.

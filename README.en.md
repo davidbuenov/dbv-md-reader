@@ -173,6 +173,7 @@ Not even Notepad++ (the historical benchmark for lightness on Windows) comes clo
 - **Status bar, auto save and tables (since 0.20.0):** `Ln X, Col Y` and the selection at the foot of the editor; relative line numbers and auto save (both optional; auto save never overwrites a change made in another program); Tools → "Insert table…", which also turns what you paste from a spreadsheet into a table.
 - **Save as… and Exit (since 0.20.0):** `Ctrl+Shift+S` saves under another name and the window switches to the new file; File → Exit (`Ctrl+Q`) closes every window, asking in each one that has unsaved changes.
 - **AI with autonomy levels (since 0.20.0):** "Ask for everything", "Ask before changes" or "Read only", enforced in the code rather than in the instructions; there is no automatic level, because nothing is written without your review. If the AI is waiting for your approval with the window behind, its icon flashes in the taskbar. `Ctrl+wheel` zooms the panel under the pointer, and a touchpad pinch goes one step at a time.
+- **Menus in the macOS system menu bar (since 0.20.1):** on macOS, File, Tools and Preferences live in the menu bar at the top of the screen, with the same entries, shortcuts and checkboxes they had in the window (where they are hidden); what is checked or disabled follows the document, Edit Mode and the language. Nothing changes on Windows, Linux or Android.
 - **File, Tools and Preferences menus (since 0.19.0):** the header groups the actions into three menus —as in `dbv-typst-editor`— instead of a row of buttons, with shortcuts shown and keyboard navigation. Search, Edit Mode, side panel, theme, language and help stay one click away.
 - **Built-in help with two tabs (since 0.19.0):** `F1`, the "?" button or Tools → Help open the **App guide** (open, read, search, edit, AI, export, preferences and shortcuts) and the **Markdown syntax** cheat sheet.
 - **Extensible languages (since 0.19.0):** Spanish, English and **Korean (한국어)**, chosen from a dropdown built from a language registry (adding another one is one more dictionary). The system language is detected and, without a translation, English is used. The AI answers in the chosen language.
@@ -345,6 +346,7 @@ dbv-md-reader/
 │   ├── sourcesync.js      # Editor ↔ preview sync (pure logic)
 │   ├── imagepaste.js      # Paste or drop images (pure logic)
 │   ├── headermenu.js      # Header menus (File, Tools, Preferences)
+│   ├── nativemenu.js      # macOS menu bar: describes the header menus and Rust paints them
 │   ├── i18n.js            # Language registry (+ i18n.ko.js); guides in apphelp_*.md and markdownhelp_*.md
 │   └── styles.css         # Styles and color tokens
 ├── dbv-specs-ops/         # SDD specifications and engineering framework

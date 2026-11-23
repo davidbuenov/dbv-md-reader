@@ -174,6 +174,7 @@ Ni siquiera Notepad++ (referencia histórica de ligereza en Windows) se le acerc
 - **Barra de estado, guardado automático y tablas (desde la 0.20.0):** `Ln X, Col Y` y la selección al pie del editor; números de línea relativos y guardado automático (los dos opcionales; el guardado nunca pisa un cambio hecho desde otro programa); Herramientas → «Insertar tabla…», que también convierte en tabla lo pegado de una hoja de cálculo.
 - **Guardar como… y Salir (desde la 0.20.0):** `Ctrl+Mayús+S` guarda con otro nombre y la ventana pasa al fichero nuevo; Archivo → Salir (`Ctrl+Q`) cierra todas las ventanas, preguntando en cada una si tiene cambios sin guardar.
 - **IA con niveles de autonomía (desde la 0.20.0):** «Preguntar todo», «Preguntar al modificar» o «Solo lectura», aplicados en el código y no en las instrucciones; sin nivel automático, porque nada se escribe sin tu revisión. Si la IA espera tu aprobación con la ventana detrás, el icono parpadea en la barra de tareas. `Ctrl+rueda` hace zoom en el panel que hay bajo el puntero, y el pellizco del panel táctil va escalón a escalón.
+- **Menús en la barra del sistema de macOS (desde la 0.20.1):** en macOS, Archivo, Herramientas y Preferencias están en la barra de menús de arriba de la pantalla, con las mismas entradas, atajos y casillas que antes tenían en la ventana (donde se ocultan); lo marcado o deshabilitado sigue al documento, al Modo Edición y al idioma. En Windows, Linux y Android no cambia nada.
 - **Menús Archivo, Herramientas y Preferencias (desde la 0.19.0):** la cabecera agrupa las acciones en tres menús —como `dbv-typst-editor`— en vez de una fila de botones, con los atajos a la vista y navegación por teclado. Buscar, Modo Edición, panel lateral, tema, idioma y ayuda siguen a un clic.
 - **Ayuda integrada con dos pestañas (desde la 0.19.0):** `F1`, el botón «?» o Herramientas → Ayuda abren la **Guía de la aplicación** (abrir, leer, buscar, editar, IA, exportar, preferencias y atajos) y la chuleta de **Sintaxis Markdown**.
 - **Idiomas ampliables (desde la 0.19.0):** español, inglés y **coreano (한국어)**, elegibles en un desplegable que sale de un registro de idiomas (añadir otro es un diccionario más). Se detecta el idioma del sistema y, si no hay traducción, se usa el inglés. La IA contesta en el idioma elegido.
@@ -346,6 +347,7 @@ dbv-md-reader/
 │   ├── sourcesync.js      # Sincronización edición ↔ vista previa (lógica pura)
 │   ├── imagepaste.js      # Pegar o soltar imágenes (lógica pura)
 │   ├── headermenu.js      # Menús de la cabecera (Archivo, Herramientas, Preferencias)
+│   ├── nativemenu.js      # Menús de la barra de macOS: describe los de la cabecera y Rust los pinta
 │   ├── i18n.js            # Registro de idiomas (+ i18n.ko.js); guías en apphelp_*.md y markdownhelp_*.md
 │   └── styles.css         # Estilos y tokens de color
 ├── dbv-specs-ops/         # Especificaciones SDD y marco de ingeniería

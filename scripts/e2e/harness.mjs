@@ -12,8 +12,8 @@
 // file:// Chromium bloquea el `import()` de módulos.
 //
 // Uso: ver `scripts/e2e/*.e2e.mjs` y `npm run test:e2e`.
-import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
@@ -56,6 +56,26 @@ export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', 
     '--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
     `--window-size=${width},${height}`, '--no-first-run', '--disable-gpu', 'about:blank',
   ], { stdio: 'ignore' });
+  // Edge debe morir con el banco aunque este lance una excepción antes de `close()`: en Windows el hijo sobrevive
+  // al proceso de Node, se queda con el puerto de depuración y el banco siguiente puede acabar hablando con él.
+  // En Windows el PID de `spawn` es el de un lanzador que sale enseguida: el navegador real es hijo suyo y queda
+  // huérfano, así que ni `proc.kill()` ni `taskkill /T` lo alcanzan. Se mata por perfil: todo proceso de Edge cuya
+  // línea de comandos lleve la carpeta temporal de este banco (el navegador, render, GPU, crashpad…).
+  let stopped = false;
+  const stopEdge = () => {
+    if (stopped) return;
+    stopped = true;
+    if (process.platform === 'win32') {
+      const script = `Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" | Where-Object { $_.CommandLine -and $_.CommandLine.Contains('${profile.replace(/'/g, "''")}') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+      spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { stdio: 'ignore' });
+    } else proc.kill();
+    // Justo tras matar a Edge, el sistema (o el antivirus) aún retiene ficheros del perfil unos instantes: se reintenta
+    // hasta ~5 s en vez de rendirse a los 300 ms y dejar la carpeta en %TEMP%.
+    for (let i = 0; i < 25 && existsSync(profile); i++) {
+      try { rmSync(profile, { recursive: true, force: true }); } catch { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200); }
+    }
+  };
+  process.once('exit', stopEdge);
   let targets;
   for (let i = 0; i < 60; i++) {
     try { targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); if (targets.some((t) => t.type === 'page')) break; } catch {}
@@ -165,7 +185,7 @@ export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', 
       const r = await send('Page.captureScreenshot', { format: 'png' });
       writeFileSync(file, Buffer.from(r.data, 'base64'));
     },
-    async close() { try { ws.close(); } catch {} proc.kill(); server.close(); },
+    async close() { try { ws.close(); } catch {} stopEdge(); server.close(); },
   };
   return api;
 }
