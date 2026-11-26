@@ -7,6 +7,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+### Corregido
+- **macOS: abrir un documento en pestaña ya no mueve la ventana (RF-61.6).** Cada ventana nueva se centraba después de crearse; al entrar como pestaña, arrastraba todo el grupo al centro de la pantalla principal y podía encogerlo.
+
 ---
 
 ## [0.20.1] - 2026-11-23

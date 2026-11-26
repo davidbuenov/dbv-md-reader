@@ -256,8 +256,12 @@ fn open_document_window(app: &tauri::AppHandle, path: String, options: DocumentO
         .inner_size(1120.0, 760.0)
         .min_inner_size(640.0, 450.0)
         .resizable(true)
-        .center()
         .initialization_script(&init_script);
+    // @spec RF-61 — en macOS no se llama a `center()`: Tauri aplica la posición DESPUÉS de crear la
+    // ventana, cuando ya puede ser una pestaña, y arrastraría todo el grupo. Sin posición, `tao`
+    // la centra antes de mostrarla.
+    #[cfg(not(target_os = "macos"))]
+    let builder = builder.center();
     // @spec RF-61 — macOS decide pestaña o ventana según la preferencia del sistema.
     #[cfg(target_os = "macos")]
     let builder = builder.tabbing_identifier(DOCUMENT_TABBING_IDENTIFIER);
