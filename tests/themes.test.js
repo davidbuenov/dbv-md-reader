@@ -261,7 +261,8 @@ describe('RF-49.4/50.5 · arranque en el DOM, persistencia y otras ventanas', ()
 // D3: deriva frente a typst. Se salta si el repo hermano no está (CI, otra máquina).
 const typstPath = resolve(process.cwd(), '..', 'dbv-typst-editor', 'src', 'themes', 'theme.js');
 describe.skipIf(!existsSync(typstPath))('D3 · los 18 tokens comunes son los de dbv-typst-editor', () => {
-  const typst = readFileSync(typstPath, 'utf8');
+  // El cuerpo de un `describe` omitido se ejecuta igual al recoger los tests: no leer si no está.
+  const typst = existsSync(typstPath) ? readFileSync(typstPath, 'utf8') : '';
   for (const c of T.CURATED_THEMES) {
     it(c.id, () => {
       const at = typst.indexOf(`id: '${c.id}'`);

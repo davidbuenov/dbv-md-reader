@@ -99,6 +99,9 @@ export async function launch({ appDir, docPath, docContent, extraInvoke = '{}', 
   });
   await send('Page.enable');
   await send('Runtime.enable');
+  // Los bancos comprueban textos en español: el idioma es el de la prueba, no el del equipo donde corre.
+  const { userAgent } = await send('Browser.getVersion');
+  await send('Emulation.setUserAgentOverride', { userAgent, acceptLanguage: 'es-ES' });
   const errors = [];
   const poll = () => { for (const e of events.splice(0)) {
     if (e.method === 'Runtime.exceptionThrown') errors.push(e.params.exceptionDetails.exception?.description || e.params.exceptionDetails.text);
