@@ -270,6 +270,22 @@ fn open_document_window(app: &tauri::AppHandle, path: String, options: DocumentO
     Ok(())
 }
 
+/// Ejecuta `task` en el hilo principal **fuera** del manejador de eventos de tao. En macOS, en pantalla completa,
+/// crear o enfocar una ventana la repinta de forma síncrona como pestaña, y `draw_rect` de tao vuelve a pedir el
+/// cerrojo del manejador: si ya estamos dentro (`RunEvent::Opened`, comandos, `run_on_main_thread`), el hilo
+/// principal se bloquea contra sí mismo. La cola principal de GCD se atiende sin ese cerrojo.
+/// @spec RF-61
+#[cfg(target_os = "macos")]
+fn run_for_window_change(_app: &tauri::AppHandle, task: impl FnOnce() + Send + 'static) -> tauri::Result<()> {
+    dispatch2::DispatchQueue::main().exec_async(task);
+    Ok(())
+}
+
+#[cfg(all(desktop, not(target_os = "macos")))]
+fn run_for_window_change(app: &tauri::AppHandle, task: impl FnOnce() + Send + 'static) -> tauri::Result<()> {
+    app.run_on_main_thread(task)
+}
+
 /// Opens `path` in a new window, unless a live window already displays that exact document —
 /// in that case brings the existing window to the front instead of stacking a duplicate. Used
 /// by every "open a file while the app is already running" entry point (RF-14 single-instance
@@ -789,7 +805,7 @@ pub mod commands {
     ) -> Result<(), String> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
         let app_handle = app.clone();
-        app.run_on_main_thread(move || {
+        run_for_window_change(&app, move || {
             let result = open_or_focus_document(&app_handle, path, options.unwrap_or_default())
                 .map_err(|e| e.to_string());
             let _ = sender.send(result);
@@ -1111,7 +1127,7 @@ pub fn run() {
             // ventana más en este mismo proceso (o, sin ruta, enfoca una existente).
             let app_handle = app.clone();
             let path = first_path_argument(argv);
-            let _ = app_handle.clone().run_on_main_thread(move || match path {
+            let _ = run_for_window_change(app, move || match path {
                 Some(path) => {
                     if let Err(e) = open_or_focus_document(&app_handle, path, DocumentOpenOptions::default()) {
                         eprintln!("[open_document] {e}");
@@ -1307,7 +1323,13 @@ pub fn run() {
                     if _app_handle.webview_windows().is_empty() {
                         *_app_handle.state::<OpenedFileState>().0.lock().unwrap() = Some(path);
                     } else {
-                        if let Err(e) = open_or_focus_document(_app_handle, path, DocumentOpenOptions::default()) {
+                        let app = _app_handle.clone();
+                        let queued = run_for_window_change(_app_handle, move || {
+                            if let Err(e) = open_or_focus_document(&app, path, DocumentOpenOptions::default()) {
+                                eprintln!("[open_document] {e}");
+                            }
+                        });
+                        if let Err(e) = queued {
                             eprintln!("[open_document] {e}");
                         }
                     }

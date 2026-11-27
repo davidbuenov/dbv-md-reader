@@ -546,6 +546,7 @@
   3. **Sin código nativo propio:** no se añaden crates de Objective-C ni código `unsafe` (descartada la etiqueta de marca en la barra de título de la PR). La pestaña muestra el título de RF-60.4.
   4. **Se conserva:** estado independiente por pestaña (cada una es su propia ventana y WebView, RF-14), reabrir un documento ya abierto selecciona su pestaña (RF-14, RF-60.1), la confirmación de cambios sin guardar al cerrar (RF-21) y los menús y atajos sobre la pestaña activa (RF-60.2).
   5. **Criterios de aceptación:** test Rust de que la configuración de `main` solo gana el identificador y no pierde nada más. **Sin verificar aquí** (no hay Mac): se pide a MiguelRegueira que lo pruebe con «Siempre», «Nunca» y «En pantalla completa», igual que se hizo con Víctor Estival en RF-29.
+  - **Pantalla completa (añadido 2026-11-27):** abrir un documento con la app en pantalla completa añade la pestaña sin colgarse. Ninguna ventana se crea ni se enfoca desde dentro del manejador de eventos de tao.
 
 - [ ] **RF-62: «Buscar actualizaciones» que funcione fuera de las tiendas (issue #26 de johnblommers; amplía RF-13), especificado 2026-11-15:**
   1. **Causa confirmada (2026-11-15):** `https://github.com/davidbuenov/dbv-md-reader/releases/latest/download/latest.json` responde **404**, porque desde la 0.16.0 no se publica `latest.json` (ADR-047). El botón sigue visible fuera de la Store y de Android, y cualquier error se muestra como «verifica tu conexión».

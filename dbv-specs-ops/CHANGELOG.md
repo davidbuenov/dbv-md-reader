@@ -7,6 +7,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+### Corregido
+- **macOS: la app se colgaba al abrir un documento estando en pantalla completa (RF-61).** La ventana nueva se creaba dentro del manejador de eventos de tao; al entrar como pestaña, AppKit la repintaba de forma síncrona y el hilo principal se bloqueaba contra sí mismo. En macOS, crear o enfocar ventanas pasa ahora por la cola principal (`run_for_window_change`).
+
 ---
 
 ## [0.20.1] - 2026-11-23

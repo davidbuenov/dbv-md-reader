@@ -56,6 +56,10 @@ walkdir = "2.5"
 # RF-37: las imágenes pegadas llegan al comando de Rust en base64 (ya está en el árbol vía `tauri`).
 base64 = "0.22"
 
+# RF-61: crear ventanas fuera del bucle de eventos de tao (ver `run_for_window_change`). Ya está en el árbol vía `tao`.
+[target.'cfg(target_os = "macos")'.dependencies]
+dispatch2 = "0.3"
+
 # Slice 1 (versión Android, ver implementation_plan.md): capa mínima de Storage Access
 # Framework (SAF), primer código Kotlin del proyecto — sin equivalente de escritorio
 # (ADR-032 en memory.md), así que solo se depende de este crate al compilar para Android.
