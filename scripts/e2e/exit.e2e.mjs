@@ -28,6 +28,7 @@ const FAKE = `
   window.__win = [];
   const mk = (label) => ({ label,
     close: () => { window.__win.push('close:' + label); return Promise.resolve(); },
+    setFocus: () => Promise.resolve(),
     destroy: () => { window.__win.push('destroy:' + label); return Promise.resolve(); } });
   const real = window.__TAURI__.window;
   window.__TAURI__.window = Object.assign({}, real, {
@@ -63,6 +64,13 @@ async function main() {
   ok('Ctrl+Q también pregunta', await h.eval(`return !document.getElementById('discard-modal').classList.contains('hidden')`));
   await h.eval(`document.getElementById('discard-confirm').click()`); await h.sleep(300);
   ok('«Descartar cambios» cierra todas', (await calls(h)) === 'close:doc-1,close:doc-2,destroy:main', await calls(h));
+
+  // @spec RF-21 — en macOS ⌘Q llega como evento `menu-exit` desde el menú de la app.
+  await h.eval(`window.__win.length = 0; const ta = document.getElementById('editor-textarea'); ta.value += ' más'; ta.dispatchEvent(new Event('input', { bubbles: true }))`); await h.sleep(100);
+  await h.eval(`window.__emit('menu-exit')`); await h.sleep(200);
+  ok('el evento menu-exit (⌘Q) pregunta antes de cerrar', await h.eval(`return !document.getElementById('discard-modal').classList.contains('hidden')`) && (await calls(h)) === '');
+  await h.eval(`document.getElementById('discard-cancel').click()`); await h.sleep(200);
+  ok('y «Seguir editando» no cierra nada', (await calls(h)) === '', await calls(h));
 
   ok('sin excepciones ni console.error', (await h.errors()).length === 0, JSON.stringify(await h.errors()));
   await h.close();
