@@ -803,6 +803,7 @@ version = "0.20.1"
 dependencies = [
  "base64 0.22.1",
  "ctor",
+ "dispatch2",
  "keyring",
  "notify",
  "rustls",
