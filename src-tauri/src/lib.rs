@@ -909,7 +909,15 @@ mod macos_menu {
                 &PredefinedMenuItem::hide(handle, None)?,
                 &PredefinedMenuItem::hide_others(handle, None)?,
                 &PredefinedMenuItem::separator(handle)?,
-                &PredefinedMenuItem::quit(handle, None)?,
+                // @spec RF-21 — no es `PredefinedMenuItem::quit`: ese llama a `terminate:`, que mata el proceso sin
+                // avisar a las ventanas y perdía los cambios sin guardar. Esta entrada pasa por `exitApplication()`.
+                &MenuItem::with_id(
+                    handle,
+                    "quit_app",
+                    format!("{} {}", if es { "Salir de" } else { "Quit" }, pkg_info.name),
+                    true,
+                    Some("CmdOrCtrl+Q"),
+                )?,
             ],
         )?;
 
@@ -1076,6 +1084,7 @@ pub fn menu_event_name(id: &str) -> Option<&'static str> {
         "open_file" => Some("menu-open-file"),
         "save" => Some("menu-save"),
         "toggle_edit_mode" => Some("menu-toggle-edit-mode"),
+        "quit_app" => Some("menu-exit"),
         _ => None,
     }
 }
@@ -1705,6 +1714,12 @@ mod tests {
         assert_eq!(menu_event_name("open_file"), Some("menu-open-file"));
         assert_eq!(menu_event_name("save"), Some("menu-save"));
         assert_eq!(menu_event_name("toggle_edit_mode"), Some("menu-toggle-edit-mode"));
+    }
+
+    /// @spec RF-21 — ⌘Q en macOS pasa por el frontend, que pregunta por los cambios sin guardar.
+    #[test]
+    fn salir_en_macos_pasa_por_el_frontend() {
+        assert_eq!(menu_event_name("quit_app"), Some("menu-exit"));
     }
 
     /// @spec RF-29

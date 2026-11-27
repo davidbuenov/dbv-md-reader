@@ -2709,6 +2709,9 @@
       // Tauri hace `await handler(evt)` antes de mirar isPreventDefault(),
       // así que hasta que no se resuelve confirmDiscardUnsavedChanges() no
       // decide si de verdad se cierra la ventana o no.
+      // @spec RF-21 — al salir de la app, otra ventana (o una pestaña oculta) puede ser la que pregunta: se trae
+      // delante para que el aviso se vea.
+      if (editMode && isDirty) currentWindow.setFocus().catch(function (err) { console.warn('[close:setFocus]', err); });
       return confirmDiscardUnsavedChanges().then(function (proceed) {
         if (!proceed) event.preventDefault();
       });
@@ -2734,6 +2737,8 @@
   listenHere('menu-new-file', createNewFile);
   listenHere('menu-save', saveCurrentDocument);
   listenHere('menu-toggle-edit-mode', toggleEditMode);
+  // @spec RF-21 — ⌘Q del menú de la app en macOS.
+  listenHere('menu-exit', exitApplication);
   // RF-60.3: si el documento pedido ya estaba abierto en esta ventana, Rust la enfoca y le manda las
   // opciones de la apertura (Modo Edición, ancla).
   listenHere('document-open-options', function (event) {

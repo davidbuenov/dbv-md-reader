@@ -7,6 +7,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+### Corregido
+- **macOS: `⌘Q` descartaba los cambios sin guardar sin preguntar (RF-21).** El «Salir» predefinido del menú mataba el proceso sin avisar a las ventanas. Ahora pasa por el mismo flujo que Archivo ▸ Salir, y la pestaña que pregunta se trae delante. «Salir» desde el Dock y el apagado de macOS siguen sin preguntar.
+
 ---
 
 ## [0.20.1] - 2026-11-23
