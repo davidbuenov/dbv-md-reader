@@ -7,6 +7,10 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/
 
 ## [Sin publicar]
 
+### Corregido (pruebas)
+- **`tests/themes.test.js` fallaba sin el repo hermano `dbv-typst-editor`:** leía su fichero aunque el bloque estuviera omitido.
+- **Los bancos e2e fallaban en un equipo en inglés:** el arnés fija ahora `es-ES`.
+
 ---
 
 ## [0.20.1] - 2026-11-23
